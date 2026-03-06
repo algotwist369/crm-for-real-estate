@@ -6,6 +6,7 @@ import Login from './pages/auth/Login';
 import AgentPage from "./pages/AgentPage";
 import LeadsPage from "./pages/LeadsPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import PropertiesPage from "./pages/PropertiesPage";
 
 const App = () => {
   return (
@@ -14,17 +15,18 @@ const App = () => {
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
+
         {/* Private Routes */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/agents" element={<AgentPage />} />
-        
+
         {/* Missing Pages (Placeholders) */}
-        <Route path="/properties" element={<PlaceholderPage />} />
+        <Route path="/properties" element={<PropertiesPage />} />
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/reports" element={<PlaceholderPage />} />
         <Route path="/settings" element={<PlaceholderPage />} />
+
 
         {/* Catch All */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

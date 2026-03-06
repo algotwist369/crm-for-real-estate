@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import AppLayout from "../component/layout/AppLayout";
-import { 
-    FiPlus, 
-    FiSearch, 
-    FiEdit, 
-    FiTrash2, 
-    FiEye, 
-    FiPhone, 
+import {
+    FiPlus,
+    FiSearch,
+    FiEdit,
+    FiTrash2,
+    FiEye,
+    FiPhone,
     FiMail,
     FiMessageSquare,
     FiTrendingUp
@@ -109,11 +109,11 @@ const LeadsPage = () => {
 
     /* ─── Filters & Search ─── */
     const filteredLeads = leads.filter(lead => {
-        const matchesSearch = 
+        const matchesSearch =
             lead.name.toLowerCase().includes(search.toLowerCase()) ||
             lead.phone.includes(search) ||
             lead.requirement.toLowerCase().includes(search.toLowerCase());
-        
+
         const matchesStatus = statusFilter === "All" || lead.status === statusFilter;
         const matchesPriority = priorityFilter === "All" || lead.priority === priorityFilter;
 
@@ -153,13 +153,13 @@ const LeadsPage = () => {
                     <h2 className="text-2xl font-bold text-white mb-1">Lead Pipeline</h2>
                     <p className="text-sm text-zinc-500 font-medium italic">Track and manage your potential property buyers</p>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                     <RefreshButton onClick={handleRefresh} />
                     <div className="w-44">
-                        <PremiumButton 
-                            text="Add New Lead" 
-                            variant="primary" 
+                        <PremiumButton
+                            text="Add New Lead"
+                            variant="primary"
                             onClick={() => setIsAddModalOpen(true)}
                         />
                     </div>
@@ -177,7 +177,7 @@ const LeadsPage = () => {
                         <h3 className="text-xl font-black text-white">{leads.filter(l => l.status === "Closed").length}</h3>
                     </div>
                 </div>
-                
+
                 <div className="flex-1 min-w-[280px] bg-zinc-950/40 border border-blue-500/10 p-4 rounded-2xl flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-2xl flex items-center justify-center">
                         <MdOutlineFactCheck size={24} />
@@ -202,18 +202,18 @@ const LeadsPage = () => {
             {/* Filters Bar */}
             <div className="bg-zinc-950/50 backdrop-blur-md border border-zinc-800/50 rounded-2xl p-5 mb-6 flex flex-col lg:flex-row lg:items-center gap-6 shadow-xl">
                 <div className="flex-1">
-                    <SearchFilter 
+                    <SearchFilter
                         searchValue={search}
                         onSearchChange={(e) => setSearch(e.target.value)}
                         searchPlaceholder="Search leads by name, phone or requirement..."
                     />
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-6 lg:gap-8 lg:w-fit">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
                         <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest min-w-fit">Status:</span>
                         <div className="flex-1 sm:w-[400px]">
-                            <PremiumTabs 
+                            <PremiumTabs
                                 options={statusOptions}
                                 value={statusFilter}
                                 onChange={(val) => { setStatusFilter(val); setPage(1); }}
@@ -225,7 +225,7 @@ const LeadsPage = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
                         <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest min-w-fit">Priority:</span>
                         <div className="flex-1 sm:w-[300px]">
-                            <PremiumTabs 
+                            <PremiumTabs
                                 options={priorityOptions}
                                 value={priorityFilter}
                                 onChange={(val) => { setPriorityFilter(val); setPage(1); }}
@@ -252,21 +252,19 @@ const LeadsPage = () => {
                         </thead>
                         <tbody className="divide-y divide-zinc-800/30">
                             {paginatedLeads.map((lead, index) => (
-                                <tr 
-                                    key={lead.id} 
-                                    className={`group hover:bg-zinc-900/50 transition-all duration-200 ${
-                                        lead.status === "Wasted" ? "opacity-50 grayscale-[0.3]" : ""
-                                    }`}
+                                <tr
+                                    key={lead.id}
+                                    className={`group hover:bg-zinc-900/50 transition-all duration-200 ${lead.status === "Wasted" ? "opacity-50 grayscale-[0.3]" : ""
+                                        }`}
                                 >
                                     <td className="p-4 text-xs font-bold text-zinc-600">
                                         #{(page - 1) * rowsPerPage + index + 1}
                                     </td>
-                                    
+
                                     <td className="p-4">
                                         <div className="flex flex-col">
-                                            <span className={`text-sm font-semibold text-white group-hover:text-blue-400 transition-colors ${
-                                                lead.status === "Wasted" ? "line-through" : ""
-                                            }`}>
+                                            <span className={`text-sm font-semibold text-white group-hover:text-blue-400 transition-colors ${lead.status === "Wasted" ? "line-through" : ""
+                                                }`}>
                                                 {lead.name}
                                             </span>
                                             <span className="text-[10px] text-zinc-500 font-medium">
@@ -295,29 +293,26 @@ const LeadsPage = () => {
                                     </td>
 
                                     <td className="p-4 text-xs font-medium text-zinc-300">
-                                        <div className={`flex items-center gap-2 max-w-[180px] ${
-                                            lead.status === "Wasted" ? "line-through text-zinc-600" : ""
-                                        }`} title={lead.requirement}>
+                                        <div className={`flex items-center gap-2 max-w-[180px] ${lead.status === "Wasted" ? "line-through text-zinc-600" : ""
+                                            }`} title={lead.requirement}>
                                             <MdOutlineFactCheck size={14} className={`shrink-0 ${lead.status === "Wasted" ? "text-zinc-600" : "text-blue-400"}`} />
                                             <span className="truncate">{lead.requirement}</span>
                                         </div>
                                     </td>
 
                                     <td className="p-4">
-                                        <span className={`text-sm font-black text-white px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-lg ${
-                                            lead.status === "Wasted" ? "line-through text-zinc-600 border-zinc-900 opacity-60" : ""
-                                        }`}>
+                                        <span className={`text-sm font-black text-white px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-lg ${lead.status === "Wasted" ? "line-through text-zinc-600 border-zinc-900 opacity-60" : ""
+                                            }`}>
                                             {lead.budget}
                                         </span>
                                     </td>
 
                                     <td className="p-4">
                                         <div className={`flex items-center gap-1.5 ${lead.status === "Wasted" ? "opacity-40" : ""}`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${
-                                                lead.clientType === "Rent" ? "bg-amber-400" :
+                                            <span className={`w-1.5 h-1.5 rounded-full ${lead.clientType === "Rent" ? "bg-amber-400" :
                                                 lead.clientType === "Buying" ? "bg-emerald-400" :
-                                                "bg-indigo-400"
-                                            }`} />
+                                                    "bg-indigo-400"
+                                                }`} />
                                             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                                                 {lead.clientType || "Buying"}
                                             </span>
@@ -334,13 +329,12 @@ const LeadsPage = () => {
                                         <div className="flex items-center group/agents relative min-w-[120px]" title={lead.assignedTo}>
                                             <div className="flex -space-x-2 mr-2">
                                                 {lead.assignedTo.split(", ").map((agent, i) => (
-                                                    <div 
+                                                    <div
                                                         key={i}
-                                                        className={`w-7 h-7 rounded-full border-2 border-zinc-950 flex items-center justify-center text-[10px] font-bold transition-transform group-hover/agents:translate-x-1 ${
-                                                            i % 3 === 0 ? "bg-blue-600 text-white" :
+                                                        className={`w-7 h-7 rounded-full border-2 border-zinc-950 flex items-center justify-center text-[10px] font-bold transition-transform group-hover/agents:translate-x-1 ${i % 3 === 0 ? "bg-blue-600 text-white" :
                                                             i % 3 === 1 ? "bg-indigo-600 text-white" :
-                                                            "bg-violet-600 text-white"
-                                                        }`}
+                                                                "bg-violet-600 text-white"
+                                                            }`}
                                                         style={{ zIndex: 10 - i }}
                                                     >
                                                         {agent.charAt(0)}
@@ -367,12 +361,11 @@ const LeadsPage = () => {
 
                                     <td className="p-4">
                                         <div className={`flex items-center gap-2 group/status`}>
-                                            <div className={`w-2 h-2 rounded-full ${
-                                                lead.status === "Closed" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : 
+                                            <div className={`w-2 h-2 rounded-full ${lead.status === "Closed" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" :
                                                 lead.status === "Follow-up" ? "bg-orange-500" :
-                                                lead.status === "Lost" ? "bg-red-500" : 
-                                                lead.status === "Wasted" ? "bg-purple-500" : "bg-blue-500"
-                                            }`} />
+                                                    lead.status === "Lost" ? "bg-red-500" :
+                                                        lead.status === "Wasted" ? "bg-purple-500" : "bg-blue-500"
+                                                }`} />
                                             <select
                                                 value={lead.status}
                                                 onChange={(e) => handleUpdateField(lead.id, 'status', e.target.value)}
@@ -390,7 +383,7 @@ const LeadsPage = () => {
                                             <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white hover:border-zinc-700 cursor-pointer transition-all">
                                                 <FiEye size={16} />
                                             </div>
-                                            <div 
+                                            <div
                                                 className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-blue-400 hover:border-blue-400/30 cursor-pointer transition-all"
                                                 onClick={() => {
                                                     setEditingLead(lead);
@@ -399,7 +392,7 @@ const LeadsPage = () => {
                                             >
                                                 <FiEdit size={16} />
                                             </div>
-                                            <div 
+                                            <div
                                                 className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-red-400 hover:border-red-400/30 cursor-pointer transition-all"
                                                 onClick={() => handleDeleteLead(lead.id)}
                                             >
@@ -415,7 +408,7 @@ const LeadsPage = () => {
 
                 {/* Pagination Section */}
                 <div className="p-6 border-t border-zinc-800/50 bg-zinc-900/10">
-                    <Pagination 
+                    <Pagination
                         currentPage={page}
                         totalPages={totalPages}
                         onPageChange={setPage}
@@ -426,23 +419,23 @@ const LeadsPage = () => {
             </div>
 
             {/* Modals */}
-            <AddLeadModal 
-                isOpen={isAddModalOpen} 
-                onClose={() => setIsAddModalOpen(false)} 
-                onAdd={handleAddLead} 
+            <AddLeadModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onAdd={handleAddLead}
             />
-            
-            <EditLeadModal 
-                isOpen={isEditModalOpen} 
+
+            <EditLeadModal
+                isOpen={isEditModalOpen}
                 onClose={() => {
                     setIsEditModalOpen(false);
                     setEditingLead(null);
-                }} 
-                onUpdate={handleUpdateLead} 
+                }}
+                onUpdate={handleUpdateLead}
                 lead={editingLead}
             />
-            
-            
+
+
         </AppLayout>
     );
 };
