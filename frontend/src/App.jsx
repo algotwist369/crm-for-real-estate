@@ -7,6 +7,8 @@ import AgentPage from "./pages/AgentPage";
 import LeadsPage from "./pages/LeadsPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import PropertiesPage from "./pages/PropertiesPage";
+import ReportsPage from "./pages/ReportsPage";
+import SettingsPage from "./pages/SettingsPage";
 
 const App = () => {
   return (
@@ -24,8 +26,8 @@ const App = () => {
         {/* Missing Pages (Placeholders) */}
         <Route path="/properties" element={<PropertiesPage />} />
         <Route path="/leads" element={<LeadsPage />} />
-        <Route path="/reports" element={<PlaceholderPage />} />
-        <Route path="/settings" element={<PlaceholderPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
 
 
         {/* Catch All */}

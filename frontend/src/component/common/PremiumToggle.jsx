@@ -3,7 +3,7 @@ import React from "react";
 export const PremiumToggle = ({
     label,
     enabled,
-    setEnabled,
+    onChange,
 }) => {
     return (
         <div className="flex items-center justify-between w-full">
@@ -16,7 +16,7 @@ export const PremiumToggle = ({
 
             <button
                 type="button"
-                onClick={() => setEnabled(!enabled)}
+                onClick={() => onChange(!enabled)}
                 className={`relative w-12 h-6 flex items-center rounded-full border px-1 transition-colors duration-300
                 ${enabled ? "bg-zinc-200 border-zinc-200" : "bg-zinc-900 border-zinc-700"}`}
             >

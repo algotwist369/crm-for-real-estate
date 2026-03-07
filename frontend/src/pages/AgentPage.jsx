@@ -256,7 +256,7 @@ const Agents = () => {
                                 <td className="p-3">
                                     <PremiumToggle
                                         enabled={agent.status}
-                                        setEnabled={() => toggleStatus(agent.id)}
+                                        onChange={() => toggleStatus(agent.id)}
                                     />
                                 </td>
 

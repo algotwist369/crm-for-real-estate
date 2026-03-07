@@ -39,7 +39,7 @@ const AppLayout = ({ children }) => {
             >
 
                 {/* Header */}
-                <header className="h-16 flex items-center justify-between border-b border-zinc-800 px-6">
+                <header className="sticky top-0 z-40 h-20 flex items-center justify-between border-b border-zinc-800/50 bg-black/40 backdrop-blur-xl px-8 transition-all duration-300">
 
                     <div className="flex items-center gap-4">
 
