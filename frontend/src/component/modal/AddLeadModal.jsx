@@ -2,7 +2,7 @@ import { PremiumCheckbox } from "../common/PremiumCheckbox";
 import React, { useState } from "react";
 import { PremiumInput } from "../common/PremiumInput";
 import { PremiumButton } from "../common/PremiumButton";
-import { FiX, FiUser, FiSmartphone, FiMail, FiTarget, FiDollarSign, FiShare2 } from "react-icons/fi";
+import { FiX, FiUser, FiSmartphone, FiMail, FiTarget, FiDollarSign, FiShare2, FiHome } from "react-icons/fi";
 import { PremiumTabs } from "../common/PremiumTabs";
 
 const REQUIREMENTS = ["1BHK Flat", "2BHK Flat", "3BHK Flat", "Villa", "Plot", "Office Space", "Commercial Shop", "Penthouse", "Studio Flat"];
@@ -10,6 +10,17 @@ const SOURCES = ["Facebook", "Instagram", "Google Ads", "Website", "Walk-in", "R
 const AGENTS = ["Rahul Sharma", "Priya Verma", "Amit Patel", "Neha Singh", "Vikas Gupta", "Rohit Jain", "Arjun Mehta", "Karan Kapoor", "Sanjay Rao", "Deepika Nair"];
 
 const CLIENT_TYPES = ["Rent", "Buying", "Investing"];
+
+const FOLLOWUP_PRESETS = [
+    { label: "Yesterday", value: -1 },
+    { label: "Today", value: 0 },
+    { label: "Tomorrow", value: 1 },
+    { label: "5 Days", value: 5 },
+    { label: "7 Days", value: 7 },
+    { label: "1 Month", value: 30 },
+    { label: "3 Month", value: 90 },
+    { label: "Custom", value: null }
+];
 
 const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
     const [formData, setFormData] = useState({
@@ -21,7 +32,7 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
         budget: "",
         isCustomBudget: false,
         source: SOURCES[0],
-        assignedAgents: [AGENTS[0]],
+        properties: "",
         priority: "Medium",
         clientType: "Buying",
     });
@@ -37,14 +48,7 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
         });
     };
 
-    const toggleAgent = (agent) => {
-        setFormData(prev => {
-            const assignedAgents = prev.assignedAgents.includes(agent)
-                ? prev.assignedAgents.filter(a => a !== agent)
-                : [...prev.assignedAgents, agent];
-            return { ...prev, assignedAgents };
-        });
-    };
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -64,7 +68,7 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
             ...formData,
             requirement: finalRequirements.join(", ") || "Not Specified",
             budget: formData.isCustomBudget ? formData.budget : (formData.budget || "Not Specified"),
-            assignedTo: formData.assignedAgents.join(", ") || "Unassigned"
+            properties: formData.properties.trim() || "None",
         });
 
         // Reset
@@ -77,7 +81,7 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
             budget: "",
             isCustomBudget: false,
             source: SOURCES[0],
-            assignedAgents: [AGENTS[0]],
+            properties: "",
             priority: "Medium",
             clientType: "Buying",
         });
@@ -231,17 +235,13 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
 
                         <div className="grid grid-cols-2 gap-4 pt-2">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block">Assign to Agents (Select Multiple)</label>
-                                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3 max-h-[120px] overflow-y-auto custom-scrollbar space-y-2">
-                                    {AGENTS.map(agent => (
-                                        <PremiumCheckbox
-                                            key={agent}
-                                            label={agent}
-                                            checked={formData.assignedAgents.includes(agent)}
-                                            onChange={() => toggleAgent(agent)}
-                                        />
-                                    ))}
-                                </div>
+                                <PremiumInput
+                                    label="Interested Properties (IDs)"
+                                    placeholder="e.g. PROP001, PROP002"
+                                    value={formData.properties}
+                                    onChange={(e) => handleChange({ target: { name: 'properties', value: e.target.value } })}
+                                    icon={<FiHome />}
+                                />
                             </div>
 
                             <div className="space-y-2">
