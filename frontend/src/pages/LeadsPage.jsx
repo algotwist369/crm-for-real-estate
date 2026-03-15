@@ -222,25 +222,51 @@ const LeadsPage = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
                         <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest min-w-fit">Status:</span>
                         <div className="flex-1 sm:w-[400px]">
-                            <PremiumTabs
-                                options={statusOptions}
-                                value={statusFilter}
-                                onChange={(val) => { setStatusFilter(val); setPage(1); }}
-                                showLabel={false}
-                            />
+                            <div className="sm:hidden">
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                                    className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors appearance-none"
+                                >
+                                    {statusOptions.map(s => (
+                                        <option key={s} value={s} className="bg-zinc-900 text-zinc-300">{s}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="hidden sm:block">
+                                <PremiumTabs
+                                    options={statusOptions}
+                                    value={statusFilter}
+                                    onChange={(val) => { setStatusFilter(val); setPage(1); }}
+                                    showLabel={false}
+                                />
+                            </div>
                         </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
                         <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest min-w-fit">Priority:</span>
                         <div className="flex-1 sm:w-[300px]">
-                            <PremiumTabs
-                                options={priorityOptions}
-                                value={priorityFilter}
-                                onChange={(val) => { setPriorityFilter(val); setPage(1); }}
-                                showLabel={false}
-                                variant="indigo"
-                            />
+                            <div className="sm:hidden">
+                                <select
+                                    value={priorityFilter}
+                                    onChange={(e) => { setPriorityFilter(e.target.value); setPage(1); }}
+                                    className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500/50 transition-colors appearance-none"
+                                >
+                                    {priorityOptions.map(p => (
+                                        <option key={p} value={p} className="bg-zinc-900 text-zinc-300">{p}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="hidden sm:block">
+                                <PremiumTabs
+                                    options={priorityOptions}
+                                    value={priorityFilter}
+                                    onChange={(val) => { setPriorityFilter(val); setPage(1); }}
+                                    showLabel={false}
+                                    variant="indigo"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

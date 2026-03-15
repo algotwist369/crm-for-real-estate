@@ -3,20 +3,27 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
     profile_pic: {
         type: String,
-        required: true
+        trim: true,
+        default: ''
     },
     user_name: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
     email: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        trim: true,
+        lowercase: true,
+        match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     },
     phone_number: {
         type: String,
-        required: true
+        required: true,
+        trim: true,
+        unique: true
     },
     role: {
         type: String,
@@ -26,11 +33,15 @@ const userSchema = new mongoose.Schema({
     },
     hash_password: {
         type: String,
-        required: true
+        required: true,
+        select: false
     },
     settings: {
         type: mongoose.Schema.ObjectId,
         ref: 'Settings',
+    },
+    last_login_at: {
+        type: Date
     },
     is_paid:{
         type: Boolean,
@@ -40,6 +51,16 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    is_deleted: {
+        type: Boolean,
+        default: false,
+        index: true
+    },
+    deleted_at: {
+        type: Date
+    },
 }, { timestamps: true });
+
+userSchema.index({ role: 1, is_active: 1 });
 
 module.exports = mongoose.model('User', userSchema);

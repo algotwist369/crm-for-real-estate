@@ -1,0 +1,17 @@
+const express = require('express');
+
+const authRoutes = require('./auth.routes');
+const adminRoutes = require('./admin.routes');
+const agentRoutes = require('./agent.routes');
+const propertyRoutes = require('./property.routes');
+const leadRoutes = require('./lead.routes');
+
+const router = express.Router();
+
+router.use('/auth', authRoutes);
+router.use('/admin', adminRoutes);
+router.use('/agent', agentRoutes);
+router.use(propertyRoutes);
+router.use(leadRoutes);
+
+module.exports = router;

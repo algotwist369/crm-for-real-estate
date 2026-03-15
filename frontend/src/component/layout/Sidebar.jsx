@@ -6,6 +6,7 @@ import {
     FiPhone,
     FiBarChart2,
     FiSettings,
+    FiBell,
 } from "react-icons/fi";
 import { MdOutlineRealEstateAgent } from "react-icons/md";
 
@@ -15,6 +16,7 @@ const menuItems = [
     { name: "Leads", icon: <FiPhone />, path: "/leads" },
     { name: "Agents", icon: <FiUsers />, path: "/agents" },
     { name: "Reports", icon: <FiBarChart2 />, path: "/reports" },
+    { name: "Notifications", icon: <FiBell />, path: "/notifications" },
     { name: "Settings", icon: <FiSettings />, path: "/settings" },
 ];
 

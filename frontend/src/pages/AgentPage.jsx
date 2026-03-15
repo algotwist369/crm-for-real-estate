@@ -170,12 +170,25 @@ const Agents = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full md:w-auto">
                     <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest min-w-fit">Status:</span>
                     <div className="flex-1 sm:min-w-[250px]">
-                        <PremiumTabs 
-                            options={statusOptions}
-                            value={statusFilter}
-                            onChange={handleFilterChange}
-                            showLabel={false}
-                        />
+                        <div className="sm:hidden">
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => handleFilterChange(e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors appearance-none"
+                            >
+                                {statusOptions.map(s => (
+                                    <option key={s} value={s} className="bg-zinc-900 text-zinc-300">{s}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="hidden sm:block">
+                            <PremiumTabs 
+                                options={statusOptions}
+                                value={statusFilter}
+                                onChange={handleFilterChange}
+                                showLabel={false}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

@@ -9,6 +9,7 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import PropertiesPage from "./pages/PropertiesPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
+import NotificationsPage from "./pages/NotificationsPage";
 
 const App = () => {
   return (
@@ -28,6 +29,7 @@ const App = () => {
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
 
 
         {/* Catch All */}

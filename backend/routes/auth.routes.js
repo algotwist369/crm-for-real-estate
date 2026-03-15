@@ -1,0 +1,19 @@
+const express = require('express');
+const authController = require('../controller/auth.controller');
+const { uploadProfilePic } = require('./upload');
+const { authenticate, requireAdmin } = require('../middleware/auth');
+
+const router = express.Router();
+
+router.post('/admin/register', authController.register_admin);
+router.post('/admin/login', authController.login_admin);
+router.post('/agent/login', authController.login_agent);
+
+router.post('/logout', authenticate, authController.logout_admin);
+router.post('/change-password', authenticate, authController.change_password);
+
+router.patch('/admin/profile', requireAdmin, uploadProfilePic, authController.update_admin_profile);
+router.post('/admin/logout', requireAdmin, authController.logout_admin);
+router.post('/admin/change-password', requireAdmin, authController.change_password);
+
+module.exports = router;

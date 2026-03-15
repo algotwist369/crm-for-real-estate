@@ -30,20 +30,22 @@ const EditAgentModal = ({ isOpen, onClose, onUpdate, agent }) => {
     // Sync formData with the agent being edited
     useEffect(() => {
         if (agent && isOpen) {
-            setFormData({
-                name: agent.name || "",
-                role: agent.role || "",
-                phone: agent.phone || "",
-                email: agent.email || "",
-                pin: agent.pin || "",
-                image: agent.image || null,
-                assignedProperties: agent.assignedProperties || [],
+            queueMicrotask(() => {
+                setFormData({
+                    name: agent.name || "",
+                    role: agent.role || "",
+                    phone: agent.phone || "",
+                    email: agent.email || "",
+                    pin: agent.pin || "",
+                    image: agent.image || null,
+                    assignedProperties: agent.assignedProperties || [],
+                });
+                if (agent.image) {
+                    setPreview(typeof agent.image === "string" ? agent.image : URL.createObjectURL(agent.image));
+                } else {
+                    setPreview(null);
+                }
             });
-            if (agent.image) {
-                setPreview(typeof agent.image === 'string' ? agent.image : URL.createObjectURL(agent.image));
-            } else {
-                setPreview(null);
-            }
         }
     }, [agent, isOpen]);
 

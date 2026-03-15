@@ -44,27 +44,25 @@ const EditLeadModal = ({ isOpen, onClose, onUpdate, lead }) => {
             const standardReqs = existingReqs.filter(r => REQUIREMENTS.includes(r));
             const otherReqs = existingReqs.filter(r => !REQUIREMENTS.includes(r)).join(", ");
 
-            // Parse existing agents string
-            const existingAgents = lead.assignedTo ? lead.assignedTo.split(", ").map(a => a.trim()) : [];
-            const standardAgents = existingAgents.filter(a => AGENTS.includes(a));
-
             // Check if budget is one of the standard options
             const standardBudgets = ["₹20L - ₹50L", "₹50L - ₹1Cr", "₹1Cr - ₹2Cr", "₹2Cr - ₹5Cr", "₹5Cr+"];
             const isCustomBudget = lead.budget && !standardBudgets.includes(lead.budget);
 
-            setFormData({
-                name: lead.name || "",
-                phone: lead.phone || "",
-                email: lead.email || "",
-                requirements: standardReqs,
-                otherRequirement: otherReqs,
-                budget: lead.budget || "",
-                isCustomBudget: isCustomBudget,
-                source: lead.source || SOURCES[0],
-                properties: lead.properties || "None",
-                priority: lead.priority || "Medium",
-                status: lead.status || "New",
-                clientType: lead.clientType || "Buying",
+            queueMicrotask(() => {
+                setFormData({
+                    name: lead.name || "",
+                    phone: lead.phone || "",
+                    email: lead.email || "",
+                    requirements: standardReqs,
+                    otherRequirement: otherReqs,
+                    budget: lead.budget || "",
+                    isCustomBudget: isCustomBudget,
+                    source: lead.source || SOURCES[0],
+                    properties: lead.properties || "None",
+                    priority: lead.priority || "Medium",
+                    status: lead.status || "New",
+                    clientType: lead.clientType || "Buying",
+                });
             });
         }
     }, [lead, isOpen]);

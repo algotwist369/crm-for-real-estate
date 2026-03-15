@@ -45,7 +45,7 @@ const initialProperties = [
 ];
 
 /* ─── Table Columns ─── */
-const tableColumns = ["#", "Property Info", "Type", "Price", "Location", "Specifications", "Agent", "Views", "Status", "Actions"];
+const tableColumns = ["#", "Property Info", "Type", "Price", "Location", "Specifications", "Agent", "Status", "Actions"];
 
 /* ─── Filter Options ─── */
 const statusOptions = ["All", "active", "inactive", "sold"];
@@ -180,15 +180,7 @@ const PropertiesPage = () => {
                     </div>
                 </div>
 
-                <div className="flex-1 min-w-[280px] bg-zinc-950/40 border border-orange-500/10 p-4 rounded-2xl flex items-center gap-4">
-                    <div className="w-12 h-12 bg-orange-500/10 text-orange-500 border border-orange-500/20 rounded-2xl flex items-center justify-center">
-                        <FiActivity size={24} />
-                    </div>
-                    <div>
-                        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Total Page Views</p>
-                        <h3 className="text-xl font-black text-white">{properties.reduce((acc, p) => acc + (p.views || 0), 0).toLocaleString()}</h3>
-                    </div>
-                </div>
+
             </div>
 
             {/* Filters Bar */}
@@ -203,27 +195,53 @@ const PropertiesPage = () => {
 
                 <div className="flex flex-wrap items-center gap-6 lg:gap-8 lg:w-fit">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
-                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest min-w-fit">Status:</span>
-                        <div className="flex-1 sm:w-[320px]">
-                            <PremiumTabs
-                                options={statusOptions}
-                                value={statusFilter}
-                                onChange={(val) => { setStatusFilter(val); setPage(1); }}
-                                showLabel={false}
-                            />
+                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest min-w-fit">Type:</span>
+                        <div className="flex-1 sm:w-[460px]">
+                            <div className="sm:hidden">
+                                <select
+                                    value={typeFilter}
+                                    onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+                                    className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500/50 transition-colors appearance-none"
+                                >
+                                    {typeOptions.map(t => (
+                                        <option key={t} value={t} className="bg-zinc-900 text-zinc-300">{t}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="hidden sm:block">
+                                <PremiumTabs
+                                    options={typeOptions}
+                                    value={typeFilter}
+                                    onChange={(val) => { setTypeFilter(val); setPage(1); }}
+                                    showLabel={false}
+                                    variant="indigo"
+                                />
+                            </div>
                         </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
-                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest min-w-fit">Type:</span>
-                        <div className="flex-1 sm:w-[360px]">
-                            <PremiumTabs
-                                options={typeOptions}
-                                value={typeFilter}
-                                onChange={(val) => { setTypeFilter(val); setPage(1); }}
-                                showLabel={false}
-                                variant="indigo"
-                            />
+                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest min-w-fit">Status:</span>
+                        <div className="flex-1 sm:w-[320px]">
+                            <div className="sm:hidden">
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                                    className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors appearance-none"
+                                >
+                                    {statusOptions.map(s => (
+                                        <option key={s} value={s} className="bg-zinc-900 text-zinc-300">{s}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="hidden sm:block">
+                                <PremiumTabs
+                                    options={statusOptions}
+                                    value={statusFilter}
+                                    onChange={(val) => { setStatusFilter(val); setPage(1); }}
+                                    showLabel={false}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -232,11 +250,11 @@ const PropertiesPage = () => {
             {/* Properties Table */}
             <div className="bg-zinc-950/50 backdrop-blur-md border border-zinc-800/50 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
                 <div className="overflow-x-auto scrollbar-hide">
-                    <table className="w-full text-left border-collapse min-w-[1200px]">
+                    <table className="w-full text-left border-collapse min-w-[1000px] sm:min-w-[1100px] lg:min-w-[1200px]">
                         <thead>
                             <tr className="border-b border-zinc-800/50 bg-zinc-900/30">
                                 {tableColumns.map((col, idx) => (
-                                    <th key={idx} className="p-4 text-[11px] font-bold text-zinc-500 uppercase tracking-widest leading-none">
+                                    <th key={idx} className="p-3 sm:p-4 text-[10px] sm:text-[11px] font-bold text-zinc-500 uppercase tracking-widest leading-none">
                                         {col}
                                     </th>
                                 ))}
@@ -249,12 +267,12 @@ const PropertiesPage = () => {
                                     className={`group hover:bg-zinc-900/50 transition-all duration-200 ${prop.status === "inactive" ? "opacity-50 grayscale-[0.3]" : ""
                                         }`}
                                 >
-                                    <td className="p-4 text-xs font-bold text-zinc-600">
+                                    <td className="p-3 sm:p-4 text-xs font-bold text-zinc-600">
                                         #{(page - 1) * rowsPerPage + index + 1}
                                     </td>
 
-                                    <td className="p-4">
-                                        <div className="flex flex-col max-w-[280px]">
+                                    <td className="p-3 sm:p-4">
+                                        <div className="flex flex-col max-w-[220px] sm:max-w-[280px]">
                                             <span className={`text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors truncate ${prop.status === "inactive" || prop.status === "sold" ? "opacity-60" : ""
                                                 }`} title={prop.title}>
                                                 {prop.title}
@@ -265,7 +283,7 @@ const PropertiesPage = () => {
                                         </div>
                                     </td>
 
-                                    <td className="p-4">
+                                    <td className="p-3 sm:p-4">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
                                                 {prop.property_type}
@@ -279,7 +297,7 @@ const PropertiesPage = () => {
                                         </div>
                                     </td>
 
-                                    <td className="p-4">
+                                    <td className="p-3 sm:p-4">
                                         <div className="flex flex-col">
                                             <span className="text-sm font-black text-white">
                                                 {formatPrice(prop.price, prop.currency)}
@@ -290,7 +308,7 @@ const PropertiesPage = () => {
                                         </div>
                                     </td>
 
-                                    <td className="p-4">
+                                    <td className="p-3 sm:p-4">
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-1 text-zinc-300">
                                                 <FiMapPin size={12} className="text-emerald-500" />
@@ -302,7 +320,7 @@ const PropertiesPage = () => {
                                         </div>
                                     </td>
 
-                                    <td className="p-4">
+                                    <td className="p-3 sm:p-4">
                                         <div className="flex flex-col gap-1.5">
                                             <div className="flex items-center gap-x-3 text-[10px] font-bold text-zinc-400">
                                                 <div className="flex items-center gap-1">
@@ -321,28 +339,31 @@ const PropertiesPage = () => {
                                         </div>
                                     </td>
 
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 text-xs font-bold">
-                                                {prop.agent.name.charAt(0)}
+                                    <td className="p-3 sm:p-4">
+                                        {Array.isArray(prop.agent?.assigned) && prop.agent.assigned.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {prop.agent.assigned.map((a) => (
+                                                    <span
+                                                        key={a}
+                                                        className="text-[10px] font-bold bg-zinc-800/50 border border-zinc-700/50 text-zinc-300 px-2 py-0.5 rounded"
+                                                    >
+                                                        {a}
+                                                    </span>
+                                                ))}
                                             </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-xs font-semibold text-zinc-300">{prop.agent.name}</span>
-                                                <button className="text-[10px] text-zinc-500 hover:text-blue-400 text-left">
-                                                    {prop.agent.phone}
-                                                </button>
+                                        ) : (
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-semibold text-zinc-300">{prop.agent.name}</span>
+                                                    <button className="text-[10px] text-zinc-500 hover:text-blue-400 text-left">
+                                                        {prop.agent.phone}
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </td>
 
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-1.5">
-                                            <FiEye size={12} className="text-zinc-500" />
-                                            <span className="text-xs font-bold text-zinc-400">{prop.views}</span>
-                                        </div>
-                                    </td>
-
-                                    <td className="p-4">
+                                    <td className="p-3 sm:p-4">
                                         <div className="flex items-center gap-2">
                                             <div className={`w-2 h-2 rounded-full ${prop.status === "active" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" :
                                                 prop.status === "sold" ? "bg-blue-500" : "bg-zinc-500"
@@ -359,7 +380,7 @@ const PropertiesPage = () => {
                                         </div>
                                     </td>
 
-                                    <td className="p-4">
+                                    <td className="p-3 sm:p-4">
                                         <div className="flex items-center gap-3">
                                             <div
                                                 className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white hover:border-zinc-700 cursor-pointer transition-all"

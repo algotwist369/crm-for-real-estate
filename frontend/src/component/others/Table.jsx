@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { PremiumInput } from "../common/PremiumInput";
 import { PremiumButton } from "../common/PremiumButton";
 
@@ -20,11 +20,7 @@ const Table = () => {
 
     const rowsPerPage = 4;
 
-    const filteredData = useMemo(() => {
-        return data.filter((item) =>
-            item.name.toLowerCase().includes(search.toLowerCase())
-        );
-    }, [search]);
+    const filteredData = data.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()));
 
     const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 

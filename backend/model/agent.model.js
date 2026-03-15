@@ -4,16 +4,19 @@ const agentSchema = new mongoose.Schema({
     agent_details: {
         type: mongoose.Schema.ObjectId,
         ref: 'User',
+        required: true,
     },
     agent_role: {
         type: String,
+        trim: true
     },
     agent_pin: {
         type: Number,
-        minLength: 4,
-        maxLength: 8,
+        min: 1000,
+        max: 99999999,
         required: true,
-        unique: true
+        unique: true,
+        index: true
     },
     assigned_projects: [{
         type: mongoose.Schema.ObjectId,
@@ -49,8 +52,19 @@ const agentSchema = new mongoose.Schema({
     },
     remark: {
         type: String,
-        default: ''
+        default: '',
+        trim: true
+    },
+    is_active: {
+        type: Boolean,
+        default: true,
+        index: true
+    },
+    last_assigned_at: {
+        type: Date
     }
 }, { timestamps: true });
+
+agentSchema.index({ agent_details: 1 }, { unique: true });
 
 module.exports = mongoose.model('Agent', agentSchema);

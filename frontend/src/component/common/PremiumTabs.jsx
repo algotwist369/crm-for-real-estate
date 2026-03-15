@@ -5,13 +5,15 @@ export const PremiumTabs = ({
     options, 
     value, 
     onChange, 
-    variant = "blue", // blue, indigo, priority
+    variant = "blue", // blue, emerald, indigo, priority
     showLabel = true
 }) => {
     const getActiveStyles = (opt) => {
         if (value !== opt) return "text-zinc-500 hover:text-zinc-300";
         
         switch (variant) {
+            case "emerald":
+                return "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20";
             case "indigo":
                 return "bg-indigo-600 text-white shadow-lg";
             case "priority":

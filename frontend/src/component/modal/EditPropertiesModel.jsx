@@ -10,6 +10,7 @@ const LISTING_TYPES = ["sale", "rent"];
 const CURRENCIES = ["INR", "AED", "USD", "EUR"];
 const FURNISHED_STATUS = ["Unfurnished", "Semi Furnished", "Fully Furnished", "NA"];
 const AMENITIES_OPTIONS = ["Lift", "Gym", "Swimming Pool", "Security", "Power Backup", "Parking", "Garden", "Club House"];
+const AGENTS = ["Rahul Sharma", "Priya Verma", "Amit Patel", "Neha Singh", "Vikas Gupta", "Rohit Jain", "Arjun Mehta", "Karan Kapoor", "Sanjay Rao", "Deepika Nair"];
 
 const EditPropertiesModel = ({ isOpen, onClose, onUpdate, property }) => {
     const [formData, setFormData] = useState({
@@ -41,23 +42,27 @@ const EditPropertiesModel = ({ isOpen, onClose, onUpdate, property }) => {
         agent: {
             name: "",
             phone: "",
-            email: ""
+            email: "",
+            assigned: []
         },
         amenities: [],
         status: "active",
         views: 0,
         created_at: ""
     });
+    const [isAgentsOpen, setIsAgentsOpen] = useState(false);
 
     useEffect(() => {
         if (property && isOpen) {
-            setFormData({
-                ...property,
-                // Ensure nested structures exist even if null in source
-                location: { ...formData.location, ...(property.location || {}) },
-                details: { ...formData.details, ...(property.details || {}) },
-                agent: { ...formData.agent, ...(property.agent || {}) },
-                amenities: property.amenities || []
+            queueMicrotask(() => {
+                setFormData((prev) => ({
+                    ...prev,
+                    ...property,
+                    location: { ...prev.location, ...(property.location || {}) },
+                    details: { ...prev.details, ...(property.details || {}) },
+                    agent: { ...prev.agent, ...(property.agent || {}) },
+                    amenities: property.amenities || []
+                }));
             });
         }
     }, [property, isOpen]);
@@ -86,6 +91,15 @@ const EditPropertiesModel = ({ isOpen, onClose, onUpdate, property }) => {
                 ? prev.amenities.filter(a => a !== amenity)
                 : [...prev.amenities, amenity];
             return { ...prev, amenities };
+        });
+    };
+
+    const toggleAssignedAgent = (agentName) => {
+        setFormData(prev => {
+            const assigned = prev.agent.assigned.includes(agentName)
+                ? prev.agent.assigned.filter(a => a !== agentName)
+                : [...prev.agent.assigned, agentName];
+            return { ...prev, agent: { ...prev.agent, assigned } };
         });
     };
 
@@ -344,6 +358,32 @@ const EditPropertiesModel = ({ isOpen, onClose, onUpdate, property }) => {
                                     value={formData.agent.email}
                                     onChange={handleChange}
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1 block">Assign Agents</label>
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAgentsOpen(v => !v)}
+                                        className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 text-left focus:outline-none focus:border-blue-500/50 transition-colors"
+                                    >
+                                        {formData.agent.assigned.length > 0 ? formData.agent.assigned.join(", ") : "Select agents"}
+                                    </button>
+                                    {isAgentsOpen && (
+                                        <div className="absolute z-50 mt-2 w-full bg-zinc-950 border border-zinc-800 rounded-xl shadow-xl p-3 max-h-48 overflow-y-auto custom-scrollbar">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {AGENTS.map(a => (
+                                                    <PremiumCheckbox
+                                                        key={a}
+                                                        label={a}
+                                                        checked={formData.agent.assigned.includes(a)}
+                                                        onChange={() => toggleAssignedAgent(a)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

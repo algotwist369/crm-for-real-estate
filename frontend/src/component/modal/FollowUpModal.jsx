@@ -32,13 +32,15 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
 
     useEffect(() => {
         if (lead && isOpen) {
-            setFormData({
-                remarks: lead.remarks || "",
-                followUpPreset: "",
-                followUpDate: lead.followUpDate || "",
-                followedBy: lead.followedBy || AGENTS[0],
-                status: lead.followUpStatus || "Pending",
-                isCustomFollowUp: false
+            queueMicrotask(() => {
+                setFormData({
+                    remarks: lead.remarks || "",
+                    followUpPreset: "",
+                    followUpDate: lead.followUpDate || "",
+                    followedBy: lead.followedBy || AGENTS[0],
+                    status: lead.followUpStatus || "Pending",
+                    isCustomFollowUp: false
+                });
             });
         }
     }, [lead, isOpen]);
