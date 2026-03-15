@@ -3,6 +3,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 
 const { startFollowUpReminderWorker } = require('./jobs/followUpReminderWorker');
+const { startArchiveWorker } = require('./jobs/archiveCleanupWorker');
 const { createApp } = require('./app');
 
 async function start() {
@@ -19,8 +20,14 @@ async function start() {
         pollIntervalMs: Number(process.env.FOLLOWUP_WORKER_POLL_MS || 60_000),
         maxPerTick: Number(process.env.FOLLOWUP_WORKER_MAX_PER_TICK || 25)
     });
+
+    const archiveWorker = startArchiveWorker({
+        pollIntervalMs: Number(process.env.ARCHIVE_WORKER_POLL_MS || 60 * 60 * 1000) // 1 Hour by default
+    });
+
     if (String(process.env.NODE_ENV || '').toLowerCase() !== 'test') {
         worker.start();
+        archiveWorker.start();
     }
 
     const port = Number(process.env.PORT || 3000);
@@ -30,6 +37,7 @@ async function start() {
 
     const shutdown = async () => {
         worker.stop();
+        archiveWorker.stop();
         server.close(() => {});
         await mongoose.disconnect();
         process.exit(0);

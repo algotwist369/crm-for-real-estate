@@ -7,16 +7,24 @@ const propertiesSchema = new Schema({
         required: true,
         trim: true
     },
-    property_type: {
+
+    slug: {
         type: String,
+        required: false,
         trim: true,
-        default: 'Apartment'
+        unique: true,
+        lowercase: true
     },
-    listing_type: {
+
+   
+     property_type: {
         type: String,
         required: true,
-        enum: ['rent', 'sale', 'investment']
+        enum: ['rent', 'sale','appartment', 'investment','Studio', 'Villa', 'Plot', 'Commercial','other'],
+        default: 'appartment',
+        index: true
     },
+
     asking_price: {
         type: Number,
         min: 0,
@@ -71,6 +79,7 @@ const propertiesSchema = new Schema({
             }
         }
     },
+
     total_area: {
         type: Number,
         min: 0
@@ -139,7 +148,6 @@ const propertiesSchema = new Schema({
 
 }, { timestamps: true });
 
-propertiesSchema.index({ listing_type: 1, property_type: 1, property_status: 1 });
 propertiesSchema.index({ assign_agent: 1, property_status: 1 });
 propertiesSchema.index({ 'property_location.coordinates': '2dsphere' }, { sparse: true });
 

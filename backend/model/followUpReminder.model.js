@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const followUpReminderSchema = new mongoose.Schema({
+
+    channel: [{
+        type: String,
+        enum: ['email', 'sms', 'in_app','whatsapp', 'call', 'other'],
+       default: 'email',
+    }],
     lead: {
         type: mongoose.Schema.ObjectId,
         ref: 'Lead',
