@@ -109,7 +109,7 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                         <div className="lg:col-span-2 bg-zinc-950/40 border-r border-zinc-800/50 p-8 space-y-8">
                             <div className="space-y-6">
                                 <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.2em] block">Client Information</label>
-                                
+
                                 <div className="grid grid-cols-1 gap-5">
                                     <div className="flex items-start gap-4 p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 group transition-all hover:bg-zinc-900 hover:border-zinc-700/50">
                                         <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-blue-400 group-hover:bg-blue-600/10 transition-all shrink-0">
@@ -135,7 +135,7 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
 
                             <div className="space-y-6">
                                 <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.2em] block">Inquiry Details</label>
-                                
+
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/40 border border-zinc-800/30">
                                         <div className="flex items-center gap-3">
@@ -211,7 +211,7 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                                             value={formData.followUpPreset}
                                             onChange={handleFollowUpPreset}
                                         />
-                                        
+
                                         <div className="relative mt-4 group">
                                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-blue-500 transition-colors">
                                                 <FiCalendar size={18} />
