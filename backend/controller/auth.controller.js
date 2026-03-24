@@ -1,5 +1,6 @@
 
 const User = require('../model/user.model');
+const Agent = require('../model/agent.model');
 const TokenBlacklist = require('../model/tokenBlacklist.model');
 const { createAuthTokenFromUser, verifyToken } = require('../utils/generateToken');
 const { uploadImage } = require('../utils/uploadImage');
@@ -20,12 +21,21 @@ const {
     ensureNotBlacklisted
 } = require('../utils/common');
 
+const setTokenCookie = (res, token) => {
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+};
+
 // Register a new admin
 const register_admin = wrapAsync(async (req, res) => {
     const name = String(req.body?.user_name ?? req.body?.name ?? '').trim();
     const emailRaw = req.body?.email;
     const phoneRaw = req.body?.phone_number ?? req.body?.phone;
-    const password = req.body?.password;
+    const password = req.body?.password ?? req.body?.hash_password;
     const profilePic = String(req.body?.profile_pic ?? '').trim();
 
     const details = [];
@@ -59,13 +69,13 @@ const register_admin = wrapAsync(async (req, res) => {
     });
 
     const token = createAuthTokenFromUser(user);
+    setTokenCookie(res, token);
     const safeUser = user.toObject();
     delete safeUser.hash_password;
 
     res.status(201).json({
         success: true,
         message: 'Admin registered successfully',
-        token,
         user: safeUser
     });
 });
@@ -111,13 +121,13 @@ const login_admin = wrapAsync(async (req, res) => {
     await user.save();
 
     const token = createAuthTokenFromUser(user);
+    setTokenCookie(res, token);
     const safeUser = user.toObject();
     delete safeUser.hash_password;
 
     res.status(200).json({
         success: true,
         message: 'Login successful',
-        token,
         user: safeUser
     });
 });
@@ -132,10 +142,10 @@ const login_agent = wrapAsync(async (req, res) => {
         req.body?.phone ??
         '';
 
-    const password = req.body?.password;
+    const password = req.body?.password ?? req.body?.agent_pin;
     const details = [];
     if (!identifier) details.push({ path: 'phone_or_email', message: 'Phone or email is required' });
-    if (!password) details.push({ path: 'password', message: 'Password is required' });
+    if (!password) details.push({ path: 'password', message: 'Password or PIN is required' });
     if (details.length) throw httpError(400, 'Validation error', details);
 
     const query = {
@@ -155,7 +165,20 @@ const login_agent = wrapAsync(async (req, res) => {
     }
 
     const user = await User.findOne(query).select('+hash_password');
-    if (!user || !verifyPassword(password, user.hash_password)) {
+    if (!user) {
+        throw httpError(401, 'Invalid credentials');
+    }
+
+    let isValid = verifyPassword(password, user.hash_password);
+
+    if (!isValid) {
+        const agent = await Agent.findOne({ agent_details: user._id });
+        if (agent && agent.agent_pin === Number(password)) {
+            isValid = true;
+        }
+    }
+
+    if (!isValid) {
         throw httpError(401, 'Invalid credentials');
     }
 
@@ -163,13 +186,13 @@ const login_agent = wrapAsync(async (req, res) => {
     await user.save();
 
     const token = createAuthTokenFromUser(user);
+    setTokenCookie(res, token);
     const safeUser = user.toObject();
     delete safeUser.hash_password;
 
     res.status(200).json({
         success: true,
         message: 'Login successful',
-        token,
         user: safeUser
     });
 });
@@ -264,13 +287,13 @@ const update_admin_profile = wrapAsync(async (req, res) => {
     await user.save();
 
     const token = createAuthTokenFromUser(user);
+    setTokenCookie(res, token);
     const safeUser = user.toObject();
     delete safeUser.hash_password;
 
     res.status(200).json({
         success: true,
         message: 'Profile updated successfully',
-        token,
         user: safeUser
     });
 });
@@ -310,6 +333,7 @@ const logout_admin = wrapAsync(async (req, res) => {
         { upsert: true }
     );
 
+    res.clearCookie('token');
     res.status(200).json({
         success: true,
         message: 'Logged out successfully'
@@ -382,13 +406,13 @@ const change_password = wrapAsync(async (req, res) => {
     );
 
     const newToken = createAuthTokenFromUser(user);
+    setTokenCookie(res, newToken);
     const safeUser = user.toObject();
     delete safeUser.hash_password;
 
     res.status(200).json({
         success: true,
         message: 'Password changed successfully',
-        token: newToken,
         user: safeUser
     });
 });

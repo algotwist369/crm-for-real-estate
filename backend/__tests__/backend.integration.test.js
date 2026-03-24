@@ -28,7 +28,11 @@ async function createAdmin() {
         })
         .expect(201);
 
-    return { token: res.body.token, email, phone, password };
+    const cookies = res.headers['set-cookie'] || [];
+    const tokenCookie = cookies.find(c => c.startsWith('token='));
+    const token = tokenCookie ? tokenCookie.split('=')[1].split(';')[0] : null;
+
+    return { token, email, phone, password };
 }
 
 describe('Backend Integration', () => {
@@ -66,7 +70,8 @@ describe('Backend Integration', () => {
             .send({ phone_or_email: admin.email, password: admin.password })
             .expect(200);
 
-        expect(loginRes.body.token).toBeTruthy();
+        const loginCookies = loginRes.headers['set-cookie'] || [];
+        expect(loginCookies.some(c => c.startsWith('token='))).toBe(true);
     });
 
     test('Admin can create agent, agent can login, agent token works', async () => {
@@ -95,13 +100,42 @@ describe('Backend Integration', () => {
             })
             .expect(200);
 
-        const agentToken = agentLogin.body.token;
+        const agentCookies = agentLogin.headers['set-cookie'] || [];
+        const agentTokenCookie = agentCookies.find(c => c.startsWith('token='));
+        const agentToken = agentTokenCookie ? agentTokenCookie.split('=')[1].split(';')[0] : null;
         expect(agentToken).toBeTruthy();
 
         await request(app)
             .get('/api/agent/properties')
             .set('Authorization', `Bearer ${agentToken}`)
             .expect(200);
+    });
+
+    test('Agent can login with PIN instead of password', async () => {
+        const admin = await createAdmin();
+        const pin = '4321';
+        const agentRes = await request(app)
+            .post('/api/admin/agents')
+            .set('Authorization', `Bearer ${admin.token}`)
+            .send({
+                name: 'Agent PIN Test',
+                role: 'Sales',
+                email: 'agent_pin@example.com',
+                phone: '9000000005',
+                pin
+            })
+            .expect(201);
+
+        const agentLogin = await request(app)
+            .post('/api/auth/agent/login')
+            .send({
+                phone_or_email: 'agent_pin@example.com',
+                agent_pin: pin // Using agent_pin field directly
+            })
+            .expect(200);
+
+        const agentCookies = agentLogin.headers['set-cookie'] || [];
+        expect(agentCookies.some(c => c.startsWith('token='))).toBe(true);
     });
 
     test('Property create + lead create + followup schedules reminders', async () => {
@@ -142,7 +176,10 @@ describe('Backend Integration', () => {
             .post('/api/auth/agent/login')
             .send({ phone_or_email: 'agent2@example.com', password: agentRes.body.credentials.password })
             .expect(200);
-        const agentToken = agentLogin.body.token;
+        
+        const agentCookies = agentLogin.headers['set-cookie'] || [];
+        const agentTokenCookie = agentCookies.find(c => c.startsWith('token='));
+        const agentToken = agentTokenCookie ? agentTokenCookie.split('=')[1].split(';')[0] : null;
 
         const leadRes = await request(app)
             .post('/api/leads')
@@ -195,7 +232,9 @@ describe('Backend Integration', () => {
             .send({ phone_or_email: 'agent3@example.com', password: agentRes.body.credentials.password })
             .expect(200);
 
-        const token = agentLogin.body.token;
+        const agentCookies = agentLogin.headers['set-cookie'] || [];
+        const agentTokenCookie = agentCookies.find(c => c.startsWith('token='));
+        const token = agentTokenCookie ? agentTokenCookie.split('=')[1].split(';')[0] : null;
 
         await request(app)
             .post('/api/auth/logout')
@@ -235,7 +274,9 @@ describe('Backend Integration', () => {
             .send({ phone_or_email: 'agent4@example.com', password: agentRes.body.credentials.password })
             .expect(200);
 
-        const agentToken = agentLogin.body.token;
+        const agentCookies = agentLogin.headers['set-cookie'] || [];
+        const agentTokenCookie = agentCookies.find(c => c.startsWith('token='));
+        const agentToken = agentTokenCookie ? agentTokenCookie.split('=')[1].split(';')[0] : null;
 
         const leadRes = await request(app)
             .post('/api/leads')

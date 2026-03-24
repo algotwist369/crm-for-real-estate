@@ -5,12 +5,12 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/admin/register', authController.register_admin);
-router.post('/admin/login', authController.login_admin);
-router.post('/agent/login', authController.login_agent);
+router.post('/admin/register', authController.register_admin); //tested
+router.post('/admin/login', authController.login_admin); //tested
+router.post('/agent/login', authController.login_agent); //tested
 
-router.post('/logout', authenticate, authController.logout_admin);
-router.post('/change-password', authenticate, authController.change_password);
+router.post('/logout', authenticate, authController.logout_admin); // tested - works for both admin and agent
+router.post('/change-password', authenticate, authController.change_password); // pending - works for agent
 
 router.patch('/admin/profile', requireAdmin, uploadProfilePic, authController.update_admin_profile);
 router.post('/admin/logout', requireAdmin, authController.logout_admin);
