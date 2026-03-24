@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const cluster = require('cluster');
 const os = require('os');
 const mongoose = require('mongoose');
@@ -30,7 +31,9 @@ if (cluster.isPrimary) {
     // ─── WORKER PROCESS ─────────────────────────────────────────────────────────
 } else {
     async function start() {
-
+        if (!process.env.TOKEN_SECRET && !process.env.JWT_SECRET) {
+            process.stderr.write(`Worker ${process.pid} — WARNING: TOKEN_SECRET not found in environment!\n`);
+        }
         await connectToDatabase();
         const app = createApp();
 

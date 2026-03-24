@@ -315,7 +315,8 @@ const update_agent_status = wrapAsync(async (req, res) => {
     const enabled = req.body?.is_active ?? req.body?.status ?? req.body?.enabled;
     if (enabled === undefined) throw httpError(400, 'is_active is required');
 
-    const isActive = Boolean(enabled);
+    const isActive = String(enabled).toLowerCase() === 'true' || enabled === true || enabled === 1 || String(enabled) === '1';
+    console.log(`Debug - update_agent_status - ID: ${id}, enabled: ${enabled}, typeof: ${typeof enabled}, isActive: ${isActive}`);
 
     const agent = await Agent.findById(id);
     if (!agent) throw httpError(404, 'Agent not found');

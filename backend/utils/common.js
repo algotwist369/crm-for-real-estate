@@ -58,10 +58,12 @@ function verifyPassword(password, stored) {
 
 function extractBearerToken(req) {
     const authHeader = String(req.headers?.authorization || '').trim();
-    if (!authHeader) return '';
-    return authHeader.toLowerCase().startsWith('bearer ')
-        ? authHeader.slice(7).trim()
-        : authHeader;
+    if (authHeader) {
+        return authHeader.toLowerCase().startsWith('bearer ')
+            ? authHeader.slice(7).trim()
+            : authHeader;
+    }
+    return String(req.cookies?.token || '').trim();
 }
 
 function getTokenHash(token) {
