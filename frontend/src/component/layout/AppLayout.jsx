@@ -1,18 +1,22 @@
 import React, { useState } from "react";
 import Sidebar from "./Sidebar";
-import { useLocation } from "react-router-dom";
-import { FiMenu } from "react-icons/fi";
+import { useLocation, useNavigate } from "react-router-dom";
+import { FiMenu, FiLogOut } from "react-icons/fi";
 import { FaUserCircle } from "react-icons/fa";
 import { GoSidebarCollapse, GoSidebarExpand } from "react-icons/go";
 import { FaBell } from "react-icons/fa";
 import { NotificationSidebar } from "../common/NotificationSidebar";
+import { useAuth } from "../../context/AuthContext";
 
 
 const AppLayout = ({ children }) => {
+    const { user, logout, isLoggingOut } = useAuth();
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
+
     const [notifications, setNotifications] = useState([
         { title: "New Lead Assigned", description: "Lead #245 is assigned to you", time: "2m ago", read: false },
         { title: "Property Updated", description: "PROP003 status changed to sold", time: "15m ago", read: false },
@@ -29,6 +33,15 @@ const AppLayout = ({ children }) => {
             case "/reports": return "Analytics Reports";
             case "/settings": return "System Settings";
             default: return "LeadReal CRM";
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate("/login");
+        } catch (error) {
+            console.error("Logout failed:", error);
         }
     };
 
@@ -87,10 +100,35 @@ const AppLayout = ({ children }) => {
 
                         </div>
 
-                        <h1 className="text-lg font-semibold">
-                            Admin
-                        </h1>
-                        <FaUserCircle size={30} />
+                        <div className="flex items-center gap-3 bg-zinc-900/50 hover:bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-800/50 hover:border-zinc-700 transition-all cursor-pointer group">
+                            <div className="flex flex-col items-end mr-1">
+                                <h1 className="text-[11px] font-black text-white uppercase tracking-wider leading-none">
+                                    {user?.user_name || "Admin"}
+                                </h1>
+                                <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-tighter leading-none mt-1">
+                                    {user?.role || "User"}
+                                </p>
+                            </div>
+                            
+                            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center overflow-hidden ring-2 ring-transparent group-hover:ring-blue-500/30 transition-all">
+                                {user?.profile_pic ? (
+                                    <img src={user.profile_pic} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-xs font-black text-blue-500">
+                                        {user?.user_name?.substring(0, 1).toUpperCase() || "A"}
+                                    </span>
+                                )}
+                            </div>
+
+                            <button 
+                                onClick={handleLogout}
+                                disabled={isLoggingOut}
+                                className="ml-1 p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                title="Logout"
+                            >
+                                <FiLogOut size={16} />
+                            </button>
+                        </div>
                     </div>
                 </header>
 

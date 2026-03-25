@@ -14,7 +14,7 @@ function runMiddleware(middleware, req, res) {
 
 async function authenticate(req, res, next) {
     try {
-        if (req.auth?.user && req.auth?.payload && req.auth?.token) return next();
+        if (req.auth?.user && req.auth?.payload && req.auth?.token && req.auth?.tenant_id) return next();
 
         const token = extractBearerToken(req);
         if (!token) throw httpError(401, 'Authorization token required');
@@ -36,7 +36,10 @@ async function authenticate(req, res, next) {
         });
         if (!user) throw httpError(401, 'Invalid or expired token');
 
-        req.auth = { token, payload, user };
+        // Ensure tenant_id is available for multi-tenancy
+        const tenantId = user.tenant_id || (['admin', 'super_admin'].includes(user.role) ? user._id : null);
+
+        req.auth = { token, payload, user, tenant_id: tenantId };
         next();
     } catch (e) {
         next(e);

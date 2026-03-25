@@ -21,12 +21,16 @@ const {
     ensureNotBlacklisted
 } = require('../utils/common');
 
-const setTokenCookie = (res, token) => {
+const setTokenCookie = (res, token, remember = false) => {
+    const maxAge = remember 
+        ? 30 * 24 * 60 * 60 * 1000 // 30 days
+        : 24 * 60 * 60 * 1000;    // 1 day
+        
     res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'Lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        maxAge
     });
 };
 
@@ -36,19 +40,32 @@ const register_admin = wrapAsync(async (req, res) => {
     const emailRaw = req.body?.email;
     const phoneRaw = req.body?.phone_number ?? req.body?.phone;
     const password = req.body?.password ?? req.body?.hash_password;
-    const profilePic = String(req.body?.profile_pic ?? '').trim();
+    const nextProfilePic = req.body?.profile_pic;
+    const nextProfilePicBase64 = req.body?.profile_pic_base64;
+    const nextProfilePicMimeType = req.body?.profile_pic_mimeType;
+    const profilePicFile = pickProfilePicFile(req);
 
-    const details = [];
-    if (!name || name.length < 2) details.push({ path: 'user_name', message: 'Name is required (min 2 characters)' });
-    if (!emailRaw || !isEmail(emailRaw)) details.push({ path: 'email', message: 'Valid email is required' });
+    let finalProfilePic = '';
+    if (profilePicFile || nextProfilePicBase64 !== undefined || (nextProfilePic !== undefined && isDataUri(nextProfilePic))) {
+        const filePath = profilePicFile?.path;
+        const buffer = profilePicFile?.buffer;
 
-    const phone = normalizePhone(phoneRaw);
-    if (!phone || phone.length < 10 || phone.length > 15) {
-        details.push({ path: 'phone_number', message: 'Valid phone number is required (10-15 digits)' });
+        try {
+            const uploaded = await uploadImage(
+                buffer ? { buffer } : filePath ? { filePath } : isDataUri(nextProfilePic) ? { dataUri: nextProfilePic } : { base64: nextProfilePicBase64, mimeType: nextProfilePicMimeType },
+                { folder: process.env.CLOUDINARY_PROFILE_FOLDER || 'lead_real/profile_pics', tags: ['profile_pic', 'register'], resourceType: 'image' }
+            );
+            finalProfilePic = uploaded.secureUrl || uploaded.url || '';
+        } catch (uploadErr) {
+            console.error('Registration profile pic upload error:', uploadErr);
+            // Non-critical, just keep it empty or throw if required
+        }
+    } else if (nextProfilePic !== undefined) {
+        const pic = String(nextProfilePic || '').trim();
+        if (pic === '' || isProbablyUrl(pic)) finalProfilePic = pic;
+        else details.push({ path: 'profile_pic', message: 'profile_pic must be a valid URL or data URI' });
     }
 
-    const pwdError = validatePassword(password);
-    if (pwdError) details.push({ path: 'password', message: pwdError });
     if (details.length) throw httpError(400, 'Validation error', details);
 
     const email = normalizeEmail(emailRaw);
@@ -59,7 +76,7 @@ const register_admin = wrapAsync(async (req, res) => {
     if (existing) throw httpError(409, 'Admin already exists with this email or phone');
 
     const user = await User.create({
-        profile_pic: profilePic,
+        profile_pic: finalProfilePic,
         user_name: name,
         email,
         phone_number: phone,
@@ -68,8 +85,10 @@ const register_admin = wrapAsync(async (req, res) => {
         is_active: true
     });
 
-    const token = createAuthTokenFromUser(user);
-    setTokenCookie(res, token);
+    const remember = Boolean(req.body?.remember);
+    const tokenOptions = remember ? { expiresInSeconds: 30 * 24 * 60 * 60 } : {};
+    const token = createAuthTokenFromUser(user, tokenOptions);
+    setTokenCookie(res, token, remember);
     const safeUser = user.toObject();
     delete safeUser.hash_password;
 
@@ -120,8 +139,10 @@ const login_admin = wrapAsync(async (req, res) => {
     user.last_login_at = new Date();
     await user.save();
 
-    const token = createAuthTokenFromUser(user);
-    setTokenCookie(res, token);
+    const remember = Boolean(req.body?.remember);
+    const tokenOptions = remember ? { expiresInSeconds: 30 * 24 * 60 * 60 } : {};
+    const token = createAuthTokenFromUser(user, tokenOptions);
+    setTokenCookie(res, token, remember);
     const safeUser = user.toObject();
     delete safeUser.hash_password;
 
@@ -417,11 +438,22 @@ const change_password = wrapAsync(async (req, res) => {
     });
 });
 
+// Get current user
+const get_me = wrapAsync(async (req, res) => {
+    const user = req.auth.user.toObject();
+    delete user.hash_password;
+    res.status(200).json({
+        success: true,
+        user
+    });
+});
+
 module.exports = {
     register_admin,
     login_admin,
     login_agent,
     update_admin_profile,
     logout_admin,
-    change_password
+    change_password,
+    get_me
 };

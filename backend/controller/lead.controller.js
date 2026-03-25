@@ -329,10 +329,10 @@ async function notifyAdminsAndAssignedAgentsNewLead({ lead, createdByUser }) {
 }
 
 const get_my_leads = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
     const { page, limit, skip } = parsePagination(req);
 
-    const match = { is_active: true };
+    const match = { is_active: true, tenant_id };
 
     const status = String(req.query?.status ?? '').trim().toLowerCase();
     const priority = String(req.query?.priority ?? '').trim().toLowerCase();
@@ -401,11 +401,11 @@ const get_my_leads = wrapAsync(async (req, res) => {
 });
 
 const get_lead_by_id = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findById(id)
+    const lead = await Lead.findOne({ _id: id, tenant_id })
         .populate('assigned_to', 'user_name email phone_number profile_pic role is_active')
         .populate('followed_by', 'user_name email phone_number profile_pic role is_active')
         .populate('created_by', 'user_name email phone_number profile_pic role')
@@ -417,7 +417,7 @@ const get_lead_by_id = wrapAsync(async (req, res) => {
 });
 
 const create_lead = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
 
     const doc = buildLeadDocFromBody(req.body);
     const details = [];
@@ -443,6 +443,7 @@ const create_lead = wrapAsync(async (req, res) => {
 
     doc.created_by = user._id;
     doc.updated_by = user._id;
+    doc.tenant_id = tenant_id;
     if (doc.follow_up_status === undefined) doc.follow_up_status = 'pending';
     if (doc.status === undefined) doc.status = 'new';
     if (doc.priority === undefined) doc.priority = 'low';
@@ -466,11 +467,11 @@ const create_lead = wrapAsync(async (req, res) => {
 });
 
 const update_lead = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findById(id);
+    const lead = await Lead.findOne({ _id: id, tenant_id });
     await ensureLeadAccess({ lead, payload, user });
 
     const updates = buildLeadDocFromBody(req.body);
@@ -511,14 +512,14 @@ const update_lead = wrapAsync(async (req, res) => {
 });
 
 const add_lead_note = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
     const note = String(req.body?.note ?? req.body?.notes ?? '').trim();
     if (!note) throw httpError(400, 'note is required');
 
-    const lead = await Lead.findById(id);
+    const lead = await Lead.findOne({ _id: id, tenant_id });
     await ensureLeadAccess({ lead, payload, user });
 
     const now = new Date();
@@ -532,11 +533,11 @@ const add_lead_note = wrapAsync(async (req, res) => {
 });
 
 const set_follow_up = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findById(id);
+    const lead = await Lead.findOne({ _id: id, tenant_id });
     await ensureLeadAccess({ lead, payload, user });
 
     const followUpDate = toDateOrUndefined(req.body?.next_follow_up_date ?? req.body?.followUpDate);
@@ -567,11 +568,11 @@ const set_follow_up = wrapAsync(async (req, res) => {
 });
 
 const mark_lead_converted = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findById(id);
+    const lead = await Lead.findOne({ _id: id, tenant_id });
     await ensureLeadAccess({ lead, payload, user });
 
     lead.status = 'converted';
@@ -586,11 +587,11 @@ const mark_lead_converted = wrapAsync(async (req, res) => {
 });
 
 const mark_lead_lost = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findById(id);
+    const lead = await Lead.findOne({ _id: id, tenant_id });
     await ensureLeadAccess({ lead, payload, user });
 
     const reason = String(req.body?.lost_reason ?? req.body?.reason ?? '').trim();
@@ -606,7 +607,7 @@ const mark_lead_lost = wrapAsync(async (req, res) => {
 });
 
 const get_my_followups = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['agent', 'admin', 'super_admin']);
+    const { user, payload, tenant_id } = req.auth;
     const { page, limit, skip } = parsePagination(req);
 
     const bucket = String(req.query?.bucket ?? req.query?.type ?? 'today').trim().toLowerCase();
@@ -618,7 +619,8 @@ const get_my_followups = wrapAsync(async (req, res) => {
     const match = {
         next_follow_up_date: { $exists: true, $ne: null },
         follow_up_status: { $in: ['pending', 'rescheduled'] },
-        is_active: true
+        is_active: true,
+        tenant_id
     };
 
     if (payload.role === 'agent') match.assigned_to = user._id;
@@ -644,11 +646,11 @@ const get_my_followups = wrapAsync(async (req, res) => {
 });
 
 const complete_followup = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findById(id);
+    const lead = await Lead.findOne({ _id: id, tenant_id });
     await ensureLeadAccess({ lead, payload, user });
 
     const remarks = req.body?.remarks ?? req.body?.remark;
@@ -673,13 +675,13 @@ const reschedule_followup = wrapAsync(async (req, res) => {
 });
 
 const agent_dashboard_summary = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['agent', 'admin', 'super_admin']);
+    const { user, payload, tenant_id } = req.auth;
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
-    const base = { is_active: true };
+    const base = { is_active: true, tenant_id };
     if (payload.role === 'agent') base.assigned_to = user._id;
 
     const [
@@ -717,11 +719,11 @@ const agent_dashboard_summary = wrapAsync(async (req, res) => {
 });
 
 const agent_activity_timeline = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireAuth(req, ['agent', 'admin', 'super_admin']);
+    const { user, payload, tenant_id } = req.auth;
     const limitRaw = Number(req.query?.limit ?? 20);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(100, Math.floor(limitRaw)) : 20;
 
-    const match = { is_active: true };
+    const match = { is_active: true, tenant_id };
     if (payload.role === 'agent') match.assigned_to = user._id;
 
     const items = await Lead.find(match)

@@ -7,13 +7,13 @@ const router = express.Router();
 
 router.post('/admin/register', authController.register_admin); //tested
 router.post('/admin/login', authController.login_admin); //tested
-router.post('/agent/login', authController.login_agent); //tested
-
 router.post('/logout', authenticate, authController.logout_admin); // tested - works for both admin and agent
+router.get('/me', authenticate, authController.get_me);
+
+router.post('/agent/login', authController.login_agent); //tested
 router.post('/change-password', authenticate, authController.change_password); // pending - works for agent
 
 router.patch('/admin/profile', requireAdmin, uploadProfilePic, authController.update_admin_profile);
-router.post('/admin/logout', requireAdmin, authController.logout_admin);
 router.post('/admin/change-password', requireAdmin, authController.change_password);
 
 module.exports = router;

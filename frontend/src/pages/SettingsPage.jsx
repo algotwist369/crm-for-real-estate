@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import AppLayout from "../component/layout/AppLayout";
 import { PremiumTabs } from "../component/common/PremiumTabs";
 import { PremiumInput } from "../component/common/PremiumInput";
 import { PremiumToggle } from "../component/common/PremiumToggle";
 import { PremiumButton } from "../component/common/PremiumButton";
+import { useAuth } from "../context/AuthContext";
+import { useUpdateProfile } from "../hooks/useAuthHooks";
 import { 
     FiUser, 
     FiSettings, 
@@ -17,21 +19,45 @@ import {
     FiLock,
     FiLogOut,
     FiCreditCard,
-    FiTrendingUp
+    FiTrendingUp,
+    FiCalendar,
+    FiActivity,
+    FiCheckCircle,
+    FiXCircle,
+    FiLink,
+    FiUpload
 } from "react-icons/fi";
 
 const SettingsPage = () => {
+    const { user, isLoading: isUserLoading } = useAuth();
+    const { mutateAsync: updateProfile, isPending: isUpdating } = useUpdateProfile();
     const [activeTab, setActiveTab] = useState("Profile");
     const [isSaving, setIsSaving] = useState(false);
+    const [profilePicMode, setProfilePicMode] = useState("url"); // 'url' or 'upload'
+    const fileInputRef = useRef(null);
 
     // Form States
     const [profileData, setProfileData] = useState({
-        name: "Admin User",
-        email: "admin@leadreal.com",
-        phone: "+91 98765-43210",
-        role: "Main Agency Admin",
+        name: "",
+        email: "",
+        phone: "",
+        role: "",
+        profile_pic: "",
         bio: "Experienced real estate consultant managing lead flows and agent performance."
     });
+
+    useEffect(() => {
+        if (user) {
+            setProfileData({
+                name: user.user_name || "",
+                email: user.email || "",
+                phone: user.phone_number || "",
+                role: user.role || "Admin",
+                profile_pic: user.profile_pic || "",
+                bio: profileData.bio
+            });
+        }
+    }, [user]);
 
     const [agencyData, setAgencyData] = useState({
         agencyName: "LeadReal Solutions",
@@ -53,12 +79,46 @@ const SettingsPage = () => {
         confirmPassword: ""
     });
 
-    const handleSave = () => {
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert("Image size must be less than 2MB");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfileData({ ...profileData, profile_pic: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSave = async () => {
         setIsSaving(true);
-        setTimeout(() => {
+        try {
+            await updateProfile({
+                user_name: profileData.name,
+                email: profileData.email,
+                phone_number: profileData.phone,
+                profile_pic: profileData.profile_pic
+            });
+        } catch (err) {
+            console.error("Update error:", err);
+        } finally {
             setIsSaving(false);
-            alert("Settings updated successfully!");
-        }, 1500);
+        }
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return "N/A";
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     const renderProfile = () => (
@@ -68,8 +128,17 @@ const SettingsPage = () => {
                     {/* Avatar Upload */}
                     <div className="flex flex-col items-center gap-4">
                         <div className="relative group">
-                            <div className="w-32 h-32 rounded-full bg-zinc-900 border-2 border-dashed border-zinc-700 flex items-center justify-center overflow-hidden cursor-pointer hover:border-blue-500/50 transition-all duration-300">
-                                <span className="text-3xl font-black text-blue-500">AU</span>
+                            <div 
+                                onClick={() => profilePicMode === 'upload' && fileInputRef.current.click()}
+                                className="w-32 h-32 rounded-full bg-zinc-900 border-2 border-dashed border-zinc-700 flex items-center justify-center overflow-hidden cursor-pointer hover:border-blue-500/50 transition-all duration-300"
+                            >
+                                {profileData.profile_pic ? (
+                                    <img src={profileData.profile_pic} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-3xl font-black text-blue-500">
+                                        {profileData?.name?.substring(0, 2).toUpperCase() || "AU"}
+                                    </span>
+                                )}
                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                     <FiCamera className="text-white" size={24} />
                                 </div>
@@ -78,40 +147,119 @@ const SettingsPage = () => {
                                 <FiCamera size={14} />
                             </div>
                         </div>
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Change Photo</p>
+                        
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setProfilePicMode("url")}
+                                className={`p-2 rounded-lg border transition-all ${profilePicMode === 'url' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}
+                                title="Use Image URL"
+                            >
+                                <FiLink size={12} />
+                            </button>
+                            <button
+                                onClick={() => setProfilePicMode("upload")}
+                                className={`p-2 rounded-lg border transition-all ${profilePicMode === 'upload' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}
+                                title="Upload File"
+                            >
+                                <FiUpload size={12} />
+                            </button>
+                        </div>
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                     </div>
 
                     {/* Inputs */}
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <PremiumInput 
-                            label="Full Name" 
-                            placeholder="John Doe" 
-                            value={profileData.name} 
-                            onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                            icon={<FiUser />}
-                        />
-                        <PremiumInput 
-                            label="Email Address" 
-                            type="email"
-                            placeholder="john@example.com" 
-                            value={profileData.email} 
-                            onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                            icon={<FiMail />}
-                        />
-                        <PremiumInput 
-                            label="Phone Number" 
-                            placeholder="+91 00000-00000" 
-                            value={profileData.phone} 
-                            onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                            icon={<FiPhone />}
-                        />
-                        <PremiumInput 
-                            label="Position / Role" 
-                            placeholder="Agency Admin" 
-                            value={profileData.role} 
-                            disabled
-                            icon={<FiBriefcase />}
-                        />
+                    <div className="flex-1 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <PremiumInput 
+                                label="Full Name" 
+                                placeholder="John Doe" 
+                                value={profileData.name} 
+                                onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                                icon={<FiUser />}
+                            />
+                            <PremiumInput 
+                                label="Email Address" 
+                                type="email"
+                                placeholder="john@example.com" 
+                                value={profileData.email} 
+                                onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                                icon={<FiMail />}
+                            />
+                            <PremiumInput 
+                                label="Phone Number" 
+                                placeholder="+91 00000-00000" 
+                                value={profileData.phone} 
+                                onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                                icon={<FiPhone />}
+                            />
+                            <PremiumInput 
+                                label="Account Role" 
+                                placeholder="Agency Admin" 
+                                value={profileData.role} 
+                                disabled
+                                icon={<FiShield />}
+                            />
+                        </div>
+
+                        {profilePicMode === 'url' && (
+                             <PremiumInput 
+                                label="Profile Picture URL" 
+                                placeholder="https://example.com/photo.jpg" 
+                                value={profileData.profile_pic.startsWith('data:') ? '' : profileData.profile_pic} 
+                                onChange={(e) => setProfileData({...profileData, profile_pic: e.target.value})}
+                                icon={<FiLink />}
+                                className="max-w-xl"
+                            />
+                        )}
+
+                        {/* System Metadata Section */}
+                        <div className="pt-6 border-t border-zinc-800/50 grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-1">
+                                <p className="text-xs font-bold text-zinc-500 uppercase tracking-tighter flex items-center gap-2">
+                                    <FiCreditCard className="text-emerald-500" /> Subscription
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    {user?.is_paid ? (
+                                        <span className="text-sm font-bold text-emerald-400 flex items-center gap-1">
+                                            <FiCheckCircle /> Premium Plan
+                                        </span>
+                                    ) : (
+                                        <span className="text-sm font-bold text-zinc-400 flex items-center gap-1">
+                                            <FiXCircle className="text-red-500" /> Free Tier
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <p className="text-xs font-bold text-zinc-500 uppercase tracking-tighter flex items-center gap-2">
+                                    <FiActivity className="text-blue-500" /> System Status
+                                </p>
+                                <span className={`text-sm font-bold ${user?.is_active ? 'text-blue-400' : 'text-red-400'}`}>
+                                    {user?.is_active ? 'Active Account' : 'Inactive'}
+                                </span>
+                            </div>
+
+                            <div className="space-y-1">
+                                <p className="text-xs font-bold text-zinc-500 uppercase tracking-tighter flex items-center gap-2">
+                                    <FiCalendar className="text-purple-500" /> Member Since
+                                </p>
+                                <p className="text-xs text-zinc-400 font-medium">
+                                    {formatDate(user?.createdAt)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                             <div className="p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
+                                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">Last Activity</p>
+                                <p className="text-xs text-zinc-400 font-bold">{formatDate(user?.last_login_at)}</p>
+                            </div>
+                            <div className="p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
+                                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">UUID Hash</p>
+                                <p className="text-[10px] text-zinc-500 font-mono break-all">{user?._id || "N/A"}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

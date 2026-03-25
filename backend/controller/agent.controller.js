@@ -29,32 +29,20 @@ function escapeRegex(value) {
     return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// Deprecated: use req.auth instead
 async function requireAgent(req) {
+    if (req.auth?.user && req.auth?.agent) {
+        return { user: req.auth.user, agent: req.auth.agent, tenant_id: req.auth.tenant_id };
+    }
+    // Fallback if middleware wasn't run (unlikely with current routes)
     const token = extractBearerToken(req);
     if (!token) throw httpError(401, 'Authorization token required');
     await ensureNotBlacklisted(token);
-
-    let payload;
-    try {
-        payload = verifyToken(token);
-    } catch {
-        throw httpError(401, 'Invalid or expired token');
-    }
-
-    if (!payload?.sub || payload?.role !== 'agent') throw httpError(403, 'Forbidden');
-
-    const user = await User.findOne({
-        _id: payload.sub,
-        role: 'agent',
-        is_active: true,
-        is_deleted: false
-    });
-    if (!user) throw httpError(401, 'Invalid or expired token');
-
-    const agent = await Agent.findOne({ agent_details: user._id, is_active: true });
-    if (!agent) throw httpError(403, 'Agent profile not found or inactive');
-
-    return { user, agent, payload, token };
+    const payload = verifyToken(token);
+    const user = await User.findOne({ _id: payload.sub, is_active: true, is_deleted: false });
+    const agent = await Agent.findOne({ agent_details: user?._id, is_active: true });
+    if (!agent) throw httpError(403, 'Agent profile not found');
+    return { user, agent, tenant_id: user.tenant_id };
 }
 
 async function resolveProfilePicForUser(req, userId) {
@@ -141,10 +129,10 @@ const update_agent_own_profile = wrapAsync(async (req, res) => {
 });
 
 const get_all_assigned_properties = wrapAsync(async (req, res) => {
-    const { user, agent } = await requireAgent(req);
+    const { agent, tenant_id } = await requireAgent(req);
     const { page, limit, skip } = parsePagination(req);
 
-    const match = { assign_agent: agent._id };
+    const match = { assign_agent: agent._id, tenant_id };
 
     const search = String(req.query?.search ?? '').trim();
     const propertyType = String(req.query?.property_type ?? '').trim();
@@ -190,20 +178,20 @@ const get_all_assigned_properties = wrapAsync(async (req, res) => {
 });
 
 const assign_other_agent_to_property = wrapAsync(async (req, res) => {
-    const { user, agent } = await requireAgent(req);
+    const { user, agent, tenant_id } = await requireAgent(req);
 
     const propertyId = req.params?.propertyId ?? req.body?.property_id ?? req.body?.propertyId;
     const otherAgentId = req.body?.agent_id ?? req.body?.agentId;
     if (!propertyId) throw httpError(400, 'propertyId is required');
     if (!otherAgentId) throw httpError(400, 'agent_id is required');
 
-    const property = await Properties.findById(propertyId);
+    const property = await Properties.findOne({ _id: propertyId, tenant_id });
     if (!property) throw httpError(404, 'Property not found');
 
     const assignedToMe = Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a) === String(agent._id));
     if (!assignedToMe) throw httpError(403, 'Forbidden');
 
-    const otherAgent = await Agent.findOne({ _id: otherAgentId, is_active: true });
+    const otherAgent = await Agent.findOne({ _id: otherAgentId, tenant_id, is_active: true });
     if (!otherAgent) throw httpError(404, 'Agent not found or inactive');
 
     const exists = Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a) === String(otherAgent._id));
@@ -212,6 +200,12 @@ const assign_other_agent_to_property = wrapAsync(async (req, res) => {
         property.assign_agent.push(otherAgent._id);
         property.updated_by = user._id;
         await property.save();
+
+        // Bidirectional assignment update
+        await Agent.updateOne(
+            { _id: otherAgent._id },
+            { $addToSet: { assigned_properties: property._id } }
+        );
     }
 
     const populated = await Properties.findById(property._id)

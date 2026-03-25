@@ -136,6 +136,11 @@ const propertiesSchema = new Schema({
         default: true,
         index: true
     },
+    tenant_id: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
+        index: true
+    },
 
 }, { timestamps: true });
 

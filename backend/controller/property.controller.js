@@ -286,10 +286,10 @@ function populatePropertyQuery(query) {
 }
 
 const get_all_properties = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { payload, tenant_id } = req.auth;
     const { page, limit, skip } = parsePagination(req);
 
-    const match = {};
+    const match = { tenant_id };
 
     const search = String(req.query?.search ?? '').trim();
     const propertyType = String(req.query?.property_type ?? '').trim();
@@ -346,12 +346,12 @@ const get_all_properties = wrapAsync(async (req, res) => {
 });
 
 const get_property_by_id = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { payload, tenant_id } = req.auth;
 
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
 
-    const property = await populatePropertyQuery(Properties.findById(id));
+    const property = await populatePropertyQuery(Properties.findOne({ _id: id, tenant_id }));
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -364,7 +364,7 @@ const get_property_by_id = wrapAsync(async (req, res) => {
 });
 
 const create_property = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
 
     const doc = buildPropertyDocFromBody(req.body);
     const details = [];
@@ -387,12 +387,22 @@ const create_property = wrapAsync(async (req, res) => {
     if (assignAgentIds.length) doc.assign_agent = assignAgentIds;
     doc.created_by = user._id;
     doc.updated_by = user._id;
+    doc.tenant_id = tenant_id;
     if (doc.is_active === undefined) doc.is_active = true;
 
     const created = await Properties.create(doc);
     const populated = await populatePropertyQuery(Properties.findById(created._id));
 
+    // Bidirectional assignment update
+    if (assignAgentIds && assignAgentIds.length) {
+        await Agent.updateMany(
+            { _id: { $in: assignAgentIds } },
+            { $addToSet: { assigned_properties: created._id } }
+        );
+    }
+
     res.status(201).json({ success: true, message: 'Property created successfully', data: populated });
+
 
     Promise.resolve()
         .then(() => notifyAllAgentsNewProperty(populated))
@@ -400,12 +410,12 @@ const create_property = wrapAsync(async (req, res) => {
 });
 
 const update_property = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
 
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
 
-    const property = await Properties.findById(id);
+    const property = await Properties.findOne({ _id: id, tenant_id });
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -429,16 +439,32 @@ const update_property = wrapAsync(async (req, res) => {
 
     if (!Object.keys(updates).length) throw httpError(400, 'No valid fields to update');
 
+    const oldAgents = (property.assign_agent || []).map(a => String(a._id || a));
+    const newAgents = updates.assign_agent ? updates.assign_agent.map(a => String(a)) : oldAgents;
+
     Object.assign(property, updates);
     property.updated_by = user._id;
     await property.save();
+
+    // Bidirectional assignment update
+    if (updates.assign_agent) {
+        const added = newAgents.filter(id => !oldAgents.includes(id));
+        const removed = oldAgents.filter(id => !newAgents.includes(id));
+
+        if (added.length) {
+            await Agent.updateMany({ _id: { $in: added } }, { $addToSet: { assigned_properties: property._id } });
+        }
+        if (removed.length) {
+            await Agent.updateMany({ _id: { $in: removed } }, { $pull: { assigned_properties: property._id } });
+        }
+    }
 
     const populated = await populatePropertyQuery(Properties.findById(property._id));
     res.status(200).json({ success: true, message: 'Property updated successfully', data: populated });
 });
 
 const update_property_status = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
 
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
@@ -449,7 +475,7 @@ const update_property_status = wrapAsync(async (req, res) => {
         throw httpError(400, 'status or is_active is required');
     }
 
-    const property = await Properties.findById(id);
+    const property = await Properties.findOne({ _id: id, tenant_id });
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -486,12 +512,12 @@ const update_property_status = wrapAsync(async (req, res) => {
 });
 
 const delete_property = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
 
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
 
-    const property = await Properties.findById(id);
+    const property = await Properties.findOne({ _id: id, tenant_id });
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -504,6 +530,14 @@ const delete_property = wrapAsync(async (req, res) => {
     property.property_status = 'inactive';
     property.updated_by = user._id;
     await property.save();
+
+    // Bidirectional assignment update
+    if (property.assign_agent && property.assign_agent.length) {
+        await Agent.updateMany(
+            { _id: { $in: property.assign_agent } },
+            { $pull: { assigned_properties: property._id } }
+        );
+    }
 
     res.status(200).json({ success: true, message: 'Property deleted successfully' });
 });
