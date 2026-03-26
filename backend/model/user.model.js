@@ -59,6 +59,11 @@ const userSchema = new mongoose.Schema({
     deleted_at: {
         type: Date
     },
+    tenant_id: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
+        index: true
+    },
 }, { timestamps: true });
 
 userSchema.index({ role: 1, is_active: 1 });

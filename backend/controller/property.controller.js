@@ -201,6 +201,55 @@ async function resolvePhotoUrls(req, { folder, tags } = {}) {
     return uploadedUrls;
 }
 
+async function resolveDocumentUrls(req, { folder, tags } = {}) {
+    const uploadedDocs = [];
+
+    const documentsBody = req.body?.documents;
+    if (Array.isArray(documentsBody)) {
+        for (const doc of documentsBody) {
+            if (doc && doc.value) {
+                uploadedDocs.push({ name: String(doc.name || '').trim(), value: String(doc.value).trim() });
+            }
+        }
+    } else if (typeof documentsBody === 'string') {
+        const s = documentsBody.trim();
+        if (s) {
+            try {
+                const parsed = JSON.parse(s);
+                if (Array.isArray(parsed)) {
+                    for (const doc of parsed) {
+                        if (doc && doc.value) {
+                            uploadedDocs.push({ name: String(doc.name || '').trim(), value: String(doc.value).trim() });
+                        }
+                    }
+                }
+            } catch {}
+        }
+    }
+
+    const base64List = req.body?.documents_base64;
+    // base64List should be an array of { name, base64, mimeType }
+    if (Array.isArray(base64List)) {
+        for (const docObj of base64List) {
+            if (!docObj || !docObj.base64) continue;
+            
+            const rawB64 = String(docObj.base64).trim();
+            const uploadPayload = rawB64.startsWith('data:') 
+                ? { dataUri: rawB64 } 
+                : { base64: rawB64, mimeType: docObj.mimeType };
+
+            const uploaded = await uploadImage(
+                uploadPayload,
+                { folder: folder || process.env.CLOUDINARY_PROPERTY_FOLDER || 'lead_real/properties_docs', tags, resourceType: 'auto' }
+            );
+            const url = uploaded.secureUrl || uploaded.url;
+            if (url) uploadedDocs.push({ name: String(docObj.name || '').trim(), value: url });
+        }
+    }
+
+    return uploadedDocs.filter(d => d.value);
+}
+
 function buildPropertyDocFromBody(body = {}) {
     const property_title = String(body.property_title ?? body.title ?? '').trim();
     const property_type = String(body.property_type ?? '').trim() || undefined;
@@ -263,7 +312,8 @@ function buildPropertyDocFromBody(body = {}) {
         furnished_status,
         amenities,
         property_status: mappedPropertyStatus || undefined,
-        is_active: mappedIsActive
+        is_active: mappedIsActive,
+        documents: undefined // To be populated directly if needed, or stripped out until populated
     };
 
     Object.keys(doc).forEach(k => doc[k] === undefined && delete doc[k]);
@@ -286,10 +336,10 @@ function populatePropertyQuery(query) {
 }
 
 const get_all_properties = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { payload, tenant_id } = req.auth;
     const { page, limit, skip } = parsePagination(req);
 
-    const match = {};
+    const match = { tenant_id };
 
     const search = String(req.query?.search ?? '').trim();
     const propertyType = String(req.query?.property_type ?? '').trim();
@@ -346,12 +396,12 @@ const get_all_properties = wrapAsync(async (req, res) => {
 });
 
 const get_property_by_id = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { payload, tenant_id } = req.auth;
 
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
 
-    const property = await populatePropertyQuery(Properties.findById(id));
+    const property = await populatePropertyQuery(Properties.findOne({ _id: id, tenant_id }));
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -364,7 +414,7 @@ const get_property_by_id = wrapAsync(async (req, res) => {
 });
 
 const create_property = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
 
     const doc = buildPropertyDocFromBody(req.body);
     const details = [];
@@ -382,17 +432,30 @@ const create_property = wrapAsync(async (req, res) => {
     if (details.length) throw httpError(400, 'Validation error', details);
 
     const photoUrls = await resolvePhotoUrls(req, { tags: ['property', String(user._id)] });
-    if (photoUrls.length) doc.photos = photoUrls;
+    if (photoUrls.length || req.body.photos || req.body.photos_base64) doc.photos = photoUrls;
+
+    const documentUrls = await resolveDocumentUrls(req, { tags: ['property_doc', String(user._id)] });
+    if (documentUrls.length || req.body.documents || req.body.documents_base64) doc.documents = documentUrls;
 
     if (assignAgentIds.length) doc.assign_agent = assignAgentIds;
     doc.created_by = user._id;
     doc.updated_by = user._id;
+    doc.tenant_id = tenant_id;
     if (doc.is_active === undefined) doc.is_active = true;
 
     const created = await Properties.create(doc);
     const populated = await populatePropertyQuery(Properties.findById(created._id));
 
+    // Bidirectional assignment update
+    if (assignAgentIds && assignAgentIds.length) {
+        await Agent.updateMany(
+            { _id: { $in: assignAgentIds } },
+            { $addToSet: { assigned_properties: created._id } }
+        );
+    }
+
     res.status(201).json({ success: true, message: 'Property created successfully', data: populated });
+
 
     Promise.resolve()
         .then(() => notifyAllAgentsNewProperty(populated))
@@ -400,12 +463,12 @@ const create_property = wrapAsync(async (req, res) => {
 });
 
 const update_property = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
 
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
 
-    const property = await Properties.findById(id);
+    const property = await Properties.findOne({ _id: id, tenant_id });
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -422,23 +485,49 @@ const update_property = wrapAsync(async (req, res) => {
     }
 
     const photoUrls = await resolvePhotoUrls(req, { tags: ['property', String(user._id), String(property._id)] });
+    // In updates, we usually append photos if uploaded, or rewrite if specifically passed.
+    // If they explicitly send empty photos array, we should respect it
     if (photoUrls.length) {
         const existing = Array.isArray(property.photos) ? property.photos : [];
         updates.photos = Array.from(new Set(existing.concat(photoUrls)));
+    } else if (req.body.photos && Array.isArray(req.body.photos) && req.body.photos.length === 0) {
+        updates.photos = [];
+    }
+
+    const documentUrls = await resolveDocumentUrls(req, { tags: ['property_doc', String(user._id), String(property._id)] });
+    // For documents, we are rewriting the entire array based on what's in req.body.documents and new base64s
+    if (req.body.documents !== undefined || req.body.documents_base64 !== undefined) {
+        updates.documents = documentUrls;
     }
 
     if (!Object.keys(updates).length) throw httpError(400, 'No valid fields to update');
+
+    const oldAgents = (property.assign_agent || []).map(a => String(a._id || a));
+    const newAgents = updates.assign_agent ? updates.assign_agent.map(a => String(a)) : oldAgents;
 
     Object.assign(property, updates);
     property.updated_by = user._id;
     await property.save();
 
+    // Bidirectional assignment update
+    if (updates.assign_agent) {
+        const added = newAgents.filter(id => !oldAgents.includes(id));
+        const removed = oldAgents.filter(id => !newAgents.includes(id));
+
+        if (added.length) {
+            await Agent.updateMany({ _id: { $in: added } }, { $addToSet: { assigned_properties: property._id } });
+        }
+        if (removed.length) {
+            await Agent.updateMany({ _id: { $in: removed } }, { $pull: { assigned_properties: property._id } });
+        }
+    }
+
     const populated = await populatePropertyQuery(Properties.findById(property._id));
-    res.status(200).json({ success: true, message: 'Property updated successfully', data: populated });
+    res.status(200).json({ success: true, message: 'Property updated successfully', data: populated, debug_documentUrls: documentUrls, debug_updates: updates });
 });
 
 const update_property_status = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
 
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
@@ -449,7 +538,7 @@ const update_property_status = wrapAsync(async (req, res) => {
         throw httpError(400, 'status or is_active is required');
     }
 
-    const property = await Properties.findById(id);
+    const property = await Properties.findOne({ _id: id, tenant_id });
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -486,12 +575,12 @@ const update_property_status = wrapAsync(async (req, res) => {
 });
 
 const delete_property = wrapAsync(async (req, res) => {
-    const { user, payload } = await requireUser(req, ['admin', 'super_admin', 'agent']);
+    const { user, payload, tenant_id } = req.auth;
 
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
 
-    const property = await Properties.findById(id);
+    const property = await Properties.findOne({ _id: id, tenant_id });
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -504,6 +593,14 @@ const delete_property = wrapAsync(async (req, res) => {
     property.property_status = 'inactive';
     property.updated_by = user._id;
     await property.save();
+
+    // Bidirectional assignment update
+    if (property.assign_agent && property.assign_agent.length) {
+        await Agent.updateMany(
+            { _id: { $in: property.assign_agent } },
+            { $pull: { assigned_properties: property._id } }
+        );
+    }
 
     res.status(200).json({ success: true, message: 'Property deleted successfully' });
 });

@@ -1,6 +1,6 @@
+const mongoose = require('mongoose');
 const User = require('../model/user.model');
 const Agent = require('../model/agent.model');
-const { verifyToken } = require('../utils/generateToken');
 const { uploadImage } = require('../utils/uploadImage');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
@@ -10,38 +10,12 @@ const {
     isEmail,
     validatePassword,
     hashPassword,
-    extractBearerToken,
     pickProfilePicFile,
     isProbablyUrl,
     isDataUri,
-    ensureNotBlacklisted
 } = require('../utils/common');
 
-async function requireAdmin(req) {
-    const token = extractBearerToken(req);
-    if (!token) throw httpError(401, 'Authorization token required');
-    await ensureNotBlacklisted(token);
 
-    let payload;
-    try {
-        payload = verifyToken(token);
-    } catch {
-        throw httpError(401, 'Invalid or expired token');
-    }
-
-    if (!payload?.sub) throw httpError(401, 'Invalid token');
-    if (!['admin', 'super_admin'].includes(payload.role)) throw httpError(403, 'Forbidden');
-
-    const admin = await User.findOne({
-        _id: payload.sub,
-        role: { $in: ['admin', 'super_admin'] },
-        is_active: true,
-        is_deleted: false
-    });
-    if (!admin) throw httpError(401, 'Invalid or expired token');
-
-    return { admin, payload };
-}
 
 function parsePagination(req) {
     const pageRaw = Number(req.query?.page ?? 1);
@@ -105,13 +79,14 @@ function sanitizeAgent(agentDoc) {
 }
 
 const get_all_agents = wrapAsync(async (req, res) => {
-    await requireAdmin(req);
+    const { user, tenant_id } = req.auth;
+    if (!tenant_id) throw httpError(401, 'Tenant isolation context missing');
 
     const { page, limit, skip } = parsePagination(req);
     const search = String(req.query?.search ?? '').trim();
     const status = String(req.query?.status ?? '').trim().toLowerCase();
 
-    const match = {};
+    const match = { tenant_id: new mongoose.Types.ObjectId(String(tenant_id)) };
     if (status === 'active') match.is_active = true;
     if (status === 'inactive') match.is_active = false;
 
@@ -120,6 +95,7 @@ const get_all_agents = wrapAsync(async (req, res) => {
         const users = await User.find({
             role: 'agent',
             is_deleted: false,
+            tenant_id,
             $or: [{ user_name: regex }, { email: regex }, { phone_number: regex }]
         }).select('_id').lean();
         const userIds = users.map(u => u._id);
@@ -132,6 +108,7 @@ const get_all_agents = wrapAsync(async (req, res) => {
     const [items, total] = await Promise.all([
         Agent.find(match)
             .populate('agent_details', 'user_name email phone_number profile_pic role is_active')
+            .populate('assigned_properties', 'property_title listing_type property_status')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit),
@@ -151,19 +128,21 @@ const get_all_agents = wrapAsync(async (req, res) => {
 });
 
 const get_agent_by_id = wrapAsync(async (req, res) => {
-    await requireAdmin(req);
-
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Agent id is required');
 
-    const agent = await Agent.findById(id).populate('agent_details', 'user_name email phone_number profile_pic role is_active');
+    const agent = await Agent.findOne({ _id: id, tenant_id: req.auth.tenant_id })
+        .populate('agent_details', 'user_name email phone_number profile_pic role is_active')
+        .populate('assigned_properties', 'property_title listing_type property_status');
+
     if (!agent) throw httpError(404, 'Agent not found');
 
     res.status(200).json({ success: true, data: sanitizeAgent(agent) });
 });
 
+// ... (Update other functions similarly)
+
 const create_agent = wrapAsync(async (req, res) => {
-    await requireAdmin(req);
 
     const name = String(req.body?.user_name ?? req.body?.name ?? '').trim();
     const agentRole = String(req.body?.agent_role ?? req.body?.role ?? '').trim();
@@ -206,14 +185,16 @@ const create_agent = wrapAsync(async (req, res) => {
         phone_number: phone,
         hash_password: hashPassword(generatedPassword),
         role: 'agent',
-        is_active: true
+        is_active: true,
+        tenant_id: req.auth.tenant_id
     });
 
     const agent = await Agent.create({
         agent_details: user._id,
         agent_role: agentRole,
         agent_pin: pin,
-        is_active: true
+        is_active: true,
+        tenant_id: req.auth.tenant_id
     });
 
     const populated = await Agent.findById(agent._id).populate('agent_details', 'user_name email phone_number profile_pic role is_active');
@@ -227,12 +208,10 @@ const create_agent = wrapAsync(async (req, res) => {
 });
 
 const update_agent = wrapAsync(async (req, res) => {
-    await requireAdmin(req);
-
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Agent id is required');
 
-    const agent = await Agent.findById(id);
+    const agent = await Agent.findOne({ _id: id, tenant_id: req.auth.tenant_id });
     if (!agent) throw httpError(404, 'Agent not found');
 
     const user = await User.findById(agent.agent_details);
@@ -307,8 +286,6 @@ const update_agent = wrapAsync(async (req, res) => {
 });
 
 const update_agent_status = wrapAsync(async (req, res) => {
-    await requireAdmin(req);
-
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Agent id is required');
 
@@ -316,9 +293,8 @@ const update_agent_status = wrapAsync(async (req, res) => {
     if (enabled === undefined) throw httpError(400, 'is_active is required');
 
     const isActive = String(enabled).toLowerCase() === 'true' || enabled === true || enabled === 1 || String(enabled) === '1';
-    console.log(`Debug - update_agent_status - ID: ${id}, enabled: ${enabled}, typeof: ${typeof enabled}, isActive: ${isActive}`);
-
-    const agent = await Agent.findById(id);
+    
+    const agent = await Agent.findOne({ _id: id, tenant_id: req.auth.tenant_id });
     if (!agent) throw httpError(404, 'Agent not found');
 
     agent.is_active = isActive;
@@ -331,14 +307,12 @@ const update_agent_status = wrapAsync(async (req, res) => {
 });
 
 const assign_project_to_agent = wrapAsync(async (req, res) => {
-    await requireAdmin(req);
-
     const id = req.params?.id;
     const projectId = req.body?.project_id ?? req.body?.projectId;
     if (!id) throw httpError(400, 'Agent id is required');
     if (!projectId) throw httpError(400, 'project_id is required');
 
-    const agent = await Agent.findById(id);
+    const agent = await Agent.findOne({ _id: id, tenant_id: req.auth.tenant_id });
     if (!agent) throw httpError(404, 'Agent not found');
 
     const exists = agent.assigned_projects?.some(p => String(p) === String(projectId));
@@ -351,13 +325,11 @@ const assign_project_to_agent = wrapAsync(async (req, res) => {
 });
 
 const remark_agent = wrapAsync(async (req, res) => {
-    await requireAdmin(req);
-
     const id = req.params?.id;
     const remark = String(req.body?.remark ?? '').trim();
     if (!id) throw httpError(400, 'Agent id is required');
 
-    const agent = await Agent.findById(id);
+    const agent = await Agent.findOne({ _id: id, tenant_id: req.auth.tenant_id });
     if (!agent) throw httpError(404, 'Agent not found');
 
     agent.remark = remark;
@@ -368,23 +340,23 @@ const remark_agent = wrapAsync(async (req, res) => {
 });
 
 const delete_agent = wrapAsync(async (req, res) => {
-    await requireAdmin(req);
-
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Agent id is required');
 
-    const agent = await Agent.findById(id);
+    const agent = await Agent.findOne({ _id: id, tenant_id: req.auth.tenant_id });
     if (!agent) throw httpError(404, 'Agent not found');
 
-    agent.is_active = false;
-    await agent.save();
+    const userId = agent.agent_details;
 
-    await User.updateOne(
-        { _id: agent.agent_details },
-        { $set: { is_deleted: true, deleted_at: new Date(), is_active: false } }
-    );
+    // Delete the agent document permanently
+    await agent.deleteOne();
 
-    res.status(200).json({ success: true, message: 'Agent deleted successfully' });
+    // If there's an associated user, delete it too
+    if (userId) {
+        await User.deleteOne({ _id: userId });
+    }
+
+    res.status(200).json({ success: true, message: 'Agent and associated user deleted permanently' });
 });
 
 module.exports = {

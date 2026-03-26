@@ -3,6 +3,7 @@ import { PremiumInput } from "../common/PremiumInput";
 import { PremiumButton } from "../common/PremiumButton";
 import { FiX, FiCamera, FiCheckSquare } from "react-icons/fi";
 import { PremiumCheckbox } from "../common/PremiumCheckbox";
+import { useUpdateAgentProfile } from "../../hooks/useAgentHooks";
 
 const PROPERTIES = [
     { id: "1bhk", label: "1BHK Apartment" },
@@ -14,14 +15,16 @@ const PROPERTIES = [
     { id: "plot", label: "Industrial Plot" },
 ];
 
-const EditAgentModal = ({ isOpen, onClose, onUpdate, agent }) => {
+const EditAgentModal = ({ isOpen, onClose, agent }) => {
+    const { mutateAsync: updateAgent, isPending } = useUpdateAgentProfile();
+
     const [formData, setFormData] = useState({
         name: "",
         role: "",
         phone: "",
         email: "",
         pin: "",
-        image: null,
+        image: "",
         assignedProperties: [],
     });
 
@@ -30,22 +33,17 @@ const EditAgentModal = ({ isOpen, onClose, onUpdate, agent }) => {
     // Sync formData with the agent being edited
     useEffect(() => {
         if (agent && isOpen) {
-            queueMicrotask(() => {
-                setFormData({
-                    name: agent.name || "",
-                    role: agent.role || "",
-                    phone: agent.phone || "",
-                    email: agent.email || "",
-                    pin: agent.pin || "",
-                    image: agent.image || null,
-                    assignedProperties: agent.assignedProperties || [],
-                });
-                if (agent.image) {
-                    setPreview(typeof agent.image === "string" ? agent.image : URL.createObjectURL(agent.image));
-                } else {
-                    setPreview(null);
-                }
+            const details = agent.agent_details || {};
+            setFormData({
+                name: details.user_name || "",
+                role: agent.agent_role || "",
+                phone: details.phone_number || "",
+                email: details.email || "",
+                pin: agent.agent_pin || "",
+                image: details.profile_pic || "",
+                assignedProperties: agent.assignedProperties || [],
             });
+            setPreview(details.profile_pic || null);
         }
     }, [agent, isOpen]);
 
@@ -59,8 +57,12 @@ const EditAgentModal = ({ isOpen, onClose, onUpdate, agent }) => {
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setFormData((prev) => ({ ...prev, image: file }));
-            setPreview(URL.createObjectURL(file));
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData((prev) => ({ ...prev, image: reader.result }));
+                setPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -84,10 +86,24 @@ const EditAgentModal = ({ isOpen, onClose, onUpdate, agent }) => {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onUpdate({ ...agent, ...formData });
-        onClose();
+        try {
+            await updateAgent({
+                id: agent._id,
+                data: {
+                    user_name: formData.name,
+                    agent_role: formData.role,
+                    email: formData.email,
+                    phone_number: formData.phone,
+                    agent_pin: formData.pin,
+                    profile_pic: formData.image
+                }
+            });
+            onClose();
+        } catch (err) {
+            console.error("Update agent error:", err);
+        }
     };
 
     return (
@@ -121,47 +137,52 @@ const EditAgentModal = ({ isOpen, onClose, onUpdate, agent }) => {
                                         onChange={handleImageChange}
                                     />
                                 </div>
-                                <p className="text-xs text-zinc-500 mt-2 text-center">Update Photo</p>
+                                <p className="text-xs text-zinc-500 mt-2 text-center font-bold uppercase tracking-tighter">Update Photo</p>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <PremiumInput 
                                 label="Full Name" 
-                                placeholder="John Doe" 
+                                placeholder="Ankit Pathak" 
                                 value={formData.name} 
                                 onChange={(e) => handleChange({ target: { name: 'name', value: e.target.value }})}
+                                required
                             />
                             <PremiumInput 
-                                label="Role" 
-                                placeholder="Real Estate Agent" 
+                                label="Agent Role" 
+                                placeholder="Sales Executive" 
                                 value={formData.role} 
                                 onChange={(e) => handleChange({ target: { name: 'role', value: e.target.value }})}
+                                required
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <PremiumInput 
-                                label="Phone" 
-                                placeholder="9876543210" 
+                                label="Phone Number" 
+                                placeholder="7388480126" 
                                 value={formData.phone} 
                                 onChange={(e) => handleChange({ target: { name: 'phone', value: e.target.value }})}
+                                required
                             />
                             <PremiumInput 
-                                label="Email" 
+                                label="Email Address" 
                                 type="email"
-                                placeholder="john@example.com" 
+                                placeholder="ankit@example.com" 
                                 value={formData.email} 
                                 onChange={(e) => handleChange({ target: { name: 'email', value: e.target.value }})}
+                                required
                             />
                         </div>
 
                         <PremiumInput 
-                            label="Security Pin" 
-                            type="password"
-                            placeholder="Set a 4-digit pin" 
+                            label="Security Pin (4-6 digits)" 
+                            type="text"
+                            placeholder="1234" 
                             value={formData.pin} 
                             onChange={(e) => handleChange({ target: { name: 'pin', value: e.target.value }})}
+                            required
                         />
 
                         {/* Property Assignment Section */}
@@ -204,8 +225,9 @@ const EditAgentModal = ({ isOpen, onClose, onUpdate, agent }) => {
                         </div>
                         <div className="flex-1">
                             <PremiumButton 
-                                text="Save Changes" 
+                                text={isPending ? "Saving..." : "Save Changes"} 
                                 type="submit"
+                                disabled={isPending}
                             />
                         </div>
                     </div>

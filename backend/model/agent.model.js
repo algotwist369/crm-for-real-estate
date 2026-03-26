@@ -18,9 +18,9 @@ const agentSchema = new mongoose.Schema({
         unique: true,
         index: true
     },
-    assigned_projects: [{
+    assigned_properties: [{
         type: mongoose.Schema.ObjectId,
-        ref: 'Projects',
+        ref: 'Properties',
     }],
     total_leads: {
         type: Number,
@@ -62,6 +62,11 @@ const agentSchema = new mongoose.Schema({
     },
     last_assigned_at: {
         type: Date
+    },
+    tenant_id: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
+        index: true
     }
 }, { timestamps: true });
 
