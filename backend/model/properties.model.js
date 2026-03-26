@@ -121,6 +121,16 @@ const propertiesSchema = new Schema({
     available_from: {
         type: Date
     },
+    documents: [
+        {
+            name: {
+                type: String, // document name or type (e.g., "Title Deed", "Floor Plan")
+            },
+            value: {
+                type: String, // URL or file path to the document
+            },
+        },
+    ],
     created_by: {
         type: mongoose.Schema.ObjectId,
         ref: 'User',

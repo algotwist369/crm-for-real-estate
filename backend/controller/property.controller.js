@@ -201,6 +201,55 @@ async function resolvePhotoUrls(req, { folder, tags } = {}) {
     return uploadedUrls;
 }
 
+async function resolveDocumentUrls(req, { folder, tags } = {}) {
+    const uploadedDocs = [];
+
+    const documentsBody = req.body?.documents;
+    if (Array.isArray(documentsBody)) {
+        for (const doc of documentsBody) {
+            if (doc && doc.value) {
+                uploadedDocs.push({ name: String(doc.name || '').trim(), value: String(doc.value).trim() });
+            }
+        }
+    } else if (typeof documentsBody === 'string') {
+        const s = documentsBody.trim();
+        if (s) {
+            try {
+                const parsed = JSON.parse(s);
+                if (Array.isArray(parsed)) {
+                    for (const doc of parsed) {
+                        if (doc && doc.value) {
+                            uploadedDocs.push({ name: String(doc.name || '').trim(), value: String(doc.value).trim() });
+                        }
+                    }
+                }
+            } catch {}
+        }
+    }
+
+    const base64List = req.body?.documents_base64;
+    // base64List should be an array of { name, base64, mimeType }
+    if (Array.isArray(base64List)) {
+        for (const docObj of base64List) {
+            if (!docObj || !docObj.base64) continue;
+            
+            const rawB64 = String(docObj.base64).trim();
+            const uploadPayload = rawB64.startsWith('data:') 
+                ? { dataUri: rawB64 } 
+                : { base64: rawB64, mimeType: docObj.mimeType };
+
+            const uploaded = await uploadImage(
+                uploadPayload,
+                { folder: folder || process.env.CLOUDINARY_PROPERTY_FOLDER || 'lead_real/properties_docs', tags, resourceType: 'auto' }
+            );
+            const url = uploaded.secureUrl || uploaded.url;
+            if (url) uploadedDocs.push({ name: String(docObj.name || '').trim(), value: url });
+        }
+    }
+
+    return uploadedDocs.filter(d => d.value);
+}
+
 function buildPropertyDocFromBody(body = {}) {
     const property_title = String(body.property_title ?? body.title ?? '').trim();
     const property_type = String(body.property_type ?? '').trim() || undefined;
@@ -263,7 +312,8 @@ function buildPropertyDocFromBody(body = {}) {
         furnished_status,
         amenities,
         property_status: mappedPropertyStatus || undefined,
-        is_active: mappedIsActive
+        is_active: mappedIsActive,
+        documents: undefined // To be populated directly if needed, or stripped out until populated
     };
 
     Object.keys(doc).forEach(k => doc[k] === undefined && delete doc[k]);
@@ -382,7 +432,10 @@ const create_property = wrapAsync(async (req, res) => {
     if (details.length) throw httpError(400, 'Validation error', details);
 
     const photoUrls = await resolvePhotoUrls(req, { tags: ['property', String(user._id)] });
-    if (photoUrls.length) doc.photos = photoUrls;
+    if (photoUrls.length || req.body.photos || req.body.photos_base64) doc.photos = photoUrls;
+
+    const documentUrls = await resolveDocumentUrls(req, { tags: ['property_doc', String(user._id)] });
+    if (documentUrls.length || req.body.documents || req.body.documents_base64) doc.documents = documentUrls;
 
     if (assignAgentIds.length) doc.assign_agent = assignAgentIds;
     doc.created_by = user._id;
@@ -432,9 +485,19 @@ const update_property = wrapAsync(async (req, res) => {
     }
 
     const photoUrls = await resolvePhotoUrls(req, { tags: ['property', String(user._id), String(property._id)] });
+    // In updates, we usually append photos if uploaded, or rewrite if specifically passed.
+    // If they explicitly send empty photos array, we should respect it
     if (photoUrls.length) {
         const existing = Array.isArray(property.photos) ? property.photos : [];
         updates.photos = Array.from(new Set(existing.concat(photoUrls)));
+    } else if (req.body.photos && Array.isArray(req.body.photos) && req.body.photos.length === 0) {
+        updates.photos = [];
+    }
+
+    const documentUrls = await resolveDocumentUrls(req, { tags: ['property_doc', String(user._id), String(property._id)] });
+    // For documents, we are rewriting the entire array based on what's in req.body.documents and new base64s
+    if (req.body.documents !== undefined || req.body.documents_base64 !== undefined) {
+        updates.documents = documentUrls;
     }
 
     if (!Object.keys(updates).length) throw httpError(400, 'No valid fields to update');
@@ -460,7 +523,7 @@ const update_property = wrapAsync(async (req, res) => {
     }
 
     const populated = await populatePropertyQuery(Properties.findById(property._id));
-    res.status(200).json({ success: true, message: 'Property updated successfully', data: populated });
+    res.status(200).json({ success: true, message: 'Property updated successfully', data: populated, debug_documentUrls: documentUrls, debug_updates: updates });
 });
 
 const update_property_status = wrapAsync(async (req, res) => {

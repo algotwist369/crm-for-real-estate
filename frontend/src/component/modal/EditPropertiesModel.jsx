@@ -53,6 +53,8 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
         possession_date: "",
         available_from: "",
         photos_base64: [],
+        documents: [],
+        documents_base64: [],
         is_active: true
     });
 
@@ -101,6 +103,8 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                 possession_date: property.possession_date ? new Date(property.possession_date).toISOString().split('T')[0] : "",
                 available_from: property.available_from ? new Date(property.available_from).toISOString().split('T')[0] : "",
                 photos_base64: [],
+                documents: property.documents || [],
+                documents_base64: [],
                 is_active: property.is_active ?? true
             });
             setPreviewImages(property.photos || []);
@@ -165,6 +169,57 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
         // This is simplified; we'd need to track which ones are new vs existing
     };
 
+    const handleDocFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({
+                    ...prev,
+                    documents_base64: [...prev.documents_base64, {
+                        name: file.name.split('.').slice(0, -1).join('.'),
+                        base64: reader.result,
+                        mimeType: file.type
+                    }]
+                }));
+            };
+            reader.readAsDataURL(file);
+        });
+        e.target.value = null; // reset input
+    };
+
+    const handleDocUrlAdd = () => {
+        setFormData(prev => ({
+            ...prev,
+            documents: [...prev.documents, { name: "New Document", value: "" }]
+        }));
+    };
+
+    const updateDocUrl = (index, field, value) => {
+        setFormData(prev => {
+            const newDocs = [...prev.documents];
+            newDocs[index] = { ...newDocs[index], [field]: value };
+            return { ...prev, documents: newDocs };
+        });
+    };
+
+    const updateBase64DocName = (index, value) => {
+        setFormData(prev => {
+            const newDocs = [...prev.documents_base64];
+            newDocs[index] = { ...newDocs[index], name: value };
+            return { ...prev, documents_base64: newDocs };
+        });
+    }
+
+    const removeDoc = (index, isBase64) => {
+        setFormData(prev => {
+            if (isBase64) {
+                return { ...prev, documents_base64: prev.documents_base64.filter((_, i) => i !== index) };
+            }
+            return { ...prev, documents: prev.documents.filter((_, i) => i !== index) };
+        });
+    };
+
     const toggleAmenity = (amenity) => {
         setFormData(prev => ({
             ...prev,
@@ -224,6 +279,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                     <SectionTab id="specs" label="Specs" icon={FiLayers} />
                     <SectionTab id="location" label="Location" icon={FiMapPin} />
                     <SectionTab id="media" label="Media" icon={FiUpload} />
+                    <SectionTab id="docs" label="Docs" icon={FiCheckSquare} />
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
@@ -348,6 +404,47 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                                         <span className="text-[10px] font-black text-zinc-600 uppercase">Add Photo</span>
                                         <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
                                     </label>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeSection === 'docs' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                <div className="space-y-4">
+                                    {formData.documents.map((doc, idx) => (
+                                        <div key={`doc-${idx}`} className="flex gap-4 items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900">
+                                            <div className="flex-1 space-y-3">
+                                                <PremiumInput label="Doc Name" value={doc.name} onChange={(e) => updateDocUrl(idx, 'name', e.target.value)} placeholder="e.g. Floor Plan" />
+                                                <PremiumInput label="URL Value" value={doc.value} onChange={(e) => updateDocUrl(idx, 'value', e.target.value)} placeholder="https://..." />
+                                            </div>
+                                            <button type="button" onClick={() => removeDoc(idx, false)} className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                                                <FiTrash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {formData.documents_base64.map((doc, idx) => (
+                                        <div key={`doc-new-${idx}`} className="flex gap-4 items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900 border-l-emerald-500/50">
+                                            <div className="flex-1 space-y-3">
+                                                <PremiumInput label="Doc Name" value={doc.name} onChange={(e) => updateBase64DocName(idx, e.target.value)} placeholder="e.g. Title Deed" />
+                                                <div className="px-4 py-3 bg-zinc-900 rounded-xl text-xs text-zinc-400 border border-zinc-800 truncate">
+                                                    [File Attached] {doc.mimeType}
+                                                </div>
+                                            </div>
+                                            <button type="button" onClick={() => removeDoc(idx, true)} className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                                                <FiTrash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    <div className="flex gap-4 pt-4 border-t border-zinc-900">
+                                        <button type="button" onClick={handleDocUrlAdd} className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-xs font-bold text-white uppercase tracking-widest transition-all flex items-center justify-center gap-2">
+                                            <FiPlus size={14} /> Add URL
+                                        </button>
+                                        <label className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-xs font-bold text-white uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                            <FiUpload size={14} /> Upload File
+                                            <input type="file" multiple className="hidden" onChange={handleDocFileChange} />
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         )}

@@ -301,6 +301,38 @@ const PropertyDetailsPage = () => {
                              </div>
                         </div>
                     </div>
+
+                    {/* Documents Segment */}
+                    {property.documents && property.documents.length > 0 && (
+                        <div className="bg-zinc-950/40 border border-zinc-800/50 rounded-[2.5rem] p-8 lg:p-10 space-y-6 shadow-xl">
+                            <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.3em] flex items-center gap-3">
+                                <FiLayers /> Attached Documents
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {property.documents.map((doc, i) => (
+                                    <a 
+                                        key={i} 
+                                        href={doc.value} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="flex items-center justify-between p-4 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 hover:border-emerald-500/50 rounded-2xl transition-all group"
+                                    >
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                                                <FiCheckCircle size={18} />
+                                            </div>
+                                            <p className="text-sm font-bold text-white truncate group-hover:text-emerald-400 transition-colors">
+                                                {doc.name || "Untitled Document"}
+                                            </p>
+                                        </div>
+                                        <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-950 text-zinc-500 group-hover:text-emerald-500 group-hover:bg-emerald-500/10 transition-all shrink-0">
+                                            <FiMaximize2 size={14} />
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Side: Audit & Personnel */}
