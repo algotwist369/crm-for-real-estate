@@ -34,4 +34,4 @@ const archiveSchema = new mongoose.Schema({
     }
 }
     , { timestamps: true });
-export default mongoose.model('Archive', archiveSchema);
+module.exports = mongoose.model('Archive', archiveSchema);

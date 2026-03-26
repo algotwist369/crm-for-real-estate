@@ -25,15 +25,6 @@ if (cluster.isPrimary) {
         cluster.fork();
     });
 
-<<<<<<< HEAD
-    const archiveWorker = startArchiveWorker({
-        pollIntervalMs: Number(process.env.ARCHIVE_WORKER_POLL_MS || 60 * 60 * 1000) // 1 Hour by default
-    });
-
-    if (String(process.env.NODE_ENV || '').toLowerCase() !== 'test') {
-        worker.start();
-        archiveWorker.start();
-=======
     cluster.on('online', (worker) => {
         process.stdout.write(`Worker ${worker.process.pid} is online\n`);
     });
@@ -104,31 +95,10 @@ if (cluster.isPrimary) {
 
         process.on('SIGINT', () => shutdown().catch(err => process.stderr.write(`${err?.stack || err}\n`)));
         process.on('SIGTERM', () => shutdown().catch(err => process.stderr.write(`${err?.stack || err}\n`)));
->>>>>>> 4789c8c695ddb4fadbc0b233832436b63de1f532
     }
 
     start().catch(err => {
         process.stderr.write(`${err?.stack || err}\n`);
         process.exit(1);
     });
-<<<<<<< HEAD
-
-    const shutdown = async () => {
-        worker.stop();
-        archiveWorker.stop();
-        server.close(() => {});
-        await mongoose.disconnect();
-        process.exit(0);
-    };
-
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
 }
-
-start().catch(err => {
-    process.stderr.write(`${err?.stack || err}\n`);
-    process.exit(1);
-});
-=======
-}
->>>>>>> 4789c8c695ddb4fadbc0b233832436b63de1f532

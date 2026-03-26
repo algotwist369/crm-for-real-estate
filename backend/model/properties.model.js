@@ -16,11 +16,11 @@ const propertiesSchema = new Schema({
         lowercase: true
     },
 
-   
-     property_type: {
+
+    property_type: {
         type: String,
         required: true,
-        enum: ['rent', 'sale','appartment', 'investment','Studio', 'Villa', 'Plot', 'Commercial','other'],
+        enum: ['rent', 'sale', 'Apartment', 'investment', 'Studio', 'Villa', 'Plot', 'Commercial', 'other'],
         default: 'appartment',
         index: true
     },

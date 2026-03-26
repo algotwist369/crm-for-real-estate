@@ -34,11 +34,11 @@ async function processArchives(now) {
 
         // 2. Permanently delete data deleted 5 days ago or more
         const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
-        
+
         await Archive.deleteMany({
             deletedAt: { $lte: fiveDaysAgo }
         });
-        
+
     } catch (e) {
         console.error('Error in archive cleanup worker:', e);
     }
@@ -46,8 +46,8 @@ async function processArchives(now) {
 
 function startArchiveWorker(options = {}) {
     // Run every hour instead of every minute, since it's a daily lifecycle
-    const pollIntervalMs = Number(options.pollIntervalMs ?? 60 * 60 * 1000); 
-    
+    const pollIntervalMs = Number(options.pollIntervalMs ?? 60 * 60 * 1000);
+
     let timer = null;
 
     const start = () => {
