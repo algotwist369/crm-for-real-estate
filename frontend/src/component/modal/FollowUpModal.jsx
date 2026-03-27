@@ -4,6 +4,7 @@ import { PremiumButton } from "../common/PremiumButton";
 import { PremiumTabs } from "../common/PremiumTabs";
 import { PremiumTextarea } from "../common/PremiumTextarea";
 import { FiX, FiMessageSquare, FiCalendar, FiClock, FiUser, FiSmartphone, FiMail, FiTarget, FiDollarSign, FiShare2, FiHome } from "react-icons/fi";
+import { useSetFollowUp, useCompleteFollowUp } from "../../hooks/useLeadHooks";
 
 const FOLLOWUP_PRESETS = [
     { label: "Yesterday", value: -1 },
@@ -17,7 +18,6 @@ const FOLLOWUP_PRESETS = [
 ];
 
 const PRESET_LABELS = FOLLOWUP_PRESETS.map(p => p.label);
-const AGENTS = ["Admin", "Agent 1", "Agent 2", "Agent 3"];
 const STATUSES = ["Pending", "Done"];
 
 const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
@@ -25,20 +25,29 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
         remarks: "",
         followUpPreset: "",
         followUpDate: "",
-        followedBy: AGENTS[0],
         status: "Pending",
         isCustomFollowUp: false
     });
 
+    const setFollowUpMutation = useSetFollowUp();
+    const completeFollowUpMutation = useCompleteFollowUp();
+
     useEffect(() => {
         if (lead && isOpen) {
             queueMicrotask(() => {
+                let dateStr = "";
+                if (lead.next_follow_up_date) {
+                    const d = new Date(lead.next_follow_up_date);
+                    if (!isNaN(d.getTime())) {
+                        dateStr = d.toISOString().split('T')[0];
+                    }
+                }
+
                 setFormData({
                     remarks: lead.remarks || "",
                     followUpPreset: "",
-                    followUpDate: lead.followUpDate || "",
-                    followedBy: lead.followedBy || AGENTS[0],
-                    status: lead.followUpStatus || "Pending",
+                    followUpDate: dateStr,
+                    status: (lead.follow_up_status || "Pending").charAt(0).toUpperCase() + (lead.follow_up_status || "Pending").slice(1),
                     isCustomFollowUp: false
                 });
             });
@@ -72,13 +81,33 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
 
     const handleSave = (e) => {
         if (e) e.preventDefault();
-        onSave(lead.id, {
+        
+        const isDone = formData.status === "Done";
+
+        const payload = {
             remarks: formData.remarks,
-            followUpDate: formData.followUpDate,
-            followedBy: formData.followedBy,
-            followUpStatus: formData.status
-        });
-        onClose();
+        };
+
+        if (isDone) {
+            completeFollowUpMutation.mutate({ id: lead._id, data: payload }, {
+                onSuccess: () => {
+                    if (onSave) onSave();
+                    onClose();
+                }
+            });
+        } else {
+            if (formData.followUpDate) {
+                payload.next_follow_up_date = new Date(formData.followUpDate).toISOString();
+            }
+            payload.follow_up_status = "pending";
+
+            setFollowUpMutation.mutate({ id: lead._id, data: payload }, {
+                onSuccess: () => {
+                    if (onSave) onSave();
+                    onClose();
+                }
+            });
+        }
     };
 
     return (
@@ -93,7 +122,7 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                         <div>
                             <h3 className="text-xl font-bold text-white tracking-tight leading-none mb-1.5">Lead Interaction & Follow-up</h3>
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded uppercase tracking-wider">ID: {lead.id}</span>
+                                <span className="text-[10px] font-bold bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded uppercase tracking-wider">ID: {lead._id.substr(-6)}</span>
                                 <p className="text-sm text-zinc-500 font-medium">{lead.name}</p>
                             </div>
                         </div>
@@ -160,20 +189,6 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                                         </div>
                                         <span className="text-[10px] font-bold bg-zinc-800 text-zinc-300 px-2 py-1 rounded uppercase">{lead.source}</span>
                                     </div>
-
-                                    <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/30 space-y-3">
-                                        <div className="flex items-center gap-3">
-                                            <FiHome className="text-zinc-500" size={14} />
-                                            <span className="text-xs font-medium text-zinc-400">Interested Properties</span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(lead.properties || "").split(",").map((prop, idx) => (
-                                                <span key={idx} className="text-[10px] font-bold bg-zinc-800/50 border border-zinc-700/50 text-zinc-400 px-2.5 py-1 rounded-lg">
-                                                    {prop.trim() || "None"}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -182,14 +197,6 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                         <div className="lg:col-span-3 p-8">
                             <form onSubmit={handleSave} className="space-y-8 h-full flex flex-col">
                                 <div className="space-y-8 flex-1">
-                                    {/* Performed By Section */}
-                                    <PremiumTabs
-                                        label="Task Performed By"
-                                        options={AGENTS}
-                                        value={formData.followedBy}
-                                        onChange={(val) => setFormData(prev => ({ ...prev, followedBy: val }))}
-                                    />
-
                                     {/* Interaction Remarks */}
                                     <div className="space-y-4">
                                         <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.2em] block">Interaction Details</label>
@@ -203,7 +210,17 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                                         />
                                     </div>
 
+                                    {/* Follow-up Status */}
+                                    <PremiumTabs
+                                        label="Interaction Status"
+                                        options={STATUSES}
+                                        value={formData.status}
+                                        onChange={(val) => setFormData(prev => ({ ...prev, status: val }))}
+                                        variant="priority"
+                                    />
+
                                     {/* Follow-up Date Section */}
+                                    {formData.status === "Pending" && (
                                     <div className="space-y-4">
                                         <PremiumTabs
                                             label="Next Follow-up Reminder"
@@ -230,15 +247,8 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                                             )}
                                         </div>
                                     </div>
+                                    )}
 
-                                    {/* Follow-up Status */}
-                                    <PremiumTabs
-                                        label="Interaction Status"
-                                        options={STATUSES}
-                                        value={formData.status}
-                                        onChange={(val) => setFormData(prev => ({ ...prev, status: val }))}
-                                        variant="priority"
-                                    />
                                 </div>
 
                                 {/* Footer Actions */}
@@ -253,9 +263,10 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                                     </div>
                                     <div className="flex-1">
                                         <PremiumButton
-                                            text="Set Follow-up"
+                                            text={setFollowUpMutation.isPending || completeFollowUpMutation.isPending ? "Saving..." : "Save Interaction"}
                                             type="submit"
                                             variant="primary"
+                                            disabled={setFollowUpMutation.isPending || completeFollowUpMutation.isPending}
                                         />
                                     </div>
                                 </div>

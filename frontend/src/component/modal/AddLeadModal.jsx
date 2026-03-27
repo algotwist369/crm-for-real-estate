@@ -1,41 +1,36 @@
-import { PremiumCheckbox } from "../common/PremiumCheckbox";
 import React, { useState } from "react";
 import { PremiumInput } from "../common/PremiumInput";
 import { PremiumButton } from "../common/PremiumButton";
 import { FiX, FiUser, FiSmartphone, FiMail, FiTarget, FiDollarSign, FiShare2, FiHome } from "react-icons/fi";
 import { PremiumTabs } from "../common/PremiumTabs";
+import { useCreateLead } from "../../hooks/useLeadHooks";
+import { useProperties } from "../../hooks/usePropertyHooks";
 
 const REQUIREMENTS = ["1BHK Flat", "2BHK Flat", "3BHK Flat", "Villa", "Plot", "Office Space", "Commercial Shop", "Penthouse", "Studio Flat"];
 const SOURCES = ["Facebook", "Instagram", "Google Ads", "Website", "Walk-in", "Referral", "Personal"];
-const AGENTS = ["Rahul Sharma", "Priya Verma", "Amit Patel", "Neha Singh", "Vikas Gupta", "Rohit Jain", "Arjun Mehta", "Karan Kapoor", "Sanjay Rao", "Deepika Nair"];
-
 const CLIENT_TYPES = ["Rent", "Buying", "Investing"];
 
-const FOLLOWUP_PRESETS = [
-    { label: "Yesterday", value: -1 },
-    { label: "Today", value: 0 },
-    { label: "Tomorrow", value: 1 },
-    { label: "5 Days", value: 5 },
-    { label: "7 Days", value: 7 },
-    { label: "1 Month", value: 30 },
-    { label: "3 Month", value: 90 },
-    { label: "Custom", value: null }
-];
+const DEFAULT_STATE = {
+    name: "",
+    phone: "",
+    email: "",
+    requirements: [],
+    otherRequirement: "",
+    budget: "",
+    isCustomBudget: false,
+    source: SOURCES[0],
+    properties: [], // Array of property object Ids
+    priority: "Medium",
+    clientType: "Buying",
+};
 
 const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
-    const [formData, setFormData] = useState({
-        name: "",
-        phone: "",
-        email: "",
-        requirements: [],
-        otherRequirement: "",
-        budget: "",
-        isCustomBudget: false,
-        source: SOURCES[0],
-        properties: "",
-        priority: "Medium",
-        clientType: "Buying",
-    });
+    const [formData, setFormData] = useState(DEFAULT_STATE);
+    const createLeadMutation = useCreateLead();
+    
+    // Fetch properties for the dropdown
+    const { data: propertiesResponse } = useProperties({ limit: 100 }); 
+    const availableProperties = propertiesResponse?.data || [];
 
     if (!isOpen) return null;
 
@@ -48,14 +43,24 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
         });
     };
 
-
-
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleAddProperty = (e) => {
+        const propId = e.target.value;
+        if (!propId) return;
+        if (!formData.properties.includes(propId)) {
+            setFormData(prev => ({ ...prev, properties: [...prev.properties, propId] }));
+        }
+    };
+
+    const handleRemoveProperty = (propId) => {
+        setFormData(prev => ({ ...prev, properties: prev.properties.filter(id => id !== propId) }));
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         // Combine standard and other requirements
@@ -64,28 +69,26 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
             finalRequirements.push(formData.otherRequirement.trim());
         }
 
-        onAdd({
-            ...formData,
+        const payload = {
+            name: formData.name,
+            phone: formData.phone,
+            email: formData.email,
             requirement: finalRequirements.join(", ") || "Not Specified",
             budget: formData.isCustomBudget ? formData.budget : (formData.budget || "Not Specified"),
-            properties: formData.properties.trim() || "None",
-        });
+            inquiry_for: formData.clientType,
+            client_type: formData.clientType.toLowerCase() === "rent" ? "renting" : formData.clientType.toLowerCase(),
+            source: formData.source.toLowerCase().replace("-", "_").replace(" ", "_"),
+            priority: formData.priority.toLowerCase(),
+            properties: formData.properties // Direct array of IDs
+        };
 
-        // Reset
-        setFormData({
-            name: "",
-            phone: "",
-            email: "",
-            requirements: [],
-            otherRequirement: "",
-            budget: "",
-            isCustomBudget: false,
-            source: SOURCES[0],
-            properties: "",
-            priority: "Medium",
-            clientType: "Buying",
+        createLeadMutation.mutate(payload, {
+            onSuccess: () => {
+                setFormData(DEFAULT_STATE);
+                if (onAdd) onAdd(); 
+                onClose();
+            }
         });
-        onClose();
     };
 
     return (
@@ -124,6 +127,7 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
                                 value={formData.name}
                                 onChange={(e) => handleChange({ target: { name: 'name', value: e.target.value } })}
                                 icon={<FiUser />}
+                                required
                             />
                             <PremiumInput
                                 label="Phone Number"
@@ -131,6 +135,7 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
                                 value={formData.phone}
                                 onChange={(e) => handleChange({ target: { name: 'phone', value: e.target.value } })}
                                 icon={<FiSmartphone />}
+                                required
                             />
                         </div>
 
@@ -195,6 +200,7 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
                                             placeholder="e.g. ₹75L Or Custom Range"
                                             value={formData.budget}
                                             onChange={handleChange}
+                                            required
                                             className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl pl-9 pr-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
                                         />
                                     ) : (
@@ -202,6 +208,7 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
                                             name="budget"
                                             value={formData.budget}
                                             onChange={handleChange}
+                                            required
                                             className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl pl-9 pr-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors appearance-none"
                                         >
                                             <option value="">Select Budget</option>
@@ -235,13 +242,38 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
 
                         <div className="grid grid-cols-2 gap-4 pt-2">
                             <div className="space-y-2">
-                                <PremiumInput
-                                    label="Interested Properties (IDs)"
-                                    placeholder="e.g. PROP001, PROP002"
-                                    value={formData.properties}
-                                    onChange={(e) => handleChange({ target: { name: 'properties', value: e.target.value } })}
-                                    icon={<FiHome />}
-                                />
+                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+                                    <FiHome size={14} /> Interested Properties
+                                </label>
+                                <select 
+                                    onChange={handleAddProperty}
+                                    value=""
+                                    className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 appearance-none"
+                                >
+                                    <option value="">Select a property...</option>
+                                    {availableProperties.map(p => (
+                                        <option key={p._id} value={p._id}>
+                                            {p.property_title} - {p.property_location?.city || "Unspecified"}
+                                        </option>
+                                    ))}
+                                </select>
+                                
+                                {/* Selected Properties Chips */}
+                                {formData.properties.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        {formData.properties.map(propId => {
+                                            const p = availableProperties.find(x => x._id === propId);
+                                            return (
+                                                <div key={propId} className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 pl-3 py-1.5 rounded-lg text-xs font-medium">
+                                                    <span className="truncate max-w-[150px]">{p ? p.property_title : propId}</span>
+                                                    <button type="button" onClick={() => handleRemoveProperty(propId)} className="text-zinc-500 hover:text-red-400 transition-colors p-0.5 ml-1">
+                                                        <FiX size={14} />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -262,13 +294,15 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
                             <PremiumButton
                                 text="Discard"
                                 variant="secondary"
+                                type="button"
                                 onClick={onClose}
                             />
                         </div>
                         <div className="flex-1">
                             <PremiumButton
-                                text="Create Lead"
+                                text={createLeadMutation.isPending ? "Creating..." : "Create Lead"}
                                 type="submit"
+                                disabled={createLeadMutation.isPending}
                             />
                         </div>
                     </div>
