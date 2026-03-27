@@ -8,6 +8,7 @@ import {
     FiPhoneCall
 } from "react-icons/fi";
 import { MdPendingActions } from "react-icons/md";
+import { useAuth } from "../context/AuthContext";
 
 const stats = [
     { title: "Total Leads", value: "245", icon: <FiUsers /> },
@@ -19,6 +20,14 @@ const stats = [
 ];
 
 const Dashboard = () => {
+    const { user } = useAuth();
+    const isAgent = user?.role === "agent";
+
+    const filteredStats = stats.filter(stat => {
+        if (isAgent && stat.title === "Total Agents") return false;
+        return true;
+    });
+
     return (
         <AppLayout>
 
@@ -30,7 +39,7 @@ const Dashboard = () => {
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
 
-                {stats.map((item, index) => (
+                {filteredStats.map((item, index) => (
                     <div
                         key={index}
                         className="bg-zinc-950/20 border border-zinc-800 rounded p-4 flex justify-between items-center"
@@ -154,46 +163,48 @@ const Dashboard = () => {
             </div>
 
             {/* Agents Section */}
-            <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6 mt-6">
+            {!isAgent && (
+                <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6 mt-6">
 
-                <h2 className="text-sm font-medium text-white mb-4">
-                    Agent Performance
-                </h2>
+                    <h2 className="text-sm font-medium text-white mb-4">
+                        Agent Performance
+                    </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-                    {[
-                        { name: "Rahul Sharma", deals: 12, leads: 32 },
-                        { name: "Priya Verma", deals: 9, leads: 21 },
-                        { name: "Amit Patel", deals: 7, leads: 18 },
-                        { name: "Neha Singh", deals: 5, leads: 14 }
-                    ].map((agent, i) => (
-                        <div
-                            key={i}
-                            className="bg-zinc-900/50 border border-zinc-800 p-4 rounded flex flex-col justify-between h-full"
-                        >
-                            <div className="mb-4">
-                                <p className="text-sm font-medium text-white mb-1">
-                                    {agent.name}
-                                </p>
-                            </div>
-
-                            <div className="space-y-1">
-                                <div className="flex justify-between items-center">
-                                    <p className="text-xs text-zinc-500">Deals Closed</p>
-                                    <p className="text-sm text-zinc-300 font-medium">{agent.deals}</p>
+                        {[
+                            { name: "Rahul Sharma", deals: 12, leads: 32 },
+                            { name: "Priya Verma", deals: 9, leads: 21 },
+                            { name: "Amit Patel", deals: 7, leads: 18 },
+                            { name: "Neha Singh", deals: 5, leads: 14 }
+                        ].map((agent, i) => (
+                            <div
+                                key={i}
+                                className="bg-zinc-900/50 border border-zinc-800 p-4 rounded flex flex-col justify-between h-full"
+                            >
+                                <div className="mb-4">
+                                    <p className="text-sm font-medium text-white mb-1">
+                                        {agent.name}
+                                    </p>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <p className="text-xs text-zinc-500">Leads Managed</p>
-                                    <p className="text-sm text-zinc-300 font-medium">{agent.leads}</p>
+
+                                <div className="space-y-1">
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-xs text-zinc-500">Deals Closed</p>
+                                        <p className="text-sm text-zinc-300 font-medium">{agent.deals}</p>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-xs text-zinc-500">Leads Managed</p>
+                                        <p className="text-sm text-zinc-300 font-medium">{agent.leads}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+
+                    </div>
 
                 </div>
-
-            </div>
+            )}
 
         </AppLayout>
     );

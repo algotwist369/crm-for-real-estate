@@ -442,6 +442,16 @@ const change_password = wrapAsync(async (req, res) => {
 const get_me = wrapAsync(async (req, res) => {
     const user = req.auth.user.toObject();
     delete user.hash_password;
+
+    if (user.role === 'agent') {
+        const agent = await Agent.findOne({ agent_details: user._id, is_active: true })
+            .populate('assigned_properties', 'property_title listing_type property_status')
+            .lean();
+        if (agent) {
+            user.agent_profile = agent;
+        }
+    }
+
     res.status(200).json({
         success: true,
         user

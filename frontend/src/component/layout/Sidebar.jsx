@@ -9,6 +9,7 @@ import {
     FiBell,
 } from "react-icons/fi";
 import { MdOutlineRealEstateAgent } from "react-icons/md";
+import { useAuth } from "../../context/AuthContext";
 
 const menuItems = [
     { name: "Dashboard", icon: <FiHome />, path: "/dashboard" },
@@ -21,6 +22,14 @@ const menuItems = [
 ];
 
 const Sidebar = ({ collapsed, mobileOpen }) => {
+    const { user } = useAuth();
+    const isAgent = user?.role === "agent";
+
+    const filteredMenuItems = menuItems.filter(item => {
+        if (isAgent && item.name === "Agents") return false;
+        return true;
+    });
+
     return (
         <aside
             className={`
@@ -45,7 +54,7 @@ const Sidebar = ({ collapsed, mobileOpen }) => {
 
                 {/* Navigation Menu */}
                 <nav className="flex-1 px-4 space-y-1">
-                    {menuItems.map((item, index) => (
+                    {filteredMenuItems.map((item, index) => (
                         <NavLink
                             key={index}
                             to={item.path}

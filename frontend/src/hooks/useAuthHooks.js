@@ -34,6 +34,25 @@ export const useLogin = () => {
 };
 
 /**
+ * Hook for agent login mutation
+ */
+export const useAgentLogin = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (credentials) => authService.loginAgent(credentials),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['authUser'], data);
+      toast.success('Agent logged in successfully!');
+    },
+    onError: (error) => {
+      const message = error.response?.data?.message || 'Agent login failed';
+      toast.error(message);
+    },
+  });
+};
+
+/**
  * Hook for registration mutation
  */
 export const useRegister = () => {

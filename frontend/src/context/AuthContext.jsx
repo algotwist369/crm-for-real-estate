@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect } from 'react';
-import { useAuthUser, useLogin, useLogout, useRegister } from '../hooks/useAuthHooks';
+import { useAuthUser, useLogin, useLogout, useRegister, useAgentLogin } from '../hooks/useAuthHooks';
 
 const AuthContext = createContext(null);
 
@@ -8,6 +8,7 @@ export const AuthProvider = ({ children }) => {
   const user = authResponse?.user; // Correctly extract the user object from the response
   
   const loginMutation = useLogin();
+  const agentLoginMutation = useAgentLogin();
   const registerMutation = useRegister();
   const logoutMutation = useLogout();
 
@@ -26,9 +27,11 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     isError,
     login: loginMutation.mutateAsync,
+    loginAgent: agentLoginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
+    isAgentLoggingIn: agentLoginMutation.isPending,
     isRegistering: registerMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
     refetchUser: refetch,

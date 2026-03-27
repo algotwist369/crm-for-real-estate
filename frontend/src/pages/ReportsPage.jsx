@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import AppLayout from "../component/layout/AppLayout";
+import { useAuth } from "../context/AuthContext";
 import { 
     FiTrendingUp, 
     FiUsers, 
@@ -14,6 +15,7 @@ import {
 } from "react-icons/fi";
 
 const ReportsPage = () => {
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState("Overview");
 
     const kpis = [
@@ -228,7 +230,9 @@ const ReportsPage = () => {
         </div>
     );
 
-    const tabs = ["Overview", "Agent Performance", "Lead Insights"];
+    const tabs = user?.role === "agent" 
+        ? ["Overview", "Lead Insights"] 
+        : ["Overview", "Agent Performance", "Lead Insights"];
 
     return (
         <AppLayout>

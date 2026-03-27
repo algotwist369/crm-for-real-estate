@@ -153,7 +153,9 @@ const SettingsPage = () => {
         });
     };
 
-    const tabs = ["Profile", "Agency", "Notifications", "Security"];
+    const tabs = user?.role === "agent" 
+        ? ["Profile", "Agency"] 
+        : ["Profile", "Agency", "Notifications", "Security"];
 
     const renderProfile = () => (
         <div className="space-y-6 max-w-4xl">
