@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+var morgan = require('morgan')
 
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const apiRoutes = require('./routes');
@@ -12,6 +13,7 @@ function createApp() {
         origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()) : true,
         credentials: true
     }));
+    app.use(morgan('dev'))
     app.use(cookieParser());
 
     app.use(express.json({ limit: '2mb' }));

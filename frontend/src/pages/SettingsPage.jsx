@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import AppLayout from "../component/layout/AppLayout";
-import { PremiumTabs } from "../component/common/PremiumTabs";
-import { PremiumInput } from "../component/common/PremiumInput";
-import { PremiumToggle } from "../component/common/PremiumToggle";
-import { PremiumButton } from "../component/common/PremiumButton";
 import { useAuth } from "../context/AuthContext";
 import { useUpdateProfile } from "../hooks/useAuthHooks";
 import { 
@@ -25,8 +21,44 @@ import {
     FiCheckCircle,
     FiXCircle,
     FiLink,
-    FiUpload
+    FiUpload,
+    FiCheck,
+    FiEye,
+    FiEyeOff
 } from "react-icons/fi";
+
+const SettingsInput = ({ label, type = "text", value, onChange, placeholder, icon, disabled, className = "" }) => (
+    <div className={`space-y-1.5 ${className}`}>
+        {label && <label className="block text-xs font-medium text-zinc-400">{label}</label>}
+        <div className="relative flex items-center group">
+            <div className="absolute left-3 text-zinc-500 group-focus-within:text-zinc-300 transition-colors">
+                {icon}
+            </div>
+            <input
+                type={type}
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+                disabled={disabled}
+                className="w-full bg-zinc-900 border border-zinc-800 text-sm text-white rounded p-2.5 pl-10 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-zinc-600"
+            />
+        </div>
+    </div>
+);
+
+const SettingsToggle = ({ enabled, onChange }) => (
+    <button
+        type="button"
+        onClick={onChange}
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none ${enabled ? 'bg-blue-600' : 'bg-zinc-700'}`}
+    >
+        <span className="sr-only">Use setting</span>
+        <span
+            aria-hidden="true"
+            className={`pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabled ? 'translate-x-4' : 'translate-x-0'}`}
+        />
+    </button>
+);
 
 const SettingsPage = () => {
     const { user, isLoading: isUserLoading } = useAuth();
@@ -121,63 +153,62 @@ const SettingsPage = () => {
         });
     };
 
+    const tabs = ["Profile", "Agency", "Notifications", "Security"];
+
     const renderProfile = () => (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-8">
-                <div className="flex flex-col md:flex-row gap-10">
+        <div className="space-y-6 max-w-4xl">
+            <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6">
+                <div className="flex flex-col md:flex-row gap-8">
                     {/* Avatar Upload */}
-                    <div className="flex flex-col items-center gap-4">
+                    <div className="flex flex-col items-center gap-4 shrink-0">
                         <div className="relative group">
                             <div 
                                 onClick={() => profilePicMode === 'upload' && fileInputRef.current.click()}
-                                className="w-32 h-32 rounded-full bg-zinc-900 border-2 border-dashed border-zinc-700 flex items-center justify-center overflow-hidden cursor-pointer hover:border-blue-500/50 transition-all duration-300"
+                                className="w-24 h-24 rounded bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden cursor-pointer hover:border-blue-500/50 transition-all text-zinc-500 hover:text-white"
                             >
                                 {profileData.profile_pic ? (
                                     <img src={profileData.profile_pic} alt="Profile" className="w-full h-full object-cover" />
                                 ) : (
-                                    <span className="text-3xl font-black text-blue-500">
-                                        {profileData?.name?.substring(0, 2).toUpperCase() || "AU"}
+                                    <span className="text-2xl font-medium text-white">
+                                        {profileData?.name?.substring(0, 2).toUpperCase() || "A"}
                                     </span>
                                 )}
                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <FiCamera className="text-white" size={24} />
+                                    <FiCamera size={20} />
                                 </div>
-                            </div>
-                            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-600 rounded-full border-4 border-zinc-950 flex items-center justify-center text-white shadow-lg">
-                                <FiCamera size={14} />
                             </div>
                         </div>
                         
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setProfilePicMode("url")}
-                                className={`p-2 rounded-lg border transition-all ${profilePicMode === 'url' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}
+                                className={`w-10 h-10 flex items-center justify-center text-zinc-400 rounded border transition-colors ${profilePicMode === 'url' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-900 border-zinc-800 hover:text-white'}`}
                                 title="Use Image URL"
                             >
-                                <FiLink size={12} />
+                                <FiLink size={14} />
                             </button>
                             <button
                                 onClick={() => setProfilePicMode("upload")}
-                                className={`p-2 rounded-lg border transition-all ${profilePicMode === 'upload' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}
+                                className={`w-10 h-10 flex items-center justify-center text-zinc-400 rounded border transition-colors ${profilePicMode === 'upload' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-900 border-zinc-800 hover:text-white'}`}
                                 title="Upload File"
                             >
-                                <FiUpload size={12} />
+                                <FiUpload size={14} />
                             </button>
                         </div>
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                     </div>
 
                     {/* Inputs */}
-                    <div className="flex-1 space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <PremiumInput 
+                    <div className="flex-1 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <SettingsInput 
                                 label="Full Name" 
                                 placeholder="John Doe" 
                                 value={profileData.name} 
                                 onChange={(e) => setProfileData({...profileData, name: e.target.value})}
                                 icon={<FiUser />}
                             />
-                            <PremiumInput 
+                            <SettingsInput 
                                 label="Email Address" 
                                 type="email"
                                 placeholder="john@example.com" 
@@ -185,14 +216,14 @@ const SettingsPage = () => {
                                 onChange={(e) => setProfileData({...profileData, email: e.target.value})}
                                 icon={<FiMail />}
                             />
-                            <PremiumInput 
+                            <SettingsInput 
                                 label="Phone Number" 
                                 placeholder="+91 00000-00000" 
                                 value={profileData.phone} 
                                 onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
                                 icon={<FiPhone />}
                             />
-                            <PremiumInput 
+                            <SettingsInput 
                                 label="Account Role" 
                                 placeholder="Agency Admin" 
                                 value={profileData.role} 
@@ -202,62 +233,61 @@ const SettingsPage = () => {
                         </div>
 
                         {profilePicMode === 'url' && (
-                             <PremiumInput 
+                             <SettingsInput 
                                 label="Profile Picture URL" 
                                 placeholder="https://example.com/photo.jpg" 
                                 value={profileData.profile_pic.startsWith('data:') ? '' : profileData.profile_pic} 
                                 onChange={(e) => setProfileData({...profileData, profile_pic: e.target.value})}
                                 icon={<FiLink />}
-                                className="max-w-xl"
                             />
                         )}
 
                         {/* System Metadata Section */}
-                        <div className="pt-6 border-t border-zinc-800/50 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="pt-6 border-t border-zinc-800 grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="space-y-1">
-                                <p className="text-xs font-bold text-zinc-500 uppercase tracking-tighter flex items-center gap-2">
-                                    <FiCreditCard className="text-emerald-500" /> Subscription
+                                <p className="text-xs text-zinc-500 flex items-center gap-1.5 mb-1">
+                                    <FiCreditCard size={14} className="text-zinc-400" /> Subscription
                                 </p>
                                 <div className="flex items-center gap-2">
                                     {user?.is_paid ? (
-                                        <span className="text-sm font-bold text-emerald-400 flex items-center gap-1">
-                                            <FiCheckCircle /> Premium Plan
+                                        <span className="text-sm font-medium text-emerald-400 flex items-center gap-1.5">
+                                            <FiCheckCircle size={14} /> Premium Plan
                                         </span>
                                     ) : (
-                                        <span className="text-sm font-bold text-zinc-400 flex items-center gap-1">
-                                            <FiXCircle className="text-red-500" /> Free Tier
+                                        <span className="text-sm text-zinc-400 flex items-center gap-1.5">
+                                            <FiXCircle size={14} /> Free Tier
                                         </span>
                                     )}
                                 </div>
                             </div>
 
                             <div className="space-y-1">
-                                <p className="text-xs font-bold text-zinc-500 uppercase tracking-tighter flex items-center gap-2">
-                                    <FiActivity className="text-blue-500" /> System Status
+                                <p className="text-xs text-zinc-500 flex items-center gap-1.5 mb-1">
+                                    <FiActivity size={14} className="text-zinc-400" /> System Status
                                 </p>
-                                <span className={`text-sm font-bold ${user?.is_active ? 'text-blue-400' : 'text-red-400'}`}>
-                                    {user?.is_active ? 'Active Account' : 'Inactive'}
+                                <span className={`text-sm font-medium flex items-center gap-1.5 ${user?.is_active ? 'text-blue-400' : 'text-red-400'}`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${user?.is_active ? 'bg-blue-400' : 'bg-red-400'}`}></div> {user?.is_active ? 'Active Account' : 'Inactive'}
                                 </span>
                             </div>
 
                             <div className="space-y-1">
-                                <p className="text-xs font-bold text-zinc-500 uppercase tracking-tighter flex items-center gap-2">
-                                    <FiCalendar className="text-purple-500" /> Member Since
+                                <p className="text-xs text-zinc-500 flex items-center gap-1.5 mb-1">
+                                    <FiCalendar size={14} className="text-zinc-400" /> Member Since
                                 </p>
-                                <p className="text-xs text-zinc-400 font-medium">
+                                <p className="text-sm text-zinc-300 font-medium">
                                     {formatDate(user?.createdAt)}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                             <div className="p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
-                                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">Last Activity</p>
-                                <p className="text-xs text-zinc-400 font-bold">{formatDate(user?.last_login_at)}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                             <div className="p-4 bg-zinc-900 border border-zinc-800 rounded">
+                                <p className="text-xs text-zinc-500 mb-1">Last Activity</p>
+                                <p className="text-sm text-zinc-300 font-medium">{formatDate(user?.last_login_at)}</p>
                             </div>
-                            <div className="p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
-                                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">UUID Hash</p>
-                                <p className="text-[10px] text-zinc-500 font-mono break-all">{user?._id || "N/A"}</p>
+                            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded">
+                                <p className="text-xs text-zinc-500 mb-1">UUID</p>
+                                <p className="text-xs text-zinc-400 font-mono truncate">{user?._id || "N/A"}</p>
                             </div>
                         </div>
                     </div>
@@ -267,62 +297,62 @@ const SettingsPage = () => {
     );
 
     const renderAgency = () => (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                            <FiBriefcase className="text-blue-500" /> Agency Identity
-                        </h3>
-                        <p className="text-xs text-zinc-500">How your brand appears to agents and leads.</p>
-                    </div>
-                    
-                    <div className="space-y-6">
-                        <PremiumInput 
-                            label="Company Name" 
-                            value={agencyData.agencyName} 
-                            onChange={(e) => setAgencyData({...agencyData, agencyName: e.target.value})}
-                        />
-                        <PremiumInput 
-                            label="REA License Number" 
-                            value={agencyData.license} 
-                            onChange={(e) => setAgencyData({...agencyData, license: e.target.value})}
-                        />
-                        <PremiumInput 
-                            label="Official Website" 
-                            value={agencyData.website} 
-                            icon={<FiGlobe />}
-                            onChange={(e) => setAgencyData({...agencyData, website: e.target.value})}
-                        />
-                    </div>
+        <div className="space-y-6 max-w-2xl">
+            <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6">
+                <div className="space-y-2 mb-6 border-b border-zinc-800 pb-4">
+                    <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                        <FiBriefcase className="text-zinc-500" /> Agency Identity
+                    </h3>
+                    <p className="text-xs text-zinc-500">How your brand appears to agents and leads.</p>
+                </div>
+                
+                <div className="space-y-4">
+                    <SettingsInput 
+                        label="Company Name" 
+                        value={agencyData.agencyName} 
+                        onChange={(e) => setAgencyData({...agencyData, agencyName: e.target.value})}
+                        icon={<FiBriefcase />}
+                    />
+                    <SettingsInput 
+                        label="REA License Number" 
+                        value={agencyData.license} 
+                        onChange={(e) => setAgencyData({...agencyData, license: e.target.value})}
+                        icon={<FiShield />}
+                    />
+                    <SettingsInput 
+                        label="Official Website" 
+                        value={agencyData.website} 
+                        icon={<FiGlobe />}
+                        onChange={(e) => setAgencyData({...agencyData, website: e.target.value})}
+                    />
                 </div>
             </div>
         </div>
     );
 
     const renderNotifications = () => (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl">
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-8 flex items-center gap-2">
-                    <FiBell className="text-blue-500" /> Lead Alerts
+        <div className="space-y-6 max-w-2xl">
+            <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6">
+                <h3 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+                    <FiBell className="text-zinc-500" /> Lead Alerts
                 </h3>
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between p-4 bg-zinc-900/40 rounded-xl border border-zinc-800/50 hover:border-zinc-700 transition-all">
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between p-4 bg-zinc-900 border border-zinc-800 rounded transition-colors">
                         <div>
-                            <p className="text-sm font-bold text-white mb-1">Email Notifications</p>
+                            <p className="text-sm font-medium text-white mb-0.5">Email Notifications</p>
                             <p className="text-xs text-zinc-500">Receive instant email when a new lead is assigned.</p>
                         </div>
-                        <PremiumToggle 
+                        <SettingsToggle 
                             enabled={notifications.leadEmail} 
                             onChange={() => setNotifications({...notifications, leadEmail: !notifications.leadEmail})} 
                         />
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-zinc-900/40 rounded-xl border border-zinc-800/50 hover:border-zinc-700 transition-all">
+                    <div className="flex items-center justify-between p-4 bg-zinc-900 border border-zinc-800 rounded transition-colors">
                         <div>
-                            <p className="text-sm font-bold text-white mb-1">SMS Alerts</p>
+                            <p className="text-sm font-medium text-white mb-0.5">SMS Alerts</p>
                             <p className="text-xs text-zinc-500">Emergency SMS for high-priority lead escalations.</p>
                         </div>
-                        <PremiumToggle 
+                        <SettingsToggle 
                             enabled={notifications.leadSMS} 
                             onChange={() => setNotifications({...notifications, leadSMS: !notifications.leadSMS})} 
                         />
@@ -330,17 +360,17 @@ const SettingsPage = () => {
                 </div>
             </div>
 
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
-                <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-8 flex items-center gap-2">
-                    <FiTrendingUp className="text-purple-500" /> Business Intelligence
+            <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6">
+                <h3 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+                    <FiTrendingUp className="text-zinc-500" /> Business Intelligence
                 </h3>
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between p-4 bg-zinc-900/40 rounded-xl border border-zinc-800/50 hover:border-zinc-700 transition-all">
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between p-4 bg-zinc-900 border border-zinc-800 rounded transition-colors">
                         <div>
-                            <p className="text-sm font-bold text-white mb-1">Agent Performance Reports</p>
+                            <p className="text-sm font-medium text-white mb-0.5">Agent Performance Reports</p>
                             <p className="text-xs text-zinc-500">Weekly digest of top-performing realtors.</p>
                         </div>
-                        <PremiumToggle 
+                        <SettingsToggle 
                             enabled={notifications.agentPerformance} 
                             onChange={() => setNotifications({...notifications, agentPerformance: !notifications.agentPerformance})} 
                         />
@@ -351,20 +381,20 @@ const SettingsPage = () => {
     );
 
     const renderSecurity = () => (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-xl">
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-8 mb-6">
-                <div className="flex items-center gap-3 mb-10">
-                    <div className="w-10 h-10 bg-red-500/10 text-red-500 rounded-xl flex items-center justify-center">
-                        <FiShield size={20} />
+        <div className="space-y-6 max-w-xl">
+            <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6">
+                <div className="flex items-center gap-4 mb-6 border-b border-zinc-800 pb-4">
+                    <div className="w-10 h-10 border border-zinc-800 bg-zinc-900 text-zinc-400 rounded flex items-center justify-center">
+                        <FiShield size={18} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-white">Security & Access</h3>
+                        <h3 className="text-sm font-medium text-white mb-1">Security & Access</h3>
                         <p className="text-xs text-zinc-500">Manage your credentials and API access</p>
                     </div>
                 </div>
                 
-                <div className="space-y-6">
-                    <PremiumInput 
+                <div className="space-y-4">
+                    <SettingsInput 
                         label="Current Password" 
                         type="password" 
                         placeholder="••••••••" 
@@ -372,7 +402,7 @@ const SettingsPage = () => {
                         value={securityData.currentPassword}
                         onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})}
                     />
-                    <PremiumInput 
+                    <SettingsInput 
                         label="New Password" 
                         type="password" 
                         placeholder="Min 8 characters" 
@@ -380,29 +410,31 @@ const SettingsPage = () => {
                         value={securityData.newPassword}
                         onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})}
                     />
-                    <PremiumInput 
+                    <SettingsInput 
                         label="Confirm New Password" 
                         type="password" 
-                        placeholder="Confirm" 
+                        placeholder="Confirm password" 
                         icon={<FiLock />} 
                         value={securityData.confirmPassword}
                         onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})}
                     />
                     
                     <div className="pt-4">
-                        <PremiumButton text="Update Security" variant="secondary" />
+                        <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white text-sm font-medium rounded transition-colors">
+                            Update Password
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-6 flex items-center justify-between">
+            <div className="bg-red-500/5 border border-red-500/20 rounded p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h4 className="text-sm font-bold text-red-400 mb-1 italic flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-red-500 mb-1 flex items-center gap-2">
                          Deactivate System Account
                     </h4>
-                    <p className="text-[10px] text-zinc-600">This action is irreversible and hides all associated agency data.</p>
+                    <p className="text-xs text-zinc-500">This action is irreversible and hides all associated agency data.</p>
                 </div>
-                <button className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 py-2 px-4 rounded-lg border border-red-500/20 transition-all">
+                <button className="text-sm font-medium text-red-500 hover:bg-red-500/10 py-2 px-4 rounded border border-red-500/20 transition-colors whitespace-nowrap">
                     Initiate Exit
                 </button>
             </div>
@@ -411,35 +443,38 @@ const SettingsPage = () => {
 
     return (
         <AppLayout>
-            <div className="max-w-[1200px] mx-auto pb-12">
+            <div className="max-w-6xl w-full">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 pt-2">
+                <div className="flex flex-col md:flex-row justify-between gap-6 mb-8 pt-2">
                     <div>
-                        <h2 className="text-3xl font-black text-white mb-2">System Settings</h2>
-                        <p className="text-sm text-zinc-500 font-medium italic">Configure your agency profile and global preferences</p>
+                        <h2 className="text-xl font-medium text-white mb-1">System Settings</h2>
+                        <p className="text-sm text-zinc-400">Configure your agency profile and global preferences</p>
                     </div>
                     
-                    <div className="w-48">
-                        <PremiumButton 
-                            text={isSaving ? "Saving..." : "Save Changes"} 
-                            variant="primary" 
-                            disabled={isSaving}
-                            onClick={handleSave}
-                        />
-                    </div>
+                    <button 
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded flex items-center justify-center transition-colors w-full md:w-auto h-10"
+                    >
+                        {isSaving ? "Saving..." : "Save Changes"}
+                    </button>
                 </div>
 
                 {/* Tabs Wrapper */}
-                <div className="bg-zinc-950/50 backdrop-blur-md border border-zinc-800/50 rounded-2xl p-4 mb-8">
-                    <div className="max-w-2xl mx-auto">
-                        <PremiumTabs 
-                            options={["Profile", "Agency", "Notifications", "Security"]}
-                            value={activeTab}
-                            onChange={(val) => setActiveTab(val)}
-                            variant="indigo"
-                            showLabel={false}
-                        />
-                    </div>
+                <div className="bg-zinc-900 border border-zinc-800 p-1 rounded inline-flex mb-8 overflow-x-auto max-w-full scrollbar-hide">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-4 py-2 rounded text-sm font-medium whitespace-nowrap transition-colors ${
+                                activeTab === tab 
+                                ? 'bg-zinc-800 text-white shadow-sm' 
+                                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                            }`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
                 </div>
 
                 {/* Content Section */}

@@ -28,6 +28,11 @@ const leadSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    currency: {
+        type: String,
+        enum: ['₹', '$', 'AED'],
+        default: '₹'
+    },
     budget_min: {
         type: Number,
         min: 0

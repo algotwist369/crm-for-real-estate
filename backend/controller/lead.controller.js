@@ -138,6 +138,7 @@ function buildLeadDocFromBody(body = {}) {
     const phoneRaw = body.phone !== undefined ? String(body.phone || '').trim() : undefined;
     const requirement = body.requirement !== undefined ? String(body.requirement || '').trim() : undefined;
     const budget = body.budget !== undefined ? String(body.budget || '').trim() : undefined;
+    const currency = body.currency !== undefined ? String(body.currency || '').trim() : undefined;
     const inquiry_for = body.inquiry_for !== undefined ? String(body.inquiry_for || '').trim() : undefined;
     const source = body.source !== undefined ? String(body.source || '').trim().toLowerCase() : undefined;
     const priority = body.priority !== undefined ? String(body.priority || '').trim().toLowerCase() : undefined;
@@ -165,6 +166,7 @@ function buildLeadDocFromBody(body = {}) {
         phone: phoneRaw ? normalizePhone(phoneRaw) : phoneRaw,
         requirement,
         budget,
+        currency,
         budget_min,
         budget_max,
         inquiry_for,
