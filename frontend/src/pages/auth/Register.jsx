@@ -160,6 +160,9 @@ const Register = () => {
                         label="Phone Number"
                         type="text"
                         placeholder="Enter your phone"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        required
                     />
 
                     <PremiumInput

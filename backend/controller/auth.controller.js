@@ -44,6 +44,7 @@ const register_admin = wrapAsync(async (req, res) => {
     const nextProfilePicBase64 = req.body?.profile_pic_base64;
     const nextProfilePicMimeType = req.body?.profile_pic_mimeType;
     const profilePicFile = pickProfilePicFile(req);
+    const details = [];
 
     let finalProfilePic = '';
     if (profilePicFile || nextProfilePicBase64 !== undefined || (nextProfilePic !== undefined && isDataUri(nextProfilePic))) {
@@ -58,7 +59,6 @@ const register_admin = wrapAsync(async (req, res) => {
             finalProfilePic = uploaded.secureUrl || uploaded.url || '';
         } catch (uploadErr) {
             console.error('Registration profile pic upload error:', uploadErr);
-            // Non-critical, just keep it empty or throw if required
         }
     } else if (nextProfilePic !== undefined) {
         const pic = String(nextProfilePic || '').trim();
@@ -66,9 +66,14 @@ const register_admin = wrapAsync(async (req, res) => {
         else details.push({ path: 'profile_pic', message: 'profile_pic must be a valid URL or data URI' });
     }
 
-    if (details.length) throw httpError(400, 'Validation error', details);
-
     const email = normalizeEmail(emailRaw);
+    const phone = normalizePhone(phoneRaw);
+
+    if (!name) details.push({ path: 'user_name', message: 'Name is required' });
+    if (!email) details.push({ path: 'email', message: 'Email is required' });
+    if (!phone) details.push({ path: 'phone_number', message: 'Phone number is required' });
+    if (!password) details.push({ path: 'password', message: 'Password is required' });
+    if (details.length) throw httpError(400, 'Validation error', details);
 
     const existing = await User.findOne({
         $or: [{ email }, { phone_number: phone }]
@@ -99,62 +104,9 @@ const register_admin = wrapAsync(async (req, res) => {
     });
 });
 
-// Login admin
-const login_admin = wrapAsync(async (req, res) => {
-    const identifier =
-        req.body?.phone_or_email ??
-        req.body?.identifier ??
-        req.body?.email ??
-        req.body?.phone_number ??
-        req.body?.phone ??
-        '';
 
-    const password = req.body?.password;
-    const details = [];
-    if (!identifier) details.push({ path: 'phone_or_email', message: 'Phone or email is required' });
-    if (!password) details.push({ path: 'password', message: 'Password is required' });
-    if (details.length) throw httpError(400, 'Validation error', details);
-
-    const query = {
-        role: { $in: ['admin', 'super_admin'] },
-        is_active: true,
-        is_deleted: false
-    };
-
-    if (isEmail(identifier)) {
-        query.email = normalizeEmail(identifier);
-    } else {
-        const phone = normalizePhone(identifier);
-        if (!phone || phone.length < 10 || phone.length > 15) {
-            throw httpError(400, 'Validation error', [{ path: 'phone_or_email', message: 'Invalid phone or email' }]);
-        }
-        query.phone_number = phone;
-    }
-
-    const user = await User.findOne(query).select('+hash_password');
-    if (!user || !verifyPassword(password, user.hash_password)) {
-        throw httpError(401, 'Invalid credentials');
-    }
-
-    user.last_login_at = new Date();
-    await user.save();
-
-    const remember = Boolean(req.body?.remember);
-    const tokenOptions = remember ? { expiresInSeconds: 30 * 24 * 60 * 60 } : {};
-    const token = createAuthTokenFromUser(user, tokenOptions);
-    setTokenCookie(res, token, remember);
-    const safeUser = user.toObject();
-    delete safeUser.hash_password;
-
-    res.status(200).json({
-        success: true,
-        message: 'Login successful',
-        user: safeUser
-    });
-});
-
-// Login agent
-const login_agent = wrapAsync(async (req, res) => {
+// Unify login for all roles
+const login_user = wrapAsync(async (req, res) => {
     const identifier =
         req.body?.phone_or_email ??
         req.body?.identifier ??
@@ -166,11 +118,10 @@ const login_agent = wrapAsync(async (req, res) => {
     const password = req.body?.password ?? req.body?.agent_pin;
     const details = [];
     if (!identifier) details.push({ path: 'phone_or_email', message: 'Phone or email is required' });
-    if (!password) details.push({ path: 'password', message: 'Password or PIN is required' });
+    if (!password) details.push({ path: 'password', message: 'Password is required' });
     if (details.length) throw httpError(400, 'Validation error', details);
 
     const query = {
-        role: 'agent',
         is_active: true,
         is_deleted: false
     };
@@ -192,7 +143,8 @@ const login_agent = wrapAsync(async (req, res) => {
 
     let isValid = verifyPassword(password, user.hash_password);
 
-    if (!isValid) {
+    // If password doesn't work, maybe it's an agent using their PIN?
+    if (!isValid && user.role === 'agent') {
         const agent = await Agent.findOne({ agent_details: user._id });
         if (agent && agent.agent_pin === Number(password)) {
             isValid = true;
@@ -206,8 +158,11 @@ const login_agent = wrapAsync(async (req, res) => {
     user.last_login_at = new Date();
     await user.save();
 
-    const token = createAuthTokenFromUser(user);
-    setTokenCookie(res, token);
+    const remember = Boolean(req.body?.remember);
+    const tokenOptions = remember ? { expiresInSeconds: 30 * 24 * 60 * 60 } : {};
+    const token = createAuthTokenFromUser(user, tokenOptions);
+    setTokenCookie(res, token, remember);
+    
     const safeUser = user.toObject();
     delete safeUser.hash_password;
 
@@ -217,6 +172,7 @@ const login_agent = wrapAsync(async (req, res) => {
         user: safeUser
     });
 });
+
 
 // update admin profile
 const update_admin_profile = wrapAsync(async (req, res) => {
@@ -450,8 +406,8 @@ const get_me = wrapAsync(async (req, res) => {
 
 module.exports = {
     register_admin,
-    login_admin,
-    login_agent,
+    login_user,
+
     update_admin_profile,
     logout_admin,
     change_password,

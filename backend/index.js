@@ -9,8 +9,8 @@ const { startFollowUpReminderWorker } = require('./jobs/followUpReminderWorker')
 const { startArchiveWorker } = require('./jobs/archiveCleanupWorker');
 const { createApp } = require('./app');
 
-const NUM_WORKERS = process.env.NODE_ENV === 'production' 
-    ? Number(process.env.WEB_CONCURRENCY || os.cpus().length) 
+const NUM_WORKERS = process.env.NODE_ENV === 'production'
+    ? Number(process.env.WEB_CONCURRENCY || os.cpus().length)
     : 1;
 
 // ─── PRIMARY PROCESS ────────────────────────────────────────────────────────
@@ -80,8 +80,8 @@ if (cluster.isPrimary) {
             }
         }
 
-        let port = Number(process.env.PORT || 5001);
-        if (port === 6000) port = 5001; // Force migrate from unsafe port
+        let port = Number(process.env.PORT || 6000);
+        if (port === 6000) port = 6000; // Force migrate from unsafe port
         const server = app.listen(port, () => {
             process.stdout.write(`Worker ${process.pid} — API running on http://localhost:${port}\n`);
         });
