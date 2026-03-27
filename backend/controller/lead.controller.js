@@ -475,8 +475,6 @@ const update_lead = wrapAsync(async (req, res) => {
     if (payload.role === 'agent') {
         delete updates.assigned_to;
         delete updates.followed_by;
-        delete updates.status;
-        delete updates.priority;
     }
 
     if (!Object.keys(updates).length) throw httpError(400, 'No valid fields to update');

@@ -20,13 +20,14 @@ import { RefreshButton } from "../component/common/RefreshButton";
 import AddLeadModal from "../component/modal/AddLeadModal";
 import EditLeadModal from "../component/modal/EditLeadModal";
 import FollowUpModal from "../component/modal/FollowUpModal";
+import ViewLeadModal from "../component/modal/ViewLeadModal";
 import { useLeads, useUpdateLead, useAgentDashboardSummary } from "../hooks/useLeadHooks";
 
 /* ─── Table Columns ─── */
 const tableColumns = ["#", "Lead Info", "Contact", "Requirement", "Budget", "Inquiry For", "Source", "Properties", "Priority", "Next Follow-up", "Status", "Actions"];
 
 /* ─── Filter Options ─── */
-const statusOptions = ["All", "New", "Contacted", "Qualified", "Follow_up", "Closed", "Converted", "Lost", "Wasted"];
+const statusOptions = ["All", "New", "Contacted", "Qualified", "Follow_up", "Converted", "Closed", "Lost", "Wasted", "Archived"];
 const priorityOptions = ["All", "High", "Medium", "Low"];
 
 const LeadsPage = () => {
@@ -41,6 +42,8 @@ const LeadsPage = () => {
     const [editingLead, setEditingLead] = useState(null);
     const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
     const [selectedLead, setSelectedLead] = useState(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [viewingLead, setViewingLead] = useState(null);
 
     // React Query Hooks
     const { data: dashboardData } = useAgentDashboardSummary();
@@ -251,16 +254,28 @@ const LeadsPage = () => {
                                     </td>
 
                                     <td className="p-3">
-                                        {Array.isArray(lead.properties) && lead.properties.length > 0 
-                                            ? `${lead.properties.length} Props` 
-                                            : "None"}
+                                        <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                            {Array.isArray(lead.properties) && lead.properties.length > 0 ? (
+                                                lead.properties.map((p, i) => (
+                                                    <span key={i} className="text-[10px] bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 truncate max-w-[120px]" title={p.property_title || p._id || p}>
+                                                        {p.property_title || "Property"}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-zinc-600 italic text-[10px]">None</span>
+                                            )}
+                                        </div>
                                     </td>
 
                                     <td className="p-3">
                                         <select
                                             value={lead.priority}
                                             onChange={(e) => handleUpdateField(lead._id, 'priority', e.target.value)}
-                                            className="text-xs p-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-300 uppercase cursor-pointer focus:outline-none"
+                                            className={`text-[10px] p-1 rounded border bg-zinc-900 uppercase cursor-pointer focus:outline-none font-bold tracking-tight ${
+                                                lead.priority === 'high' ? 'text-red-400 border-red-500/30' :
+                                                lead.priority === 'medium' ? 'text-orange-400 border-orange-500/30' :
+                                                'text-emerald-400 border-emerald-500/30'
+                                            }`}
                                         >
                                             <option value="high">High</option>
                                             <option value="medium">Medium</option>
@@ -308,6 +323,10 @@ const LeadsPage = () => {
                                             <button
                                                 className="text-zinc-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-white transition-colors"
                                                 title="View Details"
+                                                onClick={() => {
+                                                    setViewingLead(lead);
+                                                    setIsViewModalOpen(true);
+                                                }}
                                             >
                                                 <FiEye size={14} />
                                             </button>
@@ -375,6 +394,15 @@ const LeadsPage = () => {
                 }}
                 onSave={handleSaveFollowUp}
                 lead={selectedLead}
+            />
+
+            <ViewLeadModal
+                isOpen={isViewModalOpen}
+                onClose={() => {
+                    setIsViewModalOpen(false);
+                    setViewingLead(null);
+                }}
+                lead={viewingLead}
             />
         </AppLayout>
     );
