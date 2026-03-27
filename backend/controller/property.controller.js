@@ -336,7 +336,7 @@ function populatePropertyQuery(query) {
 }
 
 const get_all_properties = wrapAsync(async (req, res) => {
-    const { payload, tenant_id } = req.auth;
+    const { user, payload, tenant_id } = req.auth;
     const { page, limit, skip } = parsePagination(req);
 
     const match = { tenant_id };
@@ -372,7 +372,8 @@ const get_all_properties = wrapAsync(async (req, res) => {
     }
 
     if (payload.role === 'agent') {
-        const agent = await requireAgentForUser(user._id);
+        const agent = await Agent.findOne({ agent_details: user._id, is_active: true });
+        if (!agent) throw httpError(403, 'Agent profile not found');
         match.assign_agent = agent._id;
     } else if (req.query?.agent_id) {
         match.assign_agent = req.query.agent_id;
@@ -396,7 +397,7 @@ const get_all_properties = wrapAsync(async (req, res) => {
 });
 
 const get_property_by_id = wrapAsync(async (req, res) => {
-    const { payload, tenant_id } = req.auth;
+    const { user, payload, tenant_id } = req.auth;
 
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
@@ -405,8 +406,8 @@ const get_property_by_id = wrapAsync(async (req, res) => {
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
-        const agent = await requireAgentForUser(user._id);
-        const assigned = Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a._id || a) === String(agent._id));
+        const agent = await Agent.findOne({ agent_details: user._id, is_active: true });
+        const assigned = agent && Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a._id || a) === String(agent._id));
         if (!assigned) throw httpError(403, 'Forbidden');
     }
 
@@ -472,8 +473,8 @@ const update_property = wrapAsync(async (req, res) => {
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
-        const agent = await requireAgentForUser(user._id);
-        const assigned = Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a) === String(agent._id));
+        const agent = await Agent.findOne({ agent_details: user._id, is_active: true });
+        const assigned = agent && Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a._id || a) === String(agent._id));
         if (!assigned) throw httpError(403, 'Forbidden');
     }
 
@@ -542,8 +543,8 @@ const update_property_status = wrapAsync(async (req, res) => {
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
-        const agent = await requireAgentForUser(user._id);
-        const assigned = Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a) === String(agent._id));
+        const agent = await Agent.findOne({ agent_details: user._id, is_active: true });
+        const assigned = agent && Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a._id || a) === String(agent._id));
         if (!assigned) throw httpError(403, 'Forbidden');
     }
 
@@ -584,8 +585,8 @@ const delete_property = wrapAsync(async (req, res) => {
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
-        const agent = await requireAgentForUser(user._id);
-        const assigned = Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a) === String(agent._id));
+        const agent = await Agent.findOne({ agent_details: user._id, is_active: true });
+        const assigned = agent && Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a._id || a) === String(agent._id));
         if (!assigned) throw httpError(403, 'Forbidden');
     }
 

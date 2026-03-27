@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { PremiumInput } from "../common/PremiumInput";
-import { PremiumButton } from "../common/PremiumButton";
 import { 
     FiX, FiHome, FiDollarSign, FiPlus, FiMapPin, FiInfo, FiLayers, 
     FiUser, FiTrendingUp, FiUpload, FiTrash2, FiLoader, FiCalendar, FiCheckSquare, FiZap
 } from "react-icons/fi";
-import { PremiumTabs } from "../common/PremiumTabs";
-import { PremiumCheckbox } from "../common/PremiumCheckbox";
 import { useUpdateProperty } from "../../hooks/usePropertyHooks";
 import { useAgents } from "../../hooks/useAgentHooks";
 
@@ -162,11 +158,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
     };
 
     const removeImage = (index) => {
-        // Since we don't have a backend "remove existing photo" yet, we just remove from local preview
-        // In a real app, you might send an array of photos to keep or IDs to delete
         setPreviewImages(prev => prev.filter((_, i) => i !== index));
-        // If it was a newly added photo (base64), remove it from formData too
-        // This is simplified; we'd need to track which ones are new vs existing
     };
 
     const handleDocFileChange = (e) => {
@@ -252,7 +244,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
         <button
             type="button"
             onClick={() => setActiveSection(id)}
-            className={`flex items-center gap-2 px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all border-b-2 ${
+            className={`flex items-center gap-2 px-6 py-3 text-xs font-semibold uppercase tracking-widest transition-all border-b-2 ${
                 activeSection === id ? 'text-white border-white' : 'text-zinc-500 border-transparent hover:text-zinc-300'
             }`}
         >
@@ -260,21 +252,24 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
         </button>
     );
 
+    const inputClasses = "w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded px-3 py-2 focus:outline-none focus:border-zinc-700";
+    const labelClasses = "text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1.5";
+
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-4">
-            <div className="bg-zinc-950 border border-zinc-900 rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-zinc-950/80 z-[60] flex items-center justify-center p-4">
+            <div className="bg-zinc-900 border border-zinc-800 rounded w-full max-w-2xl overflow-hidden shadow-lg flex flex-col max-h-[95vh]">
                 
-                <div className="flex items-center justify-between p-8 border-b border-zinc-900">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
                     <div>
-                        <h2 className="text-2xl font-black text-white tracking-tight">Edit Listing</h2>
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">UUID: {property?._id.toUpperCase()}</p>
+                        <h2 className="text-lg font-medium text-white">Edit Listing</h2>
+                        <p className="text-xs text-zinc-500 mt-0.5">UUID: {property?._id.toUpperCase()}</p>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all">
-                        <FiX size={20} />
+                    <button onClick={onClose} className="text-zinc-500 hover:text-white w-8 h-8 flex items-center justify-center rounded hover:bg-zinc-800">
+                        <FiX size={18} />
                     </button>
                 </div>
 
-                <div className="flex border-b border-zinc-900 px-4 overflow-x-auto scrollbar-hide">
+                <div className="flex border-b border-zinc-800 px-2 overflow-x-auto scrollbar-hide">
                     <SectionTab id="basic" label="Basic" icon={FiInfo} />
                     <SectionTab id="specs" label="Specs" icon={FiLayers} />
                     <SectionTab id="location" label="Location" icon={FiMapPin} />
@@ -283,79 +278,86 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-                    <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
+                    <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
                         
                         {activeSection === 'basic' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                <PremiumInput label="Title" name="property_title" value={formData.property_title} onChange={handleChange} required />
+                            <div className="space-y-4">
+                                <div><label className={labelClasses}>Property Title</label><input type="text" name="property_title" value={formData.property_title} onChange={handleChange} required className={inputClasses}/></div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest ml-1">Type</label>
-                                        <select name="property_type" value={formData.property_type} onChange={handleChange} className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 appearance-none focus:outline-none focus:border-emerald-500/50">
+                                    <div>
+                                        <label className={labelClasses}>Type</label>
+                                        <select name="property_type" value={formData.property_type} onChange={handleChange} className={inputClasses}>
                                             {PROPERTY_TYPES.map(t => <option key={t} value={t.toLowerCase()}>{t}</option>)}
                                         </select>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest ml-1">Status</label>
-                                        <select name="property_status" value={formData.property_status} onChange={handleChange} className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 appearance-none focus:outline-none focus:border-emerald-500/50">
+                                    <div>
+                                        <label className={labelClasses}>Status</label>
+                                        <select name="property_status" value={formData.property_status} onChange={handleChange} className={inputClasses}>
                                             {["available", "under_offer", "sold", "rented", "inactive"].map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
                                         </select>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <PremiumInput label="Price" name="asking_price" type="number" value={formData.asking_price} onChange={handleChange} required />
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest ml-1">Currency</label>
-                                        <select name="currency" value={formData.currency} onChange={handleChange} className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 appearance-none focus:outline-none focus:border-emerald-500/50">
+                                    <div><label className={labelClasses}>Asking Price</label><input type="number" name="asking_price" value={formData.asking_price} onChange={handleChange} required className={inputClasses} /></div>
+                                    <div>
+                                        <label className={labelClasses}>Currency</label>
+                                        <select name="currency" value={formData.currency} onChange={handleChange} className={inputClasses}>
                                             {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-6 pt-2">
-                                    <PremiumCheckbox label="Price Negotiable" checked={formData.price_negotiable} onChange={(e) => setFormData(p => ({ ...p, price_negotiable: e.target.checked }))} />
-                                    <PremiumCheckbox label="Is Active" checked={formData.is_active} onChange={(e) => setFormData(p => ({ ...p, is_active: e.target.checked }))} />
+                                    <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-300">
+                                        <input type="checkbox" name="price_negotiable" checked={formData.price_negotiable} onChange={handleChange} className="w-4 h-4 bg-zinc-950 border border-zinc-800 rounded checked:bg-zinc-700" />
+                                        <span>Price Negotiable</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-300">
+                                        <input type="checkbox" name="is_active" checked={formData.is_active} onChange={handleChange} className="w-4 h-4 bg-zinc-950 border border-zinc-800 rounded checked:bg-zinc-700" />
+                                        <span>Active Listing</span>
+                                    </label>
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest ml-1">Description</label>
-                                    <textarea name="property_description" value={formData.property_description} onChange={handleChange} className="w-full h-32 bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500/50 resize-none" />
-                                </div>
+                                <div><label className={labelClasses}>Description</label><textarea name="property_description" value={formData.property_description} onChange={handleChange} className={`${inputClasses} h-24 resize-none`} /></div>
                             </div>
                         )}
 
                         {activeSection === 'specs' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="space-y-4">
                                 <div className="grid grid-cols-3 gap-4">
-                                    <PremiumInput label="Total Area" name="total_area" type="number" value={formData.total_area} onChange={handleChange} />
-                                    <PremiumInput label="Carpet Area" name="carpet_area" type="number" value={formData.carpet_area} onChange={handleChange} />
-                                    <PremiumInput label="Built-up" name="built_up_area" type="number" value={formData.built_up_area} onChange={handleChange} />
+                                    <div><label className={labelClasses}>Total Area</label><input type="number" name="total_area" value={formData.total_area} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Carpet Area</label><input type="number" name="carpet_area" value={formData.carpet_area} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Built-up</label><input type="number" name="built_up_area" value={formData.built_up_area} onChange={handleChange} className={inputClasses} /></div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <PremiumInput label="Bedrooms" name="total_bedrooms" type="number" value={formData.total_bedrooms} onChange={handleChange} />
-                                    <PremiumInput label="Bathrooms" name="total_bathrooms" type="number" value={formData.total_bathrooms} onChange={handleChange} />
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest ml-1">Furnishing</label>
-                                        <select name="furnished_status" value={formData.furnished_status} onChange={handleChange} className="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-3 appearance-none focus:outline-none focus:border-emerald-500/50">
+                                    <div><label className={labelClasses}>Bedrooms</label><input type="number" name="total_bedrooms" value={formData.total_bedrooms} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Bathrooms</label><input type="number" name="total_bathrooms" value={formData.total_bathrooms} onChange={handleChange} className={inputClasses} /></div>
+                                    <div>
+                                        <label className={labelClasses}>Furnishing</label>
+                                        <select name="furnished_status" value={formData.furnished_status} onChange={handleChange} className={inputClasses}>
                                             {FURNISHED_STATUS.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
                                         </select>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <PremiumInput label="Possession" name="possession_date" type="date" value={formData.possession_date} onChange={handleChange} />
-                                    <PremiumInput label="Available From" name="available_from" type="date" value={formData.available_from} onChange={handleChange} />
+                                    <div><label className={labelClasses}>Possession</label><input type="date" name="possession_date" value={formData.possession_date} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Available From</label><input type="date" name="available_from" value={formData.available_from} onChange={handleChange} className={inputClasses} /></div>
                                 </div>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest ml-1">Amenities</label>
-                                    <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className={labelClasses}>Amenities</label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                         {AMENITY_OPTIONS.map(a => (
-                                            <PremiumCheckbox key={a} label={a} checked={formData.amenities.includes(a)} onChange={() => toggleAmenity(a)} />
+                                            <button key={a} type="button" onClick={() => toggleAmenity(a)} className={`text-left px-3 py-2 text-xs rounded border ${formData.amenities.includes(a) ? "bg-zinc-800 border-zinc-600 text-white" : "bg-zinc-950 border-zinc-800 text-zinc-400"}`}>
+                                                {a}
+                                            </button>
                                         ))}
                                     </div>
                                 </div>
-                                <div className="space-y-3 pt-4 border-t border-zinc-900">
-                                    <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest ml-1">Assigned Agents</label>
-                                    <div className="grid grid-cols-2 gap-3">
+                                <div className="pt-2 border-t border-zinc-800">
+                                    <label className={labelClasses}>Assigned Agents</label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                         {agents.map(a => (
-                                            <PremiumCheckbox key={a._id} label={a.agent_details?.user_name} checked={formData.assign_agent.includes(a._id)} onChange={() => toggleAgent(a._id)} />
+                                            <button key={a._id} type="button" onClick={() => toggleAgent(a._id)} className={`text-left px-3 py-2 text-xs rounded border ${formData.assign_agent.includes(a._id) ? "bg-zinc-800 border-zinc-600 text-white" : "bg-zinc-950 border-zinc-800 text-zinc-400"}`}>
+                                                {a.agent_details?.user_name}
+                                            </button>
                                         ))}
                                     </div>
                                 </div>
@@ -363,45 +365,45 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                         )}
 
                         {activeSection === 'location' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                <PremiumInput label="Full Address" name="property_address" value={formData.property_address} onChange={handleChange} />
+                            <div className="space-y-4">
+                                <div><label className={labelClasses}>Full Address</label><input type="text" name="property_address" value={formData.property_address} onChange={handleChange} className={inputClasses} /></div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <PremiumInput label="Line 1" name="property_location.line1" value={formData.property_location.line1} onChange={handleChange} />
-                                    <PremiumInput label="Line 2" name="property_location.line2" value={formData.property_location.line2} onChange={handleChange} />
+                                    <div><label className={labelClasses}>Line 1</label><input type="text" name="property_location.line1" value={formData.property_location.line1} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Line 2</label><input type="text" name="property_location.line2" value={formData.property_location.line2} onChange={handleChange} className={inputClasses} /></div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <PremiumInput label="City" name="property_location.city" value={formData.property_location.city} onChange={handleChange} />
-                                    <PremiumInput label="State" name="property_location.state" value={formData.property_location.state} onChange={handleChange} />
-                                    <PremiumInput label="Postal Code" name="property_location.postal_code" value={formData.property_location.postal_code} onChange={handleChange} />
+                                    <div><label className={labelClasses}>City</label><input type="text" name="property_location.city" value={formData.property_location.city} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>State</label><input type="text" name="property_location.state" value={formData.property_location.state} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Postal Code</label><input type="text" name="property_location.postal_code" value={formData.property_location.postal_code} onChange={handleChange} className={inputClasses} /></div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <PremiumInput label="Landmark" name="property_location.landmark" value={formData.property_location.landmark} onChange={handleChange} />
-                                    <PremiumInput label="Country" name="property_location.country" value={formData.property_location.country} onChange={handleChange} />
+                                    <div><label className={labelClasses}>Landmark</label><input type="text" name="property_location.landmark" value={formData.property_location.landmark} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Country</label><input type="text" name="property_location.country" value={formData.property_location.country} onChange={handleChange} className={inputClasses} /></div>
                                 </div>
-                                <div className="space-y-3 pt-4 border-t border-zinc-900">
-                                    <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest ml-1">Coordinates</label>
+                                <div className="pt-2 border-t border-zinc-800">
+                                    <label className={labelClasses}>Coordinates</label>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <PremiumInput label="Longitude" type="number" step="any" value={formData.property_location.coordinates.coordinates[0]} onChange={(e) => handleCoordinateChange(0, e.target.value)} />
-                                        <PremiumInput label="Latitude" type="number" step="any" value={formData.property_location.coordinates.coordinates[1]} onChange={(e) => handleCoordinateChange(1, e.target.value)} />
+                                        <div><label className="text-[10px] text-zinc-500 mb-1 block">Longitude</label><input type="number" step="any" value={formData.property_location.coordinates.coordinates[0]} onChange={(e) => handleCoordinateChange(0, e.target.value)} className={inputClasses} /></div>
+                                        <div><label className="text-[10px] text-zinc-500 mb-1 block">Latitude</label><input type="number" step="any" value={formData.property_location.coordinates.coordinates[1]} onChange={(e) => handleCoordinateChange(1, e.target.value)} className={inputClasses} /></div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
                         {activeSection === 'media' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="space-y-4">
                                 <div className="grid grid-cols-3 gap-4">
                                     {previewImages.map((src, idx) => (
-                                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-zinc-900 group">
-                                            <img src={src} className="w-full h-full object-cover" alt="Preview" />
-                                            <button onClick={() => removeImage(idx)} type="button" className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                                                <FiTrash2 size={14} />
+                                        <div key={idx} className="relative aspect-square rounded border border-zinc-800 group">
+                                            <img src={src} className="w-full h-full object-cover rounded" alt="Preview" />
+                                            <button onClick={() => removeImage(idx)} type="button" className="absolute top-1 right-1 w-6 h-6 rounded bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                                                <FiTrash2 size={12} />
                                             </button>
                                         </div>
                                     ))}
-                                    <label className="aspect-square rounded-2xl border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center gap-2 hover:border-emerald-500/50 cursor-pointer transition-all">
-                                        <FiPlus size={24} className="text-zinc-600" />
-                                        <span className="text-[10px] font-black text-zinc-600 uppercase">Add Photo</span>
+                                    <label className="aspect-square rounded border border-dashed border-zinc-700 flex flex-col items-center justify-center gap-2 hover:border-zinc-500 cursor-pointer transition-all bg-zinc-950">
+                                        <FiPlus size={20} className="text-zinc-500" />
+                                        <span className="text-xs text-zinc-500">Add Photo</span>
                                         <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
                                     </label>
                                 </div>
@@ -409,55 +411,53 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                         )}
 
                         {activeSection === 'docs' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                <div className="space-y-4">
-                                    {formData.documents.map((doc, idx) => (
-                                        <div key={`doc-${idx}`} className="flex gap-4 items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900">
-                                            <div className="flex-1 space-y-3">
-                                                <PremiumInput label="Doc Name" value={doc.name} onChange={(e) => updateDocUrl(idx, 'name', e.target.value)} placeholder="e.g. Floor Plan" />
-                                                <PremiumInput label="URL Value" value={doc.value} onChange={(e) => updateDocUrl(idx, 'value', e.target.value)} placeholder="https://..." />
-                                            </div>
-                                            <button type="button" onClick={() => removeDoc(idx, false)} className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
-                                                <FiTrash2 size={16} />
-                                            </button>
+                            <div className="space-y-4">
+                                {formData.documents.map((doc, idx) => (
+                                    <div key={`doc-${idx}`} className="flex gap-4 items-center bg-zinc-950 p-3 rounded border border-zinc-800">
+                                        <div className="flex-1 space-y-2">
+                                            <input type="text" value={doc.name} onChange={(e) => updateDocUrl(idx, 'name', e.target.value)} placeholder="Doc Name" className={inputClasses} />
+                                            <input type="text" value={doc.value} onChange={(e) => updateDocUrl(idx, 'value', e.target.value)} placeholder="URL" className={inputClasses} />
                                         </div>
-                                    ))}
-                                    {formData.documents_base64.map((doc, idx) => (
-                                        <div key={`doc-new-${idx}`} className="flex gap-4 items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900 border-l-emerald-500/50">
-                                            <div className="flex-1 space-y-3">
-                                                <PremiumInput label="Doc Name" value={doc.name} onChange={(e) => updateBase64DocName(idx, e.target.value)} placeholder="e.g. Title Deed" />
-                                                <div className="px-4 py-3 bg-zinc-900 rounded-xl text-xs text-zinc-400 border border-zinc-800 truncate">
-                                                    [File Attached] {doc.mimeType}
-                                                </div>
-                                            </div>
-                                            <button type="button" onClick={() => removeDoc(idx, true)} className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
-                                                <FiTrash2 size={16} />
-                                            </button>
-                                        </div>
-                                    ))}
-
-                                    <div className="flex gap-4 pt-4 border-t border-zinc-900">
-                                        <button type="button" onClick={handleDocUrlAdd} className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-xs font-bold text-white uppercase tracking-widest transition-all flex items-center justify-center gap-2">
-                                            <FiPlus size={14} /> Add URL
+                                        <button type="button" onClick={() => removeDoc(idx, false)} className="w-8 h-8 rounded bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                                            <FiTrash2 size={14} />
                                         </button>
-                                        <label className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-xs font-bold text-white uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer">
-                                            <FiUpload size={14} /> Upload File
-                                            <input type="file" multiple className="hidden" onChange={handleDocFileChange} />
-                                        </label>
                                     </div>
+                                ))}
+                                {formData.documents_base64.map((doc, idx) => (
+                                    <div key={`doc-new-${idx}`} className="flex gap-4 items-center bg-zinc-950 p-3 rounded border border-zinc-800">
+                                        <div className="flex-1 space-y-2">
+                                            <input type="text" value={doc.name} onChange={(e) => updateBase64DocName(idx, e.target.value)} placeholder="Doc Name" className={inputClasses} />
+                                            <div className="px-3 py-2 bg-zinc-900 rounded text-xs text-zinc-500 border border-zinc-800 truncate">
+                                                [Attached] {doc.mimeType}
+                                            </div>
+                                        </div>
+                                        <button type="button" onClick={() => removeDoc(idx, true)} className="w-8 h-8 rounded bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                                            <FiTrash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <div className="flex gap-3 pt-2">
+                                    <button type="button" onClick={handleDocUrlAdd} className="px-4 py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded text-xs font-semibold text-white transition-all flex items-center justify-center gap-2">
+                                        <FiPlus size={14} /> Add URL
+                                    </button>
+                                    <label className="px-4 py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded text-xs font-semibold text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                        <FiUpload size={14} /> Upload File
+                                        <input type="file" multiple className="hidden" onChange={handleDocFileChange} />
+                                    </label>
                                 </div>
                             </div>
                         )}
 
                     </div>
 
-                    <div className="p-8 border-t border-zinc-900 bg-zinc-950/80 flex gap-4">
-                        <div className="flex-1">
-                            <PremiumButton text="Cancel" variant="secondary" onClick={onClose} className="w-full" />
-                        </div>
-                        <div className="flex-1">
-                            <PremiumButton text={updateMutation.isLoading ? "Updating..." : "Update Listing"} type="submit" disabled={updateMutation.isLoading} className="w-full" />
-                        </div>
+                    <div className="px-6 py-4 border-t border-zinc-800 bg-zinc-900 flex justify-end gap-3">
+                        <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-zinc-800 text-sm font-medium text-white hover:bg-zinc-700">
+                            Cancel
+                        </button>
+                        <button type="submit" disabled={updateMutation.isPending} className="px-4 py-2 rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+                            {updateMutation.isPending ? "Updating..." : "Update Listing"}
+                        </button>
                     </div>
                 </form>
             </div>

@@ -35,7 +35,7 @@ const App = () => {
           <Route
             path="/agents"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
                 <AgentPage />
               </ProtectedRoute>
             }

@@ -19,7 +19,7 @@ export const Pagination = ({
                     <select
                         value={rowsPerPage}
                         onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
-                        className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-zinc-600"
+                        className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-zinc-700 transition-colors"
                     >
                         {rowsPerPageOptions.map((opt) => (
                             <option key={opt} value={opt}>{opt}</option>
@@ -34,7 +34,7 @@ export const Pagination = ({
                 <button
                     disabled={currentPage === 1}
                     onClick={() => onPageChange(currentPage - 1)}
-                    className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded text-sm disabled:opacity-40 transition-opacity"
+                    className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded text-sm text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                     Prev
                 </button>
@@ -46,7 +46,7 @@ export const Pagination = ({
                 <button
                     disabled={currentPage >= totalPages}
                     onClick={() => onPageChange(currentPage + 1)}
-                    className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded text-sm disabled:opacity-40 transition-opacity"
+                    className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded text-sm text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                     Next
                 </button>

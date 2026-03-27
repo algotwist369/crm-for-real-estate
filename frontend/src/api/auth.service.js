@@ -15,6 +15,15 @@ const authService = {
   },
 
   /**
+   * Login agent
+   * @param {Object} credentials { phone_or_email, agent_pin }
+   */
+  loginAgent: async (credentials) => {
+    const response = await axiosInstance.post('/auth/agent/login', credentials);
+    return response.data;
+  },
+
+  /**
    * Register user
    * @param {Object} userData { name, email, password }
    */

@@ -28,6 +28,11 @@ const leadSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    currency: {
+        type: String,
+        enum: ['₹', '$', 'AED'],
+        default: '₹'
+    },
     budget_min: {
         type: Number,
         min: 0
@@ -49,7 +54,7 @@ const leadSchema = new mongoose.Schema({
     },
     source: {
         type: String,
-        enum: ['website', 'facebook', 'instagram', 'linkedin', 'whatsapp', 'google_ads', 'referral', 'advertisement','personal', 'other'],
+        enum: ['website', 'facebook', 'instagram', 'linkedin', 'whatsapp', 'google_ads', 'referral', 'advertisement', 'personal', 'walk-in', 'other'],
         default: 'website',
         required: true
     },

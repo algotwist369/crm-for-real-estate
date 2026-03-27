@@ -13,13 +13,9 @@ import {
     FiUser,
     FiLoader
 } from "react-icons/fi";
-import { PremiumButton } from "../component/common/PremiumButton";
-import { PremiumToggle } from "../component/common/PremiumToggle";
-import { CopyButton } from "../component/common/CopyButton";
 import { SearchFilter } from "../component/common/SearchFilter";
 import { Pagination } from "../component/common/Pagination";
 import { RefreshButton } from "../component/common/RefreshButton";
-import { PremiumTabs } from "../component/common/PremiumTabs";
 import AddPropertiesModel from "../component/modal/AddPropertiesModel";
 import EditPropertiesModel from "../component/modal/EditPropertiesModel";
 import { useProperties, useUpdatePropertyStatus, useDeleteProperty } from "../hooks/usePropertyHooks";
@@ -82,18 +78,6 @@ const PropertiesPage = () => {
         navigate(`/properties/${id}`);
     };
 
-    /* ─── Style Helpers ─── */
-    const getStatusColor = (status) => {
-        switch (status) {
-            case "available": return "text-emerald-400";
-            case "inactive": return "text-zinc-500";
-            case "sold": return "text-blue-400";
-            case "under_offer": return "text-orange-400";
-            case "rented": return "text-violet-400";
-            default: return "text-zinc-500";
-        }
-    };
-
     const formatPrice = (price, currency) => {
         if (!price) return "TBD";
         if (currency === "INR") {
@@ -106,252 +90,214 @@ const PropertiesPage = () => {
 
     return (
         <AppLayout>
-            {/* Minimalist Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 pt-4">
-                <div className="space-y-1">
-                    <h2 className="text-3xl font-light text-white tracking-tight">Property Inventory</h2>
-                    <p className="text-xs text-zinc-500 font-medium uppercase tracking-[0.2em] opacity-80">Real-time listing management</p>
+            {/* Header Actions */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h2 className="text-xl font-medium text-white mb-1">Property Inventory</h2>
+                    <p className="text-sm text-zinc-400">Manage and track real-time property listings</p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <RefreshButton onClick={handleRefresh} isRefreshing={isFetching} />
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="bg-zinc-100 hover:bg-white text-black text-xs font-bold uppercase tracking-widest px-6 py-3 rounded-full transition-all shadow-lg hover:shadow-white/5 active:scale-95 flex items-center gap-2"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded flex items-center gap-2 transition-colors"
                     >
-                        <FiPlus size={14} /> Add Property
+                        <FiPlus size={16} /> Add Property
                     </button>
                 </div>
             </div>
 
-            {/* Minimalist Filters Bar */}
-            <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-8">
-                <div className="flex-1 relative group">
-                    <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-white transition-colors" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Search listings..."
-                        value={search}
-                        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        className="w-full bg-zinc-900/50 border border-zinc-800 text-sm py-3 pl-12 pr-4 rounded-2xl focus:outline-none focus:border-zinc-700 focus:bg-zinc-900 transition-all placeholder:text-zinc-600"
+            {/* Filters Bar */}
+            <div className="border border-zinc-800 rounded p-4 mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex-1 max-w-lg">
+                    <SearchFilter
+                        searchValue={search}
+                        onSearchChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                        searchPlaceholder="Search properties..."
                     />
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <select
-                        value={typeFilter}
-                        onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-                        className="bg-zinc-900/50 border border-zinc-800 text-zinc-400 text-[10px] font-bold uppercase tracking-widest px-4 py-3 rounded-2xl focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer hover:bg-zinc-900 transition-all min-w-[120px]"
-                    >
-                        <option value="All">All Types</option>
-                        {typeOptions.slice(1).map(opt => (
-                            <option key={opt} value={opt}>{opt.toUpperCase()}</option>
-                        ))}
-                    </select>
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-zinc-400">Type:</span>
+                        <select
+                            value={typeFilter}
+                            onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+                            className="bg-zinc-900 border border-zinc-800 text-white text-sm rounded px-3 py-2 focus:outline-none cursor-pointer"
+                        >
+                            <option value="All">All Types</option>
+                            {typeOptions.slice(1).map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                        </select>
+                    </div>
 
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                        className="bg-zinc-900/50 border border-zinc-800 text-zinc-400 text-[10px] font-bold uppercase tracking-widest px-4 py-3 rounded-2xl focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer hover:bg-zinc-900 transition-all min-w-[120px]"
-                    >
-                        <option value="All">All Status</option>
-                        {statusOptions.slice(1).map(opt => (
-                            <option key={opt} value={opt}>{opt.replace('_', ' ').toUpperCase()}</option>
-                        ))}
-                    </select>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-zinc-400">Status:</span>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                            className="bg-zinc-900 border border-zinc-800 text-white text-sm rounded px-3 py-2 focus:outline-none cursor-pointer capitalize"
+                        >
+                            <option value="All">All Status</option>
+                            {statusOptions.slice(1).map(opt => (
+                                <option key={opt} value={opt}>{opt.replace('_', ' ')}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 
-
             {/* Properties Table */}
-            <div className="bg-zinc-950/50 backdrop-blur-md border border-zinc-800/50 rounded-2xl overflow-hidden shadow-2xl flex flex-col relative min-h-[400px]">
-                {isLoading && (
-                    <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-10 flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-3">
-                            <FiLoader size={40} className="text-emerald-500 animate-spin" />
-                            <span className="text-xs font-bold text-zinc-400 animate-pulse uppercase tracking-[0.2em]">Synchronizing Inventory...</span>
-                        </div>
-                    </div>
-                )}
-
-                <div className="overflow-x-auto scrollbar-hide">
-                    <table className="w-full text-left border-collapse min-w-[1000px] sm:min-w-[1100px] lg:min-w-[1200px]">
+            <div className="border border-zinc-800 rounded overflow-hidden flex flex-col relative min-h-[400px]">
+                <div className="overflow-x-auto">
+                    {isLoading ? (
+                        <div className="p-8 text-center text-zinc-400 text-sm">Loading properties data...</div>
+                    ) : properties.length === 0 ? (
+                        <div className="p-8 text-center text-zinc-500 text-sm">No properties found matching your criteria.</div>
+                    ) : (
+                    <table className="w-full text-left border-collapse min-w-[1100px]">
                         <thead>
-                            <tr className="border-b border-zinc-800/50 bg-zinc-900/30">
+                            <tr className="border-b border-zinc-800 bg-zinc-900/50 text-zinc-400 text-xs text-left">
                                 {tableColumns.map((col, idx) => (
-                                    <th key={idx} className="p-3 sm:p-4 text-[10px] sm:text-[11px] font-bold text-zinc-500 uppercase tracking-widest leading-none">
+                                    <th key={idx} className="p-3 font-medium tracking-wide whitespace-nowrap">
                                         {col}
                                     </th>
                                 ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-800/30">
-                            {properties.length > 0 ? (
-                                properties.map((prop, index) => (
-                                    <tr
-                                        key={prop._id}
-                                        className={`group hover:bg-zinc-900/50 transition-all duration-200 ${prop.is_active === false ? "opacity-50 grayscale-[0.3]" : ""
-                                            }`}
-                                    >
-                                        <td className="p-3 sm:p-4 text-xs font-bold text-zinc-600">
-                                            #{(page - 1) * limit + index + 1}
-                                        </td>
+                        <tbody className="divide-y divide-zinc-800 text-sm text-zinc-300 bg-zinc-950/20">
+                            {properties.map((prop, index) => {
+                                const isInactive = prop.is_active === false || prop.property_status === "inactive";
+                                return (
+                                <tr
+                                    key={prop._id}
+                                    className={`${isInactive ? "opacity-60 bg-zinc-900/40" : ""}`}
+                                >
+                                    <td className="p-3 text-zinc-500">
+                                        {(page - 1) * limit + index + 1}
+                                    </td>
 
-                                        <td className="p-3 sm:p-4">
-                                            <div className="flex flex-col max-w-[220px] sm:max-w-[280px]">
-                                                <span className={`text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors truncate ${prop.is_active === false || prop.property_status === "sold" ? "opacity-60" : ""
-                                                    }`} title={prop.property_title}>
-                                                    {prop.property_title}
+                                    <td className="p-3">
+                                        <div className="flex flex-col">
+                                            <span className={`font-medium truncate max-w-[200px] ${isInactive ? "line-through text-zinc-500" : "text-zinc-100"}`} title={prop.property_title}>
+                                                {prop.property_title}
+                                            </span>
+                                            <span className="text-xs text-zinc-500 mt-0.5">
+                                                ID: {prop._id.slice(-8).toUpperCase()} | Added: {new Date(prop.createdAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <td className="p-3">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="capitalize">
+                                                {prop.property_type || "N/A"}
+                                            </span>
+                                            <span className="text-xs text-zinc-400">
+                                                For {prop.listing_type}
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <td className="p-3 font-medium text-zinc-200">
+                                        <div className="flex flex-col">
+                                            <span>
+                                                {formatPrice(prop.asking_price, prop.currency)}
+                                            </span>
+                                            {prop.price_sqft && (
+                                                <span className="text-xs text-zinc-500">
+                                                    {prop.price_sqft} / sqft
                                                 </span>
-                                                <span className="text-[10px] text-zinc-500 font-medium lowercase">
-                                                    ID: {prop._id.slice(-8).toUpperCase()} | Added: {new Date(prop.createdAt).toLocaleDateString()}
-                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+
+                                    <td className="p-3">
+                                        <div className="flex flex-col text-sm truncate max-w-[150px]" title={prop.property_location?.line2 || prop.property_location?.city}>
+                                            <span>{prop.property_location?.line2 || prop.property_location?.city}</span>
+                                            <span className="text-xs text-zinc-500">
+                                                {prop.property_location?.city}, {prop.property_location?.state}
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <td className="p-3">
+                                        <div className="flex flex-col gap-0.5 text-xs">
+                                            <div className="text-zinc-400">
+                                                {prop.total_bedrooms || "0"} Beds / {prop.total_bathrooms || "0"} Baths
                                             </div>
-                                        </td>
+                                            <div className="text-zinc-500">
+                                                {prop.total_area} {prop.area_unit || "sqft"}
+                                            </div>
+                                        </div>
+                                    </td>
 
-                                        <td className="p-3 sm:p-4">
+                                    <td className="p-3">
+                                        {prop.assign_agent && prop.assign_agent.length > 0 ? (
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                                                    {prop.property_type || "N/A"}
-                                                </span>
-                                                <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded w-fit border ${prop.listing_type === 'sale'
-                                                    ? "bg-orange-500/10 border-orange-500/20 text-orange-400"
-                                                    : prop.listing_type === 'rent' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-violet-500/10 border-violet-500/20 text-violet-400"
-                                                    }`}>
-                                                    For {prop.listing_type}
-                                                </span>
-                                            </div>
-                                        </td>
-
-                                        <td className="p-3 sm:p-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-black text-white">
-                                                    {formatPrice(prop.asking_price, prop.currency)}
-                                                </span>
-                                                {prop.price_sqft && (
-                                                    <span className="text-[10px] text-zinc-500 font-bold">
-                                                        {prop.price_sqft} / sqft
+                                                {prop.assign_agent.map((agent) => (
+                                                    <span key={agent._id} className="text-xs text-zinc-400">
+                                                        {agent.agent_details?.user_name || "Agent"}
                                                     </span>
-                                                )}
+                                                ))}
                                             </div>
-                                        </td>
+                                        ) : (
+                                            <span className="text-xs text-zinc-500">Unassigned</span>
+                                        )}
+                                    </td>
 
-                                        <td className="p-3 sm:p-4">
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-1 text-zinc-300">
-                                                    <FiMapPin size={12} className="text-emerald-500" />
-                                                    <span className="text-xs font-semibold">{prop.property_location?.line2 || prop.property_location?.city}</span>
-                                                </div>
-                                                <span className="text-[10px] text-zinc-500 font-medium ml-4">
-                                                    {prop.property_location?.city}, {prop.property_location?.state}
-                                                </span>
-                                            </div>
-                                        </td>
+                                    <td className="p-3">
+                                        <select
+                                            value={prop.property_status}
+                                            onChange={(e) => handleUpdateStatus(prop._id, e.target.value)}
+                                            className="text-xs p-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-300 capitalize cursor-pointer focus:outline-none"
+                                        >
+                                            {statusOptions.slice(1).map(s => (
+                                                <option key={s} value={s}>{s.replace("_", " ")}</option>
+                                            ))}
+                                        </select>
+                                    </td>
 
-                                        <td className="p-3 sm:p-4">
-                                            <div className="flex flex-col gap-1.5">
-                                                <div className="flex items-center gap-x-3 text-[10px] font-bold text-zinc-400">
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-zinc-500">BD:</span> {prop.total_bedrooms || "0"}
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-zinc-500">BA:</span> {prop.total_bathrooms || "0"}
-                                                    </div>
-                                                </div>
-                                                <span className="text-[11px] font-semibold text-white bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded w-fit">
-                                                    {prop.total_area} {prop.area_unit || "Sq.ft"}
-                                                </span>
-                                            </div>
-                                        </td>
-
-                                        <td className="p-3 sm:p-4">
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {prop.assign_agent && prop.assign_agent.length > 0 ? (
-                                                    prop.assign_agent.map((agent) => (
-                                                        <span
-                                                            key={agent._id}
-                                                            className="text-[10px] font-bold bg-zinc-800/50 border border-zinc-700/50 text-zinc-300 px-2 py-0.5 rounded flex items-center gap-1"
-                                                        >
-                                                            <FiUser size={10} /> {agent.agent_details?.user_name || "Agent"}
-                                                        </span>
-                                                    ))
-                                                ) : (
-                                                    <span className="text-[10px] text-zinc-500 italic">Unassigned</span>
-                                                )}
-                                            </div>
-                                        </td>
-
-                                        <td className="p-3 sm:p-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${prop.property_status === "available" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" :
-                                                    prop.property_status === "sold" ? "bg-blue-500" : "bg-zinc-500"
-                                                    }`} />
-                                                <select
-                                                    value={prop.property_status}
-                                                    onChange={(e) => handleUpdateStatus(prop._id, e.target.value)}
-                                                    className={`text-[10px] font-black uppercase tracking-widest bg-zinc-900 border border-zinc-800 focus:outline-none focus:border-emerald-500/50 px-2 py-1.5 rounded-lg transition-all appearance-none cursor-alias ${getStatusColor(prop.property_status)}`}
-                                                >
-                                                    {statusOptions.slice(1).map(s => (
-                                                        <option key={s} value={s} className="bg-zinc-900 text-zinc-300 font-bold">{s.toUpperCase()}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </td>
-
-                                        <td className="p-3 sm:p-4">
-                                            <div className="flex items-center gap-3">
-                                                <div
-                                                    className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white hover:border-zinc-700 cursor-pointer transition-all"
-                                                    onClick={() => handleViewProperty(prop._id)}
-                                                    title="View Full Details"
-                                                >
-                                                    <FiEye size={16} />
-                                                </div>
-                                                <div
-                                                    className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-emerald-400 hover:border-emerald-400/30 cursor-pointer transition-all"
-                                                    onClick={() => {
-                                                        setEditingProperty(prop);
-                                                        setIsEditModalOpen(true);
-                                                    }}
-                                                    title="Edit Listing"
-                                                >
-                                                    <FiEdit size={16} />
-                                                </div>
-                                                <div
-                                                    className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-red-400 hover:border-red-400/30 cursor-pointer transition-all"
-                                                    onClick={() => handleDeleteProperty(prop._id)}
-                                                    title="Delete Listing"
-                                                >
-                                                    <FiTrash2 size={16} />
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={9} className="p-20 text-center">
-                                        <div className="flex flex-col items-center gap-4 text-zinc-600">
-                                            <FiHome size={48} className="opacity-10" />
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-bold uppercase tracking-widest">No listings found</p>
-                                                <p className="text-xs italic">Adjust your search parameters or check filters</p>
-                                            </div>
-                                            <PremiumButton 
-                                                text="Clear Filters" 
-                                                variant="secondary" 
-                                                onClick={handleRefresh} 
-                                            />
+                                    <td className="p-3">
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                className="text-zinc-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-white transition-colors"
+                                                onClick={() => handleViewProperty(prop._id)}
+                                                title="View Full Details"
+                                            >
+                                                <FiEye size={14} />
+                                            </button>
+                                            <button
+                                                className="text-blue-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-blue-300 transition-colors"
+                                                onClick={() => {
+                                                    setEditingProperty(prop);
+                                                    setIsEditModalOpen(true);
+                                                }}
+                                                title="Edit Listing"
+                                            >
+                                                <FiEdit size={14} />
+                                            </button>
+                                            <button
+                                                className="text-red-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-red-300 transition-colors"
+                                                onClick={() => handleDeleteProperty(prop._id)}
+                                                title="Delete Listing"
+                                            >
+                                                <FiTrash2 size={14} />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
-                            )}
+                            )})}
                         </tbody>
                     </table>
+                    )}
                 </div>
 
                 {/* Pagination Section */}
-                <div className="p-6 border-t border-zinc-800/50 bg-zinc-900/10 mt-auto">
+                {properties.length > 0 && (
+                <div className="p-4 border-t border-zinc-800 bg-zinc-900/30">
                     <Pagination
                         currentPage={page}
                         totalPages={pagination.pages}
@@ -360,6 +306,7 @@ const PropertiesPage = () => {
                         onRowsPerPageChange={(val) => { setLimit(val); setPage(1); }}
                     />
                 </div>
+                )}
             </div>
 
             {/* Modals */}

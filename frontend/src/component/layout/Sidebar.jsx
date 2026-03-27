@@ -9,6 +9,7 @@ import {
     FiBell,
 } from "react-icons/fi";
 import { MdOutlineRealEstateAgent } from "react-icons/md";
+import { useAuth } from "../../context/AuthContext";
 
 const menuItems = [
     { name: "Dashboard", icon: <FiHome />, path: "/dashboard" },
@@ -21,65 +22,80 @@ const menuItems = [
 ];
 
 const Sidebar = ({ collapsed, mobileOpen }) => {
+    const { user } = useAuth();
+    const isAgent = user?.role === "agent";
+
+    const filteredMenuItems = menuItems.filter(item => {
+        if (isAgent && item.name === "Agents") return false;
+        return true;
+    });
+
     return (
         <aside
             className={`
-                                 border-r border-zinc-800
-                                 h-screen fixed top-0 left-0 z-40
-                                 transition-all duration-300
-                                 ${collapsed ? "w-20" : "w-64"}
-                                 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-                                 lg:translate-x-0
-                                 bg-black
-                    `}
+                border-r border-zinc-800
+                h-screen fixed top-0 left-0 z-50
+                transition-all duration-300
+                ${collapsed ? "w-20" : "w-64"}
+                ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+                lg:translate-x-0
+                bg-zinc-950
+            `}
         >
-            <div className="flex flex-col h-full p-4">
+            <div className="flex flex-col h-full">
 
-                {/* Logo */}
-                <div className="mb-10 text-white font-bold text-xl px-2 flex items-center gap-2 border-b border-zinc-800">
-                    {!collapsed && <span>Admin Leads</span>}
+                {/* Logo Area */}
+                <div className="h-16 flex items-center px-6 border-b border-zinc-800 mb-6">
+                    <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">LR</div>
+                    {!collapsed && (
+                        <span className="ml-3 text-sm font-semibold text-white tracking-widest uppercase">LeadReal</span>
+                    )}
                 </div>
 
-                {/* Menu */}
-                <nav className="flex flex-col gap-1">
-
-                    {menuItems.map((item, index) => (
+                {/* Navigation Menu */}
+                <nav className="flex-1 px-4 space-y-1">
+                    {filteredMenuItems.map((item, index) => (
                         <NavLink
                             key={index}
                             to={item.path}
                             className={({ isActive }) => `
-                                flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
+                                flex items-center gap-3 px-3 py-2 rounded transition-all duration-200 group
                                 ${isActive
-                                    ? "bg-blue-600/10 text-blue-400 font-medium"
-                                    : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200"}
+                                    ? "bg-zinc-900 border border-zinc-800 text-blue-400 font-medium"
+                                    : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50"}
                             `}
                         >
-                            <span className="text-lg">{item.icon}</span>
+                            <span className={`text-lg transition-colors ${collapsed ? "mx-auto" : ""}`}>
+                                {item.icon}
+                            </span>
 
                             {!collapsed && (
                                 <span className="text-sm">{item.name}</span>
                             )}
+                            
+                            {/* Active Indicator on right */}
+                            {!collapsed && (
+                                <div className={`ml-auto w-1 h-1 rounded-full bg-blue-500 opacity-0 group-[.active]:opacity-100 transition-opacity`}></div>
+                            )}
                         </NavLink>
                     ))}
-
                 </nav>
 
-                {/* Footer */}
-                <div className="mt-auto pt-4 border-t border-zinc-800 px-2 pb-2 flex flex-col gap-1">
-                    {!collapsed && (
-                        <>
-                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-                                © {new Date().getFullYear()} Admin Leads
+                {/* Footer Metadata */}
+                <div className="p-6 border-t border-zinc-800 mt-auto">
+                    {!collapsed ? (
+                        <div className="space-y-1">
+                            <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
+                                Version 1.2.4-stable
                             </p>
-                            <p className="text-[9px] text-zinc-600 font-medium">
-                                Version 1.0.1-stable
+                            <p className="text-[9px] text-zinc-700 font-medium">
+                                © {new Date().getFullYear()} LeadReal CRM
                             </p>
-                        </>
-                    )}
-                    {collapsed && (
-                        <p className="text-[10px] text-zinc-600 font-bold text-center">
-                            V1.0
-                        </p>
+                        </div>
+                    ) : (
+                        <div className="flex justify-center">
+                            <span className="text-[10px] text-zinc-700 font-bold">V1.2</span>
+                        </div>
                     )}
                 </div>
 

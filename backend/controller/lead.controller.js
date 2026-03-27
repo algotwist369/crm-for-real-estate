@@ -4,16 +4,13 @@ const User = require('../model/user.model');
 const Properties = require('../model/properties.model');
 const Agent = require('../model/agent.model');
 const FollowUpReminder = require('../model/followUpReminder.model');
-const { verifyToken } = require('../utils/generateToken');
 const { sendMail } = require('../utils/sendMail');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
-    httpError,
-    normalizeEmail,
     normalizePhone,
-    isEmail,
-    extractBearerToken,
-    ensureNotBlacklisted
+    normalizeEmail,
+    httpError,
+    isEmail
 } = require('../utils/common');
 
 function parsePagination(req) {
@@ -79,57 +76,39 @@ function uniqueStrings(values) {
     return Array.from(set);
 }
 
-async function getPropertyAgentUserIdsFromPropertyIds(propertyIds) {
-    const ids = Array.isArray(propertyIds) ? propertyIds : [];
-    const validPropertyIds = ids.map(x => String(x)).filter(id => mongoose.Types.ObjectId.isValid(id));
-    if (!validPropertyIds.length) return [];
-
-    const props = await Properties.find({ _id: { $in: validPropertyIds } }).select('assign_agent').lean();
-    const agentIds = props
-        .flatMap(p => Array.isArray(p.assign_agent) ? p.assign_agent : [])
-        .map(a => String(a))
-        .filter(id => mongoose.Types.ObjectId.isValid(id));
-    if (!agentIds.length) return [];
-
-    const agents = await Agent.find({ _id: { $in: uniqueObjectIds(agentIds) }, is_active: true })
-        .select('agent_details')
-        .lean();
-    return agents
-        .map(a => a.agent_details ? String(a.agent_details) : '')
-        .filter(id => mongoose.Types.ObjectId.isValid(id));
+async function getAgentAssignedPropertyIds(agentId) {
+    const props = await Properties.find({ assign_agent: agentId }).select('_id').lean();
+    return props.map(p => p._id);
 }
 
-async function requireAuth(req, allowedRoles) {
-    const token = extractBearerToken(req);
-    if (!token) throw httpError(401, 'Authorization token required');
-    await ensureNotBlacklisted(token);
-
-    let payload;
-    try {
-        payload = verifyToken(token);
-    } catch {
-        throw httpError(401, 'Invalid or expired token');
-    }
-
-    const userId = payload?.sub;
-    const role = payload?.role;
-    if (!userId || !role) throw httpError(401, 'Invalid token');
-    if (Array.isArray(allowedRoles) && allowedRoles.length && !allowedRoles.includes(role)) {
-        throw httpError(403, 'Forbidden');
-    }
-
-    const user = await User.findOne({ _id: userId, is_active: true, is_deleted: false });
-    if (!user) throw httpError(401, 'Invalid or expired token');
-
-    return { user, payload, token };
+async function getAgentIdFromUserId(userId) {
+    const agent = await Agent.findOne({ agent_details: userId, is_active: true }).select('_id').lean();
+    return agent ? agent._id : null;
 }
 
 async function ensureLeadAccess({ lead, payload, user }) {
     if (!lead) throw httpError(404, 'Lead not found');
     if (['admin', 'super_admin'].includes(payload.role)) return;
 
-    const isAssigned = Array.isArray(lead.assigned_to) && lead.assigned_to.some(id => String(id) === String(user._id));
-    if (!isAssigned) throw httpError(403, 'Forbidden');
+    // Check if directly assigned or creator
+    const isAssignedDirectly = Array.isArray(lead.assigned_to) && lead.assigned_to.some(id => String(id) === String(user._id));
+    if (isAssignedDirectly) return;
+
+    if (lead.created_by && String(lead.created_by) === String(user._id)) return;
+
+    // Check if assigned via properties
+    const agentId = await getAgentIdFromUserId(user._id);
+    if (agentId && Array.isArray(lead.properties) && lead.properties.length > 0) {
+        const propertyIds = lead.properties.map(p => String(p._id || p));
+        const assignedProperties = await Properties.find({
+            _id: { $in: propertyIds },
+            assign_agent: agentId
+        }).select('_id').limit(1).lean();
+        
+        if (assignedProperties.length > 0) return;
+    }
+
+    throw httpError(403, 'Forbidden');
 }
 
 function buildLeadDocFromBody(body = {}) {
@@ -138,6 +117,7 @@ function buildLeadDocFromBody(body = {}) {
     const phoneRaw = body.phone !== undefined ? String(body.phone || '').trim() : undefined;
     const requirement = body.requirement !== undefined ? String(body.requirement || '').trim() : undefined;
     const budget = body.budget !== undefined ? String(body.budget || '').trim() : undefined;
+    const currency = body.currency !== undefined ? String(body.currency || '').trim() : undefined;
     const inquiry_for = body.inquiry_for !== undefined ? String(body.inquiry_for || '').trim() : undefined;
     const source = body.source !== undefined ? String(body.source || '').trim().toLowerCase() : undefined;
     const priority = body.priority !== undefined ? String(body.priority || '').trim().toLowerCase() : undefined;
@@ -165,6 +145,7 @@ function buildLeadDocFromBody(body = {}) {
         phone: phoneRaw ? normalizePhone(phoneRaw) : phoneRaw,
         requirement,
         budget,
+        currency,
         budget_min,
         budget_max,
         inquiry_for,
@@ -343,7 +324,14 @@ const get_my_leads = wrapAsync(async (req, res) => {
     if (priority) match.priority = priority;
 
     if (payload.role === 'agent') {
-        match.assigned_to = user._id;
+        const agentId = await getAgentIdFromUserId(user._id);
+        const assignedPropIds = agentId ? await getAgentAssignedPropertyIds(agentId) : [];
+        
+        match.$or = [
+            { assigned_to: user._id },
+            { created_by: user._id },
+            { properties: { $in: assignedPropIds } }
+        ];
     } else if (req.query?.assigned_to) {
         const ids = normalizeObjectIdArray(req.query.assigned_to);
         if (ids.length === 1) match.assigned_to = ids[0];
@@ -432,10 +420,18 @@ const create_lead = wrapAsync(async (req, res) => {
 
     doc.email = normalizeEmail(doc.email);
     doc.phone = normalizePhone(doc.phone);
+    doc.currency = doc.currency || '₹';
 
     if (payload.role === 'agent') {
-        const propertyAgentUserIds = await getPropertyAgentUserIdsFromPropertyIds(doc.properties || []);
-        doc.assigned_to = uniqueObjectIds([String(user._id), ...propertyAgentUserIds]).map(id => new mongoose.Types.ObjectId(id));
+        // Find all agents assigned to the linked properties
+        const props = await Properties.find({ _id: { $in: doc.properties || [] } }).select('assign_agent').lean();
+        const propertyAgentIds = props.flatMap(p => p.assign_agent || []).map(id => String(id));
+        
+        // Find property agent user IDs
+        const propAgents = await Agent.find({ _id: { $in: uniqueObjectIds(propertyAgentIds) }, is_active: true }).select('agent_details').lean();
+        const propAgentUserIds = propAgents.map(a => String(a.agent_details)).filter(Boolean);
+
+        doc.assigned_to = uniqueObjectIds([String(user._id), ...propAgentUserIds]).map(id => new mongoose.Types.ObjectId(id));
         doc.followed_by = user._id;
     } else if (!Array.isArray(doc.assigned_to) || !doc.assigned_to.length) {
         doc.assigned_to = [];

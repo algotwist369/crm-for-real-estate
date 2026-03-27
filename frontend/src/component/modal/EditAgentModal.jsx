@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { PremiumInput } from "../common/PremiumInput";
-import { PremiumButton } from "../common/PremiumButton";
-import { FiX, FiCamera, FiCheckSquare } from "react-icons/fi";
-import { PremiumCheckbox } from "../common/PremiumCheckbox";
+import { FiX, FiCamera, FiCheckSquare, FiCheck } from "react-icons/fi";
 import { useUpdateAgentProfile } from "../../hooks/useAgentHooks";
 
 const PROPERTIES = [
@@ -30,7 +27,6 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
 
     const [preview, setPreview] = useState(null);
 
-    // Sync formData with the agent being edited
     useEffect(() => {
         if (agent && isOpen) {
             const details = agent.agent_details || {};
@@ -106,14 +102,16 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
         }
     };
 
+    const inputClasses = "w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded px-3 py-2 focus:outline-none focus:border-zinc-700";
+    const labelClasses = "text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1.5";
+
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
+            <div className="bg-zinc-900 border border-zinc-800 rounded w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
                 
-                {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-                    <h2 className="text-xl font-semibold text-white">Edit Agent Details</h2>
-                    <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+                    <h2 className="text-xl font-medium text-white">Edit Agent Details</h2>
+                    <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded hover:bg-zinc-800">
                         <FiX size={20} />
                     </button>
                 </div>
@@ -121,10 +119,9 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
                 <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
                     <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
                         
-                        {/* Image Upload */}
                         <div className="flex flex-col items-center mb-6">
                             <div className="relative group">
-                                <div className="w-24 h-24 rounded-full bg-zinc-900 border-2 border-dashed border-zinc-700 flex items-center justify-center overflow-hidden cursor-pointer hover:border-zinc-500 transition-colors">
+                                <div className="w-24 h-24 rounded-full bg-zinc-950 border border-dashed border-zinc-700 flex items-center justify-center overflow-hidden cursor-pointer hover:border-zinc-500 transition-colors">
                                     {preview ? (
                                         <img src={preview} alt="Preview" className="w-full h-full object-cover" />
                                     ) : (
@@ -142,94 +139,60 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <PremiumInput 
-                                label="Full Name" 
-                                placeholder="Ankit Pathak" 
-                                value={formData.name} 
-                                onChange={(e) => handleChange({ target: { name: 'name', value: e.target.value }})}
-                                required
-                            />
-                            <PremiumInput 
-                                label="Agent Role" 
-                                placeholder="Sales Executive" 
-                                value={formData.role} 
-                                onChange={(e) => handleChange({ target: { name: 'role', value: e.target.value }})}
-                                required
-                            />
+                            <div>
+                                <label className={labelClasses}>Full Name</label>
+                                <input type="text" name="name" value={formData.name} onChange={handleChange} required className={inputClasses} placeholder="Ankit Pathak" />
+                            </div>
+                            <div>
+                                <label className={labelClasses}>Agent Role</label>
+                                <input type="text" name="role" value={formData.role} onChange={handleChange} required className={inputClasses} placeholder="Sales Executive" />
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <PremiumInput 
-                                label="Phone Number" 
-                                placeholder="7388480126" 
-                                value={formData.phone} 
-                                onChange={(e) => handleChange({ target: { name: 'phone', value: e.target.value }})}
-                                required
-                            />
-                            <PremiumInput 
-                                label="Email Address" 
-                                type="email"
-                                placeholder="ankit@example.com" 
-                                value={formData.email} 
-                                onChange={(e) => handleChange({ target: { name: 'email', value: e.target.value }})}
-                                required
-                            />
+                            <div>
+                                <label className={labelClasses}>Phone Number</label>
+                                <input type="text" name="phone" value={formData.phone} onChange={handleChange} required className={inputClasses} placeholder="7388480126" />
+                            </div>
+                            <div>
+                                <label className={labelClasses}>Email Address</label>
+                                <input type="email" name="email" value={formData.email} onChange={handleChange} required className={inputClasses} placeholder="ankit@example.com" />
+                            </div>
                         </div>
 
-                        <PremiumInput 
-                            label="Security Pin (4-6 digits)" 
-                            type="text"
-                            placeholder="1234" 
-                            value={formData.pin} 
-                            onChange={(e) => handleChange({ target: { name: 'pin', value: e.target.value }})}
-                            required
-                        />
+                        <div>
+                            <label className={labelClasses}>Security Pin (4-6 digits)</label>
+                            <input type="text" name="pin" value={formData.pin} onChange={handleChange} required className={inputClasses} placeholder="1234" />
+                        </div>
 
-                        {/* Property Assignment Section */}
                         <div className="pt-2">
                             <div className="flex items-center justify-between mb-3">
                                 <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                                    <FiCheckSquare className="text-zinc-500" />
-                                    Assigned Properties
+                                    <FiCheckSquare className="text-zinc-500" /> Assigned Properties
                                 </label>
-                                <button 
-                                    type="button"
-                                    onClick={handleSelectAllProperties}
-                                    className="text-[10px] uppercase tracking-wider text-blue-400 hover:text-blue-300 transition-colors font-bold"
-                                >
+                                <button type="button" onClick={handleSelectAllProperties} className="text-[10px] uppercase tracking-wider text-blue-400 hover:text-blue-300 transition-colors font-bold">
                                     {formData.assignedProperties.length === PROPERTIES.length ? "Deselect All" : "Select All"}
                                 </button>
                             </div>
                             
-                            <div className="grid grid-cols-2 gap-3 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 max-h-40 overflow-y-auto custom-scrollbar">
+                            <div className="grid grid-cols-2 gap-3 bg-zinc-950 p-4 rounded border border-zinc-800 max-h-40 overflow-y-auto custom-scrollbar">
                                 {PROPERTIES.map((prop) => (
-                                    <PremiumCheckbox 
-                                        key={prop.id}
-                                        label={prop.label}
-                                        checked={formData.assignedProperties.includes(prop.id)}
-                                        onChange={() => handlePropertyChange(prop.id)}
-                                    />
+                                    <label key={prop.id} className="flex items-center gap-3 cursor-pointer group">
+                                        <div className={`w-5 h-5 rounded border ${formData.assignedProperties.includes(prop.id) ? 'bg-blue-600 border-blue-600' : 'bg-zinc-900 border-zinc-700 group-hover:border-zinc-500'} flex items-center justify-center transition-colors`}>
+                                            {formData.assignedProperties.includes(prop.id) && <FiCheck className="text-white relative z-10" size={12} strokeWidth={3} />}
+                                        </div>
+                                        <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">{prop.label}</span>
+                                    </label>
                                 ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="p-6 border-t border-zinc-800 bg-zinc-950/50 flex gap-3">
-                        <div className="flex-1">
-                            <PremiumButton 
-                                text="Cancel" 
-                                variant="secondary" 
-                                onClick={onClose}
-                            />
-                        </div>
-                        <div className="flex-1">
-                            <PremiumButton 
-                                text={isPending ? "Saving..." : "Save Changes"} 
-                                type="submit"
-                                disabled={isPending}
-                            />
-                        </div>
+                    <div className="p-6 border-t border-zinc-800 bg-zinc-900 flex justify-end gap-3">
+                        <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-zinc-800 text-sm font-medium text-white hover:bg-zinc-700">Cancel</button>
+                        <button type="submit" disabled={isPending} className="px-4 py-2 rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+                            {isPending ? "Saving..." : "Save Changes"}
+                        </button>
                     </div>
                 </form>
             </div>

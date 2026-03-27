@@ -1,80 +1,6 @@
-This is the agent response - data comming from the user - {
-    "success": true,
-    "user": {
-        "_id": "69c27287a6d1e2adb3e69a3f",
-        "profile_pic": "https://cdn.vectorstock.com/i/1000v/51/87/student-avatar-user-profile-icon-vector-47025187.jpg",
-        "user_name": "Ankit Pathak Ji",
-        "email": "ankit@gmail.com",
-        "phone_number": "7388480128",
-        "role": "admin",
-        "is_paid": false,
-        "is_active": true,
-        "is_deleted": false,
-        "createdAt": "2026-03-24T11:16:23.641Z",
-        "updatedAt": "2026-03-25T13:14:00.201Z",
-        "__v": 0,
-        "last_login_at": "2026-03-25T13:11:15.675Z",
-        "tenant_id": "69c27287a6d1e2adb3e69a3f"
-    }
-}
-But this agent is not assosited with this admin -  {
-            "_id": "69c3dfc30c424a6464146487",
-            "agent_details": {
-                "_id": "69c3dfc30c424a6464146485",
-                "profile_pic": "",
-                "user_name": "komal singh",
-                "email": "komalsing@gmail.com",
-                "phone_number": "9116458455",
-                "role": "agent",
-                "is_active": true
-            },
-            "agent_role": "panvel associate",
-            "agent_pin": 1225,
-            "assigned_projects": [],
-            "total_leads": 0,
-            "total_converted_leads": 0,
-            "total_lost_leads": 0,
-            "total_qualified_leads": 0,
-            "total_follow_ups": 0,
-            "total_wasted_leads": 0,
-            "total_pending_leads": 0,
-            "remark": "",
-            "is_active": true,
-            "createdAt": "2026-03-25T13:14:43.933Z",
-            "updatedAt": "2026-03-25T13:14:43.933Z",
-            "__v": 0
-        }, 
-
 {
     "success": true,
     "data": [
-        {
-            "_id": "69c3dfc30c424a6464146487",
-            "agent_details": {
-                "_id": "69c3dfc30c424a6464146485",
-                "profile_pic": "",
-                "user_name": "komal singh",
-                "email": "komalsing@gmail.com",
-                "phone_number": "9116458455",
-                "role": "agent",
-                "is_active": true
-            },
-            "agent_role": "panvel associate",
-            "agent_pin": 1225,
-            "assigned_projects": [],
-            "total_leads": 0,
-            "total_converted_leads": 0,
-            "total_lost_leads": 0,
-            "total_qualified_leads": 0,
-            "total_follow_ups": 0,
-            "total_wasted_leads": 0,
-            "total_pending_leads": 0,
-            "remark": "",
-            "is_active": true,
-            "createdAt": "2026-03-25T13:14:43.933Z",
-            "updatedAt": "2026-03-25T13:14:43.933Z",
-            "__v": 0
-        },
         {
             "_id": "69c3c03229d6d98b0ed79c93",
             "agent_details": {
@@ -99,10 +25,15 @@ But this agent is not assosited with this admin -  {
             "remark": "this is testing remakr",
             "is_active": true,
             "createdAt": "2026-03-25T11:00:02.999Z",
-            "updatedAt": "2026-03-25T13:14:00.422Z",
+            "updatedAt": "2026-03-27T10:49:58.466Z",
             "__v": 0,
             "assigned_properties": [
-                "69c28942c3a9a1f33c19803d"
+                {
+                    "_id": "69c28942c3a9a1f33c19803d",
+                    "property_title": "Luxury 2BHK Apartment in Downtown Dubai",
+                    "listing_type": "rent",
+                    "property_status": "available"
+                }
             ],
             "tenant_id": "69c27287a6d1e2adb3e69a3f"
         },
@@ -130,10 +61,21 @@ But this agent is not assosited with this admin -  {
             "remark": "",
             "is_active": true,
             "createdAt": "2026-03-24T11:35:20.728Z",
-            "updatedAt": "2026-03-25T13:14:00.394Z",
+            "updatedAt": "2026-03-27T10:55:30.003Z",
             "__v": 0,
             "assigned_properties": [
-                "69c28942c3a9a1f33c19803d"
+                {
+                    "_id": "69c28942c3a9a1f33c19803d",
+                    "property_title": "Luxury 2BHK Apartment in Downtown Dubai",
+                    "listing_type": "rent",
+                    "property_status": "available"
+                },
+                {
+                    "_id": "69c28895c3a9a1f33c198029",
+                    "property_title": "Luxury 3BHK Sea View Apartment",
+                    "listing_type": "sale",
+                    "property_status": "available"
+                }
             ],
             "tenant_id": "69c27287a6d1e2adb3e69a3f"
         }
@@ -141,7 +83,7 @@ But this agent is not assosited with this admin -  {
     "pagination": {
         "page": 1,
         "limit": 10,
-        "total": 3,
+        "total": 2,
         "pages": 1
     }
 }

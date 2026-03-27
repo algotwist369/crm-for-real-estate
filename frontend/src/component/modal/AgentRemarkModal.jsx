@@ -27,68 +27,43 @@ const AgentRemarkModal = ({ isOpen, onClose, agent }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
             <div 
-                className="bg-zinc-950 border border-zinc-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
+                className="bg-zinc-900 border border-zinc-800 rounded w-full max-w-md overflow-hidden shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
-                <div className="p-6 border-b border-zinc-900 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                            <FiMessageSquare size={20} />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-white tracking-tight">Agent Remark</h3>
-                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-none mt-1">
-                                {agent?.agent_details?.user_name || "Internal Note"}
-                            </p>
-                        </div>
+                <div className="flex items-center justify-between p-6 border-b border-zinc-800">
+                    <div>
+                        <h2 className="text-lg font-medium text-white">Agent Remark</h2>
+                        <p className="text-xs text-zinc-500 mt-0.5">{agent?.agent_details?.user_name || "Internal Note"}</p>
                     </div>
-                    <button 
-                        onClick={onClose}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-900 transition-all"
-                    >
-                        <FiX size={20} />
+                    <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded hover:bg-zinc-800">
+                        <FiX size={18} />
                     </button>
                 </div>
 
-                {/* Body */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
-                            Observation / Note
-                        </label>
+                    <div>
+                        <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1.5">Observation / Note</label>
                         <textarea
                             value={remark}
                             onChange={(e) => setRemark(e.target.value)}
                             placeholder="Type a internal remark for this agent..."
-                            className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 focus:bg-zinc-900 transition-all min-h-[120px] resize-none placeholder:text-zinc-600"
+                            className="w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded px-3 py-2 h-32 resize-none focus:outline-none focus:border-zinc-700"
                             autoFocus
                         />
+                        <p className="text-[10px] text-zinc-500 mt-2 italic">Remarks are only visible to administrators.</p>
                     </div>
-
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full bg-zinc-100 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold text-xs uppercase tracking-[0.2em] py-4 rounded-2xl transition-all shadow-lg hover:shadow-white/5 flex items-center justify-center gap-2 group"
-                    >
-                        {isLoading ? (
-                            <FiLoader className="animate-spin" size={16} />
-                        ) : (
-                            <>
-                                <FiSave className="group-hover:scale-110 transition-transform" size={16} />
-                                Save Remark
-                            </>
-                        )}
-                    </button>
+                    
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-zinc-800 text-sm font-medium text-white hover:bg-zinc-700">
+                            Cancel
+                        </button>
+                        <button type="submit" disabled={isLoading} className="px-4 py-2 rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 flex items-center gap-2">
+                            {isLoading ? "Saving..." : "Save Remark"}
+                        </button>
+                    </div>
                 </form>
-
-                {/* Footer Tip */}
-                <div className="px-6 py-4 bg-zinc-900/30 border-t border-zinc-900 flex items-center gap-2 text-[10px] text-zinc-600 font-medium italic">
-                    <div className="w-1 h-1 rounded-full bg-indigo-500/50" />
-                    Remarks are only visible to administrators.
-                </div>
             </div>
         </div>
     );
