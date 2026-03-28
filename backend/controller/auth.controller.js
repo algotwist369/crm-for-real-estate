@@ -36,6 +36,7 @@ const setTokenCookie = (res, token, remember = false) => {
 
 // Register a new admin
 const register_admin = wrapAsync(async (req, res) => {
+    const details = [];
     const name = String(req.body?.user_name ?? req.body?.name ?? '').trim();
     const emailRaw = req.body?.email;
     const phoneRaw = req.body?.phone_number ?? req.body?.phone;
@@ -44,6 +45,17 @@ const register_admin = wrapAsync(async (req, res) => {
     const nextProfilePicBase64 = req.body?.profile_pic_base64;
     const nextProfilePicMimeType = req.body?.profile_pic_mimeType;
     const profilePicFile = pickProfilePicFile(req);
+
+    if (!name || name.length < 2) details.push({ path: 'user_name', message: 'Name must be at least 2 characters' });
+    if (!emailRaw || !isEmail(emailRaw)) details.push({ path: 'email', message: 'Valid email is required' });
+
+    const phone = normalizePhone(phoneRaw);
+    if (!phone || phone.length < 10 || phone.length > 15) {
+        details.push({ path: 'phone_number', message: 'Valid phone number is required (10-15 digits)' });
+    }
+
+    const pwdError = validatePassword(password);
+    if (pwdError) details.push({ path: 'password', message: pwdError });
 
     let finalProfilePic = '';
     if (profilePicFile || nextProfilePicBase64 !== undefined || (nextProfilePic !== undefined && isDataUri(nextProfilePic))) {
@@ -58,7 +70,6 @@ const register_admin = wrapAsync(async (req, res) => {
             finalProfilePic = uploaded.secureUrl || uploaded.url || '';
         } catch (uploadErr) {
             console.error('Registration profile pic upload error:', uploadErr);
-            // Non-critical, just keep it empty or throw if required
         }
     } else if (nextProfilePic !== undefined) {
         const pic = String(nextProfilePic || '').trim();
@@ -75,7 +86,7 @@ const register_admin = wrapAsync(async (req, res) => {
     }).lean();
     if (existing) throw httpError(409, 'Admin already exists with this email or phone');
 
-    const user = await User.create({
+    const user = new User({
         profile_pic: finalProfilePic,
         user_name: name,
         email,
@@ -87,8 +98,16 @@ const register_admin = wrapAsync(async (req, res) => {
 
     const remember = Boolean(req.body?.remember);
     const tokenOptions = remember ? { expiresInSeconds: 30 * 24 * 60 * 60 } : {};
+    
+    // Generate token before saving to database to prevent partial registration
+    // if token generation fails (e.g., due to missing or invalid TOKEN_SECRET)
     const token = createAuthTokenFromUser(user, tokenOptions);
+    
+    // Now save the user
+    await user.save();
+
     setTokenCookie(res, token, remember);
+    
     const safeUser = user.toObject();
     delete safeUser.hash_password;
 
