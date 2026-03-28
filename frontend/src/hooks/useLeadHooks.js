@@ -6,8 +6,9 @@ export const useLeads = (filters = {}) => {
     return useQuery({
         queryKey: ["leads", filters],
         queryFn: () => leadService.getAllLeads(filters),
-        keepPreviousData: true,
-        staleTime: 5000,
+        staleTime: 1000 * 30, // 30 seconds
+        gcTime: 1000 * 60 * 10, // 10 minutes
+        refetchOnWindowFocus: false
     });
 };
 
@@ -16,6 +17,9 @@ export const useLead = (id) => {
         queryKey: ["lead", id],
         queryFn: () => leadService.getLeadById(id),
         enabled: !!id,
+        staleTime: 1000 * 60, // 1 minute
+        gcTime: 1000 * 60 * 10, // 10 minutes
+        refetchOnWindowFocus: false
     });
 };
 
@@ -132,8 +136,9 @@ export const useMyFollowups = (filters = {}) => {
     return useQuery({
         queryKey: ["followups", filters],
         queryFn: () => leadService.getMyFollowups(filters),
-        keepPreviousData: true,
-        staleTime: 5000,
+        staleTime: 1000 * 30, // 30 seconds
+        gcTime: 1000 * 60 * 10, // 10 minutes
+        refetchOnWindowFocus: false
     });
 };
 
@@ -141,15 +146,18 @@ export const useAgentDashboardSummary = () => {
     return useQuery({
         queryKey: ["dashboard", "agent-summary"],
         queryFn: () => leadService.getAgentDashboardSummary(),
-        staleTime: 60000, // 1 min cache for dashboard stats
+        staleTime: 1000 * 30, // 30 seconds
+        gcTime: 1000 * 60 * 5, // 5 minutes
+        refetchOnWindowFocus: false
     });
 };
 
 export const useAgentActivityTimeline = (filters = {}) => {
     return useQuery({
-        queryKey: ["dashboard", "activity", filters],
+        queryKey: ["dashboard", "activity-timeline", filters],
         queryFn: () => leadService.getAgentActivityTimeline(filters),
-        keepPreviousData: true,
-        staleTime: 30000,
+        staleTime: 1000 * 60, // 1 minute
+        gcTime: 1000 * 60 * 10, // 10 minutes
+        refetchOnWindowFocus: false
     });
 };

@@ -9,8 +9,10 @@ export const useAuthUser = () => {
   return useQuery({
     queryKey: ['authUser'],
     queryFn: authService.getCurrentUser,
-    retry: 1, // Allow one retry for transient errors
     staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 60, // 1 hour
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 };
 

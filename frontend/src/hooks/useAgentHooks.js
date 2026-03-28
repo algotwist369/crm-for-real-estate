@@ -8,7 +8,10 @@ import { toast } from 'react-hot-toast';
 export const useAgents = () => {
   return useQuery({
     queryKey: ['agents'],
-    queryFn: agentService.getAgents,
+    queryFn: () => agentService.getAgents(),
+    staleTime: 1000 * 60, // 1 minute
+    gcTime: 1000 * 60 * 15, // 15 minutes
+    refetchOnWindowFocus: false,
   });
 };
 
