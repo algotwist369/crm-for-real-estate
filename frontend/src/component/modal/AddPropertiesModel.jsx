@@ -221,7 +221,7 @@ const AddPropertiesModel = ({ isOpen, onClose }) => {
     );
 
     const inputClasses = "w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded px-3 py-2 focus:outline-none focus:border-zinc-700";
-    const labelClasses = "text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1.5";
+    const labelClasses = "text-xs font-semibold text-zinc-400 uppercase tracking-widest block mb-1.5";
 
     return (
         <div className="fixed inset-0 bg-zinc-950/80 z-[60] flex items-center justify-center p-4">

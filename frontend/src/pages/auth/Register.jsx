@@ -16,7 +16,7 @@ const Register = () => {
     const [remember, setRemember] = useState(false);
     const [error, setError] = useState(null);
     const [isSuccess, setIsSuccess] = useState(false);
-    
+
     const fileInputRef = useRef(null);
 
     const { register, isAuthenticated, isRegistering } = useAuth();
@@ -70,15 +70,15 @@ const Register = () => {
         }
 
         try {
-            const userData = { 
-                user_name: name, 
-                email, 
-                phone_number: phone, 
+            const userData = {
+                user_name: name,
+                email,
+                phone_number: phone,
                 password,
                 profile_pic: profilePic,
                 remember
             };
-            
+
             await register(userData);
             setIsSuccess(true);
             setTimeout(() => {
@@ -94,8 +94,8 @@ const Register = () => {
         return (
             <div className="min-h-screen flex items-center justify-center px-6 bg-black">
                 <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded p-8">
-                    <SuccessMessage 
-                        message="Account created successfully! Redirecting..." 
+                    <SuccessMessage
+                        message="Account created successfully! Redirecting..."
                         onAction={() => navigate("/dashboard")}
                         actionText="Go to Dashboard"
                     />
@@ -113,7 +113,7 @@ const Register = () => {
                     <h1 className="text-xl font-medium text-white">LeadReal CRM</h1>
                 </div>
 
-                <form 
+                <form
                     onSubmit={handleSubmit}
                     className="bg-zinc-950/20 border border-zinc-800 rounded p-8 space-y-6"
                 >
@@ -128,7 +128,6 @@ const Register = () => {
                         </div>
                     )}
 
-<<<<<<< HEAD
                     <PremiumInput
                         label="Full Name"
                         placeholder="Ankit Pathak"
@@ -173,41 +172,23 @@ const Register = () => {
                             <button
                                 type="button"
                                 onClick={() => setProfilePicMode("url")}
-                                className={`flex-1 py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 border transition-all ${
-                                    profilePicMode === "url" 
-                                    ? "bg-blue-600 border-blue-500 text-white" 
-                                    : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
-                                }`}
+                                className={`flex-1 py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 border transition-all ${profilePicMode === "url"
+                                        ? "bg-blue-600 border-blue-500 text-white"
+                                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                                    }`}
                             >
                                 <FiLink size={14} /> URL
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setProfilePicMode("upload")}
-                                className={`flex-1 py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 border transition-all ${
-                                    profilePicMode === "upload" 
-                                    ? "bg-blue-600 border-blue-500 text-white" 
-                                    : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
-                                }`}
+                                className={`flex-1 py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 border transition-all ${profilePicMode === "upload"
+                                        ? "bg-blue-600 border-blue-500 text-white"
+                                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                                    }`}
                             >
                                 <FiUpload size={14} /> Upload
                             </button>
-=======
-                    <div className="space-y-4">
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-zinc-400">Full Name</label>
-                            <div className="relative">
-                                <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
-                                <input
-                                    type="text"
-                                    placeholder="Enter your name"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    className="w-full bg-zinc-900 border border-zinc-800 text-sm text-white rounded p-2.5 pl-10 focus:outline-none focus:border-zinc-700 transition-colors"
-                                    required
-                                />
-                            </div>
->>>>>>> b0785facfd68287729f371a76c2385258672624b
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -260,7 +241,7 @@ const Register = () => {
                         <div className="space-y-2">
                             <label className="text-xs font-medium text-zinc-400">Profile Image</label>
                             <div className="bg-zinc-900 border border-zinc-800 rounded p-4 flex items-center gap-4">
-                                <div 
+                                <div
                                     onClick={() => fileInputRef.current.click()}
                                     className="w-12 h-12 rounded bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 overflow-hidden group cursor-pointer hover:border-zinc-600 transition-colors"
                                 >
@@ -272,15 +253,15 @@ const Register = () => {
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex gap-2">
-                                        <button 
-                                            type="button" 
+                                        <button
+                                            type="button"
                                             onClick={() => setProfilePicMode("upload")}
                                             className={`text-[10px] px-2 py-1 rounded border transition-colors ${profilePicMode === 'upload' ? 'bg-zinc-800 border-zinc-700 text-white' : 'text-zinc-500 border-zinc-800 hover:text-zinc-400'}`}
                                         >
                                             Upload
                                         </button>
-                                        <button 
-                                            type="button" 
+                                        <button
+                                            type="button"
                                             onClick={() => setProfilePicMode("url")}
                                             className={`text-[10px] px-2 py-1 rounded border transition-colors ${profilePicMode === 'url' ? 'bg-zinc-800 border-zinc-700 text-white' : 'text-zinc-500 border-zinc-800 hover:text-zinc-400'}`}
                                         >
@@ -289,8 +270,8 @@ const Register = () => {
                                     </div>
                                     <div className="mt-2">
                                         {profilePicMode === 'upload' ? (
-                                            <button 
-                                                type="button" 
+                                            <button
+                                                type="button"
                                                 onClick={() => fileInputRef.current.click()}
                                                 className="text-xs text-blue-500 hover:text-blue-400"
                                             >
