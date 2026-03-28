@@ -6,8 +6,9 @@ export const useProperties = (filters = {}) => {
     return useQuery({
         queryKey: ["properties", filters],
         queryFn: () => propertyService.getAllProperties(filters),
-        keepPreviousData: true,
-        staleTime: 5000,
+        staleTime: 1000 * 60, // 1 minute
+        gcTime: 1000 * 60 * 15, // 15 minutes
+        refetchOnWindowFocus: false,
     });
 };
 
@@ -16,6 +17,9 @@ export const useProperty = (id) => {
         queryKey: ["property", id],
         queryFn: () => propertyService.getPropertyById(id),
         enabled: !!id,
+        staleTime: 1000 * 60, // 1 minute
+        gcTime: 1000 * 60 * 15, // 15 minutes
+        refetchOnWindowFocus: false,
     });
 };
 

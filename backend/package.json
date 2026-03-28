@@ -17,12 +17,15 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "mongoose": "^9.2.4",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "nodemailer": "^6.10.1",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "pdfkit": "^0.18.0",
+    "pdfkit-table": "^0.1.99"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",

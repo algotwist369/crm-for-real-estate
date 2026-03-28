@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import AppLayout from "../component/layout/AppLayout";
 import {
     FiUsers,
@@ -29,8 +29,12 @@ const Dashboard = () => {
     const isAgent = user?.role === "agent";
 
     const { data: summaryData, isLoading: isLoadingSummary } = useAgentDashboardSummary();
-    const { data: activityData, isLoading: isLoadingActivity } = useAgentActivityTimeline({ limit: 5 });
-    const { data: followupsData, isLoading: isLoadingFollowups } = useMyFollowups({ bucket: 'today', limit: 5 });
+    
+    const activityParams = useMemo(() => ({ limit: 5 }), []);
+    const { data: activityData, isLoading: isLoadingActivity } = useAgentActivityTimeline(activityParams);
+    
+    const followupParams = useMemo(() => ({ bucket: 'today', limit: 5 }), []);
+    const { data: followupsData, isLoading: isLoadingFollowups } = useMyFollowups(followupParams);
 
     const stats = summaryData?.data || {};
     const activities = activityData?.data || [];

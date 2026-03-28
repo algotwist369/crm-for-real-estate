@@ -106,7 +106,7 @@ async function ensureLeadAccess({ lead, payload, user }) {
             _id: { $in: propertyIds },
             assign_agent: agentId
         }).select('_id').limit(1).lean();
-        
+
         if (assignedProperties.length > 0) return;
     }
 
@@ -329,7 +329,7 @@ const get_my_leads = wrapAsync(async (req, res) => {
     if (payload.role === 'agent') {
         const agentId = await getAgentIdFromUserId(user._id);
         const assignedPropIds = agentId ? await getAgentAssignedPropertyIds(agentId) : [];
-        
+
         match.$or = [
             { assigned_to: user._id },
             { created_by: user._id },
@@ -399,7 +399,9 @@ const get_my_leads = wrapAsync(async (req, res) => {
         follow_up: 0,
         converted: 0,
         lost: 0,
-        wasted: 0
+        wasted: 0,
+        closed: 0,
+        archived: 0
     };
 
     statusGroups.forEach(g => {
@@ -493,7 +495,7 @@ const create_lead = wrapAsync(async (req, res) => {
     if (payload.role === 'agent') {
         Promise.resolve()
             .then(() => notifyAdminsAndAssignedAgentsNewLead({ lead: created, createdByUser: user }))
-            .catch(() => {});
+            .catch(() => { });
     }
 });
 
