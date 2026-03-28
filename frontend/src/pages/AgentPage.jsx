@@ -370,29 +370,35 @@ const Agents = () => {
                 </div>
             )}
 
-            {/* Modals */}
-            <AddAgentModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-            />
+            {/* Modals - Conditionally rendered to prevent background API calls */}
+            {isAddModalOpen && (
+                <AddAgentModal
+                    isOpen={isAddModalOpen}
+                    onClose={() => setIsAddModalOpen(false)}
+                />
+            )}
 
-            <EditAgentModal
-                isOpen={isEditModalOpen}
-                onClose={() => {
-                    setIsEditModalOpen(false);
-                    setEditingAgent(null);
-                }}
-                agent={editingAgent}
-            />
+            {isEditModalOpen && (
+                <EditAgentModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => {
+                        setIsEditModalOpen(false);
+                        setEditingAgent(null);
+                    }}
+                    agent={editingAgent}
+                />
+            )}
 
-            <AgentRemarkModal
-                isOpen={isRemarkModalOpen}
-                onClose={() => {
-                    setIsRemarkModalOpen(false);
-                    setRemarkingAgent(null);
-                }}
-                agent={remarkingAgent}
-            />
+            {isRemarkModalOpen && (
+                <AgentRemarkModal
+                    isOpen={isRemarkModalOpen}
+                    onClose={() => {
+                        setIsRemarkModalOpen(false);
+                        setRemarkingAgent(null);
+                    }}
+                    agent={remarkingAgent}
+                />
+            )}
 
         </AppLayout>
     );

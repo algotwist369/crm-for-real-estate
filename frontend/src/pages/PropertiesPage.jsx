@@ -309,20 +309,24 @@ const PropertiesPage = () => {
                 )}
             </div>
 
-            {/* Modals */}
-            <AddPropertiesModel
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-            />
+            {/* Modals - Conditionally rendered to prevent background API calls */}
+            {isAddModalOpen && (
+                <AddPropertiesModel
+                    isOpen={isAddModalOpen}
+                    onClose={() => setIsAddModalOpen(false)}
+                />
+            )}
 
-            <EditPropertiesModel
-                isOpen={isEditModalOpen}
-                onClose={() => {
-                    setIsEditModalOpen(false);
-                    setEditingProperty(null);
-                }}
-                property={editingProperty}
-            />
+            {isEditModalOpen && (
+                <EditPropertiesModel
+                    isOpen={isEditModalOpen}
+                    onClose={() => {
+                        setIsEditModalOpen(false);
+                        setEditingProperty(null);
+                    }}
+                    property={editingProperty}
+                />
+            )}
         </AppLayout>
     );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import AppLayout from "../component/layout/AppLayout";
 import {
    
@@ -47,13 +47,16 @@ const LeadsPage = () => {
     const { data: dashboardData } = useAgentDashboardSummary();
     const stats = dashboardData?.data || { total_leads: 0, total_converted_leads: 0, total_lost_leads: 0, followups_today: 0 };
 
-    const { data: leadsData, isLoading, refetch } = useLeads({
+    // Prepare filters for API with memoization to prevent object literal instability
+    const filters = useMemo(() => ({
         page,
         limit: rowsPerPage,
         search,
         status: statusFilter === "All" ? "" : statusFilter.toLowerCase(),
         priority: priorityFilter === "All" ? "" : priorityFilter.toLowerCase()
-    });
+    }), [page, rowsPerPage, search, statusFilter, priorityFilter]);
+
+    const { data: leadsData, isLoading, refetch } = useLeads(filters);
 
     const updateLeadMutation = useUpdateLead();
 
@@ -76,13 +79,11 @@ const LeadsPage = () => {
     /* ─── Handlers ─── */
     const handleAddLead = () => {
         setIsAddModalOpen(false);
-        refetch();
     };
 
     const handleUpdateLead = () => {
         setIsEditModalOpen(false);
         setEditingLead(null);
-        refetch();
     };
 
     const handleUpdateField = (id, field, value) => {
@@ -400,41 +401,49 @@ const LeadsPage = () => {
                 )}
             </div>
 
-            {/* Modals */}
-            <AddLeadModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                onAdd={handleAddLead}
-            />
+            {/* Modals - Conditionally rendered to prevent background API calls when closed */}
+            {isAddModalOpen && (
+                <AddLeadModal
+                    isOpen={isAddModalOpen}
+                    onClose={() => setIsAddModalOpen(false)}
+                    onAdd={handleAddLead}
+                />
+            )}
 
-            <EditLeadModal
-                isOpen={isEditModalOpen}
-                onClose={() => {
-                    setIsEditModalOpen(false);
-                    setEditingLead(null);
-                }}
-                onUpdate={handleUpdateLead}
-                lead={editingLead}
-            />
+            {isEditModalOpen && (
+                <EditLeadModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => {
+                        setIsEditModalOpen(false);
+                        setEditingLead(null);
+                    }}
+                    onUpdate={handleUpdateLead}
+                    lead={editingLead}
+                />
+            )}
 
-            <FollowUpModal
-                isOpen={isFollowUpModalOpen}
-                onClose={() => {
-                    setIsFollowUpModalOpen(false);
-                    setSelectedLead(null);
-                }}
-                onSave={handleSaveFollowUp}
-                lead={selectedLead}
-            />
+            {isFollowUpModalOpen && (
+                <FollowUpModal
+                    isOpen={isFollowUpModalOpen}
+                    onClose={() => {
+                        setIsFollowUpModalOpen(false);
+                        setSelectedLead(null);
+                    }}
+                    onSave={handleSaveFollowUp}
+                    lead={selectedLead}
+                />
+            )}
 
-            <ViewLeadModal
-                isOpen={isViewModalOpen}
-                onClose={() => {
-                    setIsViewModalOpen(false);
-                    setViewingLead(null);
-                }}
-                lead={viewingLead}
-            />
+            {isViewModalOpen && (
+                <ViewLeadModal
+                    isOpen={isViewModalOpen}
+                    onClose={() => {
+                        setIsViewModalOpen(false);
+                        setViewingLead(null);
+                    }}
+                    lead={viewingLead}
+                />
+            )}
         </AppLayout>
     );
 };
