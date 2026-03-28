@@ -22,10 +22,10 @@ const {
 } = require('../utils/common');
 
 const setTokenCookie = (res, token, remember = false) => {
-    const maxAge = remember 
+    const maxAge = remember
         ? 30 * 24 * 60 * 60 * 1000 // 30 days
         : 24 * 60 * 60 * 1000;    // 1 day
-        
+
     res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -66,12 +66,12 @@ const register_admin = wrapAsync(async (req, res) => {
         else details.push({ path: 'profile_pic', message: 'profile_pic must be a valid URL or data URI' });
     }
 
-    if (details.length) throw httpError(400, 'Validation error', details);
+    // if (details.length) throw httpError(400, 'Validation error', details);
 
     const email = normalizeEmail(emailRaw);
 
     const existing = await User.findOne({
-        $or: [{ email }, { phone_number: phone }]
+        $or: [{ email }, { phone_number }]
     }).lean();
     if (existing) throw httpError(409, 'Admin already exists with this email or phone');
 
