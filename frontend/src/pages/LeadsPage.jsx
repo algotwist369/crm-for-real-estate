@@ -1,16 +1,14 @@
 import React, { useState } from "react";
 import AppLayout from "../component/layout/AppLayout";
 import {
-    FiHome,
+   
     FiEdit,
     FiTrash2,
     FiEye,
-    FiPhone,
-    FiMail,
+    
     FiMessageSquare,
     FiTrendingUp,
-    FiCalendar,
-    FiUser
+  
 } from "react-icons/fi";
 import { MdOutlineFactCheck } from "react-icons/md";
 import { CopyButton } from "../component/common/CopyButton";
@@ -20,13 +18,14 @@ import { RefreshButton } from "../component/common/RefreshButton";
 import AddLeadModal from "../component/modal/AddLeadModal";
 import EditLeadModal from "../component/modal/EditLeadModal";
 import FollowUpModal from "../component/modal/FollowUpModal";
+import ViewLeadModal from "../component/modal/ViewLeadModal";
 import { useLeads, useUpdateLead, useAgentDashboardSummary } from "../hooks/useLeadHooks";
 
 /* ─── Table Columns ─── */
 const tableColumns = ["#", "Lead Info", "Contact", "Requirement", "Budget", "Inquiry For", "Source", "Properties", "Priority", "Next Follow-up", "Status", "Actions"];
 
 /* ─── Filter Options ─── */
-const statusOptions = ["All", "New", "Contacted", "Qualified", "Follow_up", "Closed", "Converted", "Lost", "Wasted"];
+const statusOptions = ["All", "New", "Contacted", "Qualified", "Follow_up", "Converted", "Closed", "Lost", "Wasted", "Archived"];
 const priorityOptions = ["All", "High", "Medium", "Low"];
 
 const LeadsPage = () => {
@@ -41,6 +40,8 @@ const LeadsPage = () => {
     const [editingLead, setEditingLead] = useState(null);
     const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
     const [selectedLead, setSelectedLead] = useState(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [viewingLead, setViewingLead] = useState(null);
 
     // React Query Hooks
     const { data: dashboardData } = useAgentDashboardSummary();
@@ -58,6 +59,10 @@ const LeadsPage = () => {
 
     const leads = leadsData?.data || [];
     const totalPages = leadsData?.pagination?.pages || 1;
+    const leadsStats = leadsData?.stats || { 
+        total: 0, new: 0, contacted: 0, qualified: 0, 
+        follow_up: 0, converted: 0, lost: 0, wasted: 0 
+    };
 
     /* ─── Refresh Handler ─── */
     const handleRefresh = () => {
@@ -109,35 +114,71 @@ const LeadsPage = () => {
                 </div>
             </div>
 
-            {/* Analytics Summary */}
-            <div className="mb-6 flex flex-wrap gap-4 border border-zinc-800 rounded p-4">
-                <div className="flex-1 min-w-[200px] flex items-center gap-3 border-r border-zinc-800 last:border-0">
+            {/* Analytics Summary - Filtered Stats */}
+            <div className="mb-6 flex flex-wrap gap-4 border border-zinc-800 rounded p-4 bg-zinc-900/10">
+                <div className="flex-1 min-w-[180px] flex items-center gap-3 border-r border-zinc-800 last:border-0 h-12">
                     <FiTrendingUp size={20} className="text-green-500" />
                     <div>
-                        <p className="text-xs text-zinc-500 uppercase tracking-widest">Closed / Converted</p>
-                        <h3 className="text-lg font-bold text-white mt-1">{stats.total_converted_leads}</h3>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">Total / Search</p>
+                        <h3 className="text-lg font-bold text-white mt-1 leading-none">{leadsStats.total}</h3>
                     </div>
                 </div>
 
-                <div className="flex-1 min-w-[200px] flex items-center gap-3 border-r border-zinc-800 last:border-0">
+                <div className="flex-1 min-w-[180px] flex items-center gap-3 border-r border-zinc-800 last:border-0 h-12">
                     <MdOutlineFactCheck size={20} className="text-blue-500" />
                     <div>
-                        <p className="text-xs text-zinc-500 uppercase tracking-widest">Total Leads</p>
-                        <h3 className="text-lg font-bold text-white mt-1">{stats.total_leads}</h3>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">New Leads</p>
+                        <h3 className="text-lg font-bold text-white mt-1 leading-none">{leadsStats.new}</h3>
                     </div>
                 </div>
 
-                <div className="flex-1 min-w-[200px] flex items-center gap-3">
+                <div className="flex-1 min-w-[180px] flex items-center gap-3 border-r border-zinc-800 h-12">
+                    <FiTrendingUp size={20} className="text-emerald-500" />
+                    <div>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">Converted</p>
+                        <h3 className="text-lg font-bold text-white mt-1 leading-none">{leadsStats.converted}</h3>
+                    </div>
+                </div>
+
+                <div className="flex-1 min-w-[180px] flex items-center gap-3 h-12">
                     <FiMessageSquare size={20} className="text-orange-500" />
                     <div>
-                        <p className="text-xs text-zinc-500 uppercase tracking-widest">Follow-ups Today</p>
-                        <h3 className="text-lg font-bold text-white mt-1">{stats.followups_today}</h3>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">Pending Follow-ups</p>
+                        <h3 className="text-lg font-bold text-white mt-1 leading-none">{leadsStats.follow_up}</h3>
                     </div>
                 </div>
             </div>
 
+            {/* Status Tabs Bar */}
+            <div className="mb-6 border-b border-zinc-800 flex items-center gap-1 overflow-x-auto no-scrollbar">
+                {statusOptions.map(s => {
+                    const statusKey = s.toLowerCase();
+                    const count = statusKey === "all" ? leadsStats.total : leadsStats[statusKey] || 0;
+                    const isActive = statusFilter === s;
+                    
+                    return (
+                        <button
+                            key={s}
+                            onClick={() => { setStatusFilter(s); setPage(1); }}
+                            className={`px-4 py-3 text-sm font-medium transition-all flex items-center gap-2 border-b-2 whitespace-nowrap ${
+                                isActive 
+                                ? "bg-blue-600/10 text-blue-400 border-blue-500" 
+                                : "text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/5"
+                            }`}
+                        >
+                            {s.replace("_", " ")}
+                            <span className={`w-5 h-5 flex items-center justify-center text-[10px] rounded-full transition-colors ${
+                                isActive ? "bg-blue-500/20 text-blue-400" : "bg-zinc-800 text-zinc-500"
+                            }`}>
+                                {count}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+
             {/* Filters Bar */}
-            <div className="border border-zinc-800 rounded p-4 mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="border border-zinc-800 rounded p-4 mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-zinc-950/20">
                 <div className="flex-1 max-w-lg">
                     <SearchFilter
                         searchValue={search}
@@ -146,31 +187,24 @@ const LeadsPage = () => {
                     />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-zinc-400">Status:</span>
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                            className="bg-zinc-900 border border-zinc-800 text-white text-sm rounded px-3 py-2 focus:outline-none cursor-pointer"
-                        >
-                            {statusOptions.map(s => (
-                                <option key={s} value={s}>{s.replace("_", " ")}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-zinc-400">Priority:</span>
-                        <select
-                            value={priorityFilter}
-                            onChange={(e) => { setPriorityFilter(e.target.value); setPage(1); }}
-                            className="bg-zinc-900 border border-zinc-800 text-white text-sm rounded px-3 py-2 focus:outline-none cursor-pointer"
-                        >
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Priority</span>
+                        <div className="flex bg-zinc-900 border border-zinc-800 rounded p-1">
                             {priorityOptions.map(p => (
-                                <option key={p} value={p}>{p}</option>
+                                <button
+                                    key={p}
+                                    onClick={() => { setPriorityFilter(p); setPage(1); }}
+                                    className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                                        priorityFilter === p 
+                                        ? "bg-zinc-800 text-white shadow-lg" 
+                                        : "text-zinc-500 hover:text-zinc-300"
+                                    }`}
+                                >
+                                    {p}
+                                </button>
                             ))}
-                        </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -251,16 +285,28 @@ const LeadsPage = () => {
                                     </td>
 
                                     <td className="p-3">
-                                        {Array.isArray(lead.properties) && lead.properties.length > 0 
-                                            ? `${lead.properties.length} Props` 
-                                            : "None"}
+                                        <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                            {Array.isArray(lead.properties) && lead.properties.length > 0 ? (
+                                                lead.properties.map((p, i) => (
+                                                    <span key={i} className="text-[10px] bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 truncate max-w-[120px]" title={p.property_title || p._id || p}>
+                                                        {p.property_title || "Property"}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-zinc-600 italic text-[10px]">None</span>
+                                            )}
+                                        </div>
                                     </td>
 
                                     <td className="p-3">
                                         <select
                                             value={lead.priority}
                                             onChange={(e) => handleUpdateField(lead._id, 'priority', e.target.value)}
-                                            className="text-xs p-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-300 uppercase cursor-pointer focus:outline-none"
+                                            className={`text-[10px] p-1 rounded border bg-zinc-900 uppercase cursor-pointer focus:outline-none font-bold tracking-tight ${
+                                                lead.priority === 'high' ? 'text-red-400 border-red-500/30' :
+                                                lead.priority === 'medium' ? 'text-orange-400 border-orange-500/30' :
+                                                'text-emerald-400 border-emerald-500/30'
+                                            }`}
                                         >
                                             <option value="high">High</option>
                                             <option value="medium">Medium</option>
@@ -308,6 +354,10 @@ const LeadsPage = () => {
                                             <button
                                                 className="text-zinc-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-white transition-colors"
                                                 title="View Details"
+                                                onClick={() => {
+                                                    setViewingLead(lead);
+                                                    setIsViewModalOpen(true);
+                                                }}
                                             >
                                                 <FiEye size={14} />
                                             </button>
@@ -375,6 +425,15 @@ const LeadsPage = () => {
                 }}
                 onSave={handleSaveFollowUp}
                 lead={selectedLead}
+            />
+
+            <ViewLeadModal
+                isOpen={isViewModalOpen}
+                onClose={() => {
+                    setIsViewModalOpen(false);
+                    setViewingLead(null);
+                }}
+                lead={viewingLead}
             />
         </AppLayout>
     );

@@ -4,6 +4,8 @@ const User = require('../model/user.model');
 const Properties = require('../model/properties.model');
 const Agent = require('../model/agent.model');
 const FollowUpReminder = require('../model/followUpReminder.model');
+const { parseBudget } = require('../utils/budgetParser');
+const { convertCurrency } = require('../utils/currencyConverter');
 const { sendMail } = require('../utils/sendMail');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
@@ -266,6 +268,7 @@ async function scheduleFollowUpReminders({ lead, actionUserId }) {
 async function notifyAdminsAndAssignedAgentsNewLead({ lead, createdByUser }) {
     const adminUsers = await User.find({
         role: { $in: ['admin', 'super_admin'] },
+        tenant_id: lead.tenant_id,
         is_active: true,
         is_deleted: false,
         email: { $exists: true, $ne: '' }
@@ -308,9 +311,9 @@ async function notifyAdminsAndAssignedAgentsNewLead({ lead, createdByUser }) {
         }
     });
 }
-
 const get_my_leads = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
     const { page, limit, skip } = parsePagination(req);
 
     const match = { is_active: true, tenant_id };
@@ -368,7 +371,10 @@ const get_my_leads = wrapAsync(async (req, res) => {
         ];
     }
 
-    const [items, total] = await Promise.all([
+    const statsMatch = { ...match };
+    delete statsMatch.status;
+
+    const [items, total, statusGroups] = await Promise.all([
         Lead.find(match)
             .populate('assigned_to', 'user_name email phone_number profile_pic role is_active')
             .populate('followed_by', 'user_name email phone_number profile_pic role is_active')
@@ -378,22 +384,46 @@ const get_my_leads = wrapAsync(async (req, res) => {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit),
-        Lead.countDocuments(match)
+        Lead.countDocuments(match),
+        Lead.aggregate([
+            { $match: statsMatch },
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ])
     ]);
+
+    const stats = {
+        total: 0,
+        new: 0,
+        contacted: 0,
+        qualified: 0,
+        follow_up: 0,
+        converted: 0,
+        lost: 0,
+        wasted: 0
+    };
+
+    statusGroups.forEach(g => {
+        const s = g._id || 'new';
+        if (stats[s] !== undefined) stats[s] = g.count;
+        stats.total += g.count;
+    });
 
     res.status(200).json({
         success: true,
         data: items,
+        stats,
         pagination: { page, limit, total, pages: Math.ceil(total / limit) }
     });
 });
 
 const get_lead_by_id = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findOne({ _id: id, tenant_id })
+    const leadMatch = { _id: id, tenant_id };
+    const lead = await Lead.findOne(leadMatch)
         .populate('assigned_to', 'user_name email phone_number profile_pic role is_active')
         .populate('followed_by', 'user_name email phone_number profile_pic role is_active')
         .populate('created_by', 'user_name email phone_number profile_pic role')
@@ -423,11 +453,9 @@ const create_lead = wrapAsync(async (req, res) => {
     doc.currency = doc.currency || '₹';
 
     if (payload.role === 'agent') {
-        // Find all agents assigned to the linked properties
+        const agentId = await getAgentIdFromUserId(user._id);
         const props = await Properties.find({ _id: { $in: doc.properties || [] } }).select('assign_agent').lean();
         const propertyAgentIds = props.flatMap(p => p.assign_agent || []).map(id => String(id));
-        
-        // Find property agent user IDs
         const propAgents = await Agent.find({ _id: { $in: uniqueObjectIds(propertyAgentIds) }, is_active: true }).select('agent_details').lean();
         const propAgentUserIds = propAgents.map(a => String(a.agent_details)).filter(Boolean);
 
@@ -435,6 +463,13 @@ const create_lead = wrapAsync(async (req, res) => {
         doc.followed_by = user._id;
     } else if (!Array.isArray(doc.assigned_to) || !doc.assigned_to.length) {
         doc.assigned_to = [];
+    }
+
+    // Auto-parse budget strings if min/max are missing
+    if (doc.budget && (doc.budget_min === undefined || doc.budget_max === undefined)) {
+        const { min, max } = parseBudget(doc.budget);
+        if (doc.budget_min === undefined) doc.budget_min = min;
+        if (doc.budget_max === undefined) doc.budget_max = max;
     }
 
     doc.created_by = user._id;
@@ -464,10 +499,13 @@ const create_lead = wrapAsync(async (req, res) => {
 
 const update_lead = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findOne({ _id: id, tenant_id });
+    const leadMatch = { _id: id, tenant_id };
+
+    const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
     const updates = buildLeadDocFromBody(req.body);
@@ -475,8 +513,6 @@ const update_lead = wrapAsync(async (req, res) => {
     if (payload.role === 'agent') {
         delete updates.assigned_to;
         delete updates.followed_by;
-        delete updates.status;
-        delete updates.priority;
     }
 
     if (!Object.keys(updates).length) throw httpError(400, 'No valid fields to update');
@@ -515,7 +551,8 @@ const add_lead_note = wrapAsync(async (req, res) => {
     const note = String(req.body?.note ?? req.body?.notes ?? '').trim();
     if (!note) throw httpError(400, 'note is required');
 
-    const lead = await Lead.findOne({ _id: id, tenant_id });
+    const leadMatch = { _id: id, tenant_id };
+    const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
     const now = new Date();
@@ -530,10 +567,12 @@ const add_lead_note = wrapAsync(async (req, res) => {
 
 const set_follow_up = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findOne({ _id: id, tenant_id });
+    const leadMatch = { _id: id, tenant_id };
+    const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
     const followUpDate = toDateOrUndefined(req.body?.next_follow_up_date ?? req.body?.followUpDate);
@@ -542,8 +581,8 @@ const set_follow_up = wrapAsync(async (req, res) => {
 
     const details = [];
     if (!followUpDate) details.push({ path: 'next_follow_up_date', message: 'Valid follow up date is required' });
-    if (followUpDate && followUpDate.getTime() <= Date.now()) {
-        details.push({ path: 'next_follow_up_date', message: 'Follow up date must be in the future' });
+    if (followUpDate && followUpDate.getTime() < Date.now() - 1000 * 60 * 60 * 24) {
+        details.push({ path: 'next_follow_up_date', message: 'Follow up date cannot be more than 24 hours in the past' });
     }
     if (status && !['pending', 'done', 'missed', 'rescheduled'].includes(status)) {
         details.push({ path: 'follow_up_status', message: 'Invalid follow_up_status' });
@@ -568,7 +607,8 @@ const mark_lead_converted = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findOne({ _id: id, tenant_id });
+    const leadMatch = { _id: id, tenant_id };
+    const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
     lead.status = 'converted';
@@ -587,7 +627,8 @@ const mark_lead_lost = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findOne({ _id: id, tenant_id });
+    const leadMatch = { _id: id, tenant_id };
+    const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
     const reason = String(req.body?.lost_reason ?? req.body?.reason ?? '').trim();
@@ -604,6 +645,7 @@ const mark_lead_lost = wrapAsync(async (req, res) => {
 
 const get_my_followups = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
     const { page, limit, skip } = parsePagination(req);
 
     const bucket = String(req.query?.bucket ?? req.query?.type ?? 'today').trim().toLowerCase();
@@ -613,10 +655,10 @@ const get_my_followups = wrapAsync(async (req, res) => {
     const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
     const match = {
+        tenant_id,
         next_follow_up_date: { $exists: true, $ne: null },
         follow_up_status: { $in: ['pending', 'rescheduled'] },
-        is_active: true,
-        tenant_id
+        is_active: true
     };
 
     if (payload.role === 'agent') match.assigned_to = user._id;
@@ -643,10 +685,13 @@ const get_my_followups = wrapAsync(async (req, res) => {
 
 const complete_followup = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const lead = await Lead.findOne({ _id: id, tenant_id });
+    const leadMatch = { _id: id, tenant_id };
+
+    const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
     const remarks = req.body?.remarks ?? req.body?.remark;
@@ -672,58 +717,149 @@ const reschedule_followup = wrapAsync(async (req, res) => {
 
 const agent_dashboard_summary = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
-    const base = { is_active: true, tenant_id };
-    if (payload.role === 'agent') base.assigned_to = user._id;
+    // Lead Match Configuration
+    const leadMatch = { is_active: true, tenant_id };
+    if (!isAdmin) {
+        const agentId = await getAgentIdFromUserId(user._id);
+        const assignedPropIds = agentId ? await getAgentAssignedPropertyIds(agentId) : [];
+        leadMatch.$or = [
+            { assigned_to: user._id },
+            { created_by: user._id },
+            { properties: { $in: assignedPropIds } }
+        ];
+    }
+
+    // Property Match Configuration
+    const propMatch = { is_active: true, tenant_id };
+    if (!isAdmin) {
+        const agentId = await getAgentIdFromUserId(user._id);
+        if (agentId) propMatch.assign_agent = agentId;
+        else propMatch._id = null; // No access if no agent profile
+    }
 
     const [
         totalLeads,
         totalConverted,
         totalLost,
+        totalWasted,
+        activeDeals,
         followupsToday,
-        followupsOverdue
+        followupsOverdue,
+        totalProperties,
+        propertyStatusGroups,
+        totalAgents,
+        agentPerformance,
+        convertedLeadsData,
+        totalPendingFollowups
     ] = await Promise.all([
-        Lead.countDocuments(base),
-        Lead.countDocuments({ ...base, status: 'converted' }),
-        Lead.countDocuments({ ...base, status: 'lost' }),
+        Lead.countDocuments(leadMatch),
+        Lead.countDocuments({ ...leadMatch, status: 'converted' }),
+        Lead.countDocuments({ ...leadMatch, status: 'lost' }),
+        Lead.countDocuments({ ...leadMatch, status: 'wasted' }),
+        Lead.countDocuments({ ...leadMatch, status: { $in: ['new', 'contacted', 'qualified', 'follow_up'] } }),
         Lead.countDocuments({
-            ...base,
+            ...leadMatch,
             follow_up_status: { $in: ['pending', 'rescheduled'] },
             next_follow_up_date: { $gte: startOfToday, $lt: startOfTomorrow }
         }),
         Lead.countDocuments({
-            ...base,
+            ...leadMatch,
             follow_up_status: { $in: ['pending', 'rescheduled'] },
             next_follow_up_date: { $lt: startOfToday }
-        })
+        }),
+        Properties.countDocuments(propMatch),
+        Properties.aggregate([
+            { $match: propMatch },
+            { $group: { _id: '$property_status', count: { $sum: 1 } } }
+        ]),
+        isAdmin ? User.countDocuments({ tenant_id, role: 'agent', is_active: true, is_deleted: false }) : Promise.resolve(0),
+        isAdmin ? Agent.find({ is_active: true, tenant_id })
+            .populate('agent_details', 'user_name')
+            .lean()
+            .then(async agents => {
+                const results = [];
+                for (const a of agents) {
+                    if (!a.agent_details) continue;
+                    const [deals, leads] = await Promise.all([
+                        Lead.countDocuments({ tenant_id, assigned_to: a.agent_details._id, status: 'converted' }),
+                        Lead.countDocuments({ tenant_id, assigned_to: a.agent_details._id })
+                    ]);
+                    results.push({
+                        name: a.agent_details.user_name,
+                        deals,
+                        leads
+                    });
+                }
+                return results.sort((a, b) => b.deals - a.deals);
+            }) : Promise.resolve([]),
+        Lead.find({ ...leadMatch, status: 'converted' }).select('budget currency budget_min').lean(),
+        Lead.countDocuments({ ...leadMatch, follow_up_status: { $in: ['pending', 'rescheduled'] } })
     ]);
+
+    // Calculate Revenue
+    let totalRevenue = 0;
+    for (const lead of convertedLeadsData) {
+        let amount = lead.budget_min;
+        if (amount === undefined || amount === null) {
+            const parsed = parseBudget(lead.budget);
+            amount = parsed.min;
+        }
+        totalRevenue += convertCurrency(amount, lead.currency || '₹', 'INR');
+    }
+
+    // Format Property Stats
+    const propStats = {
+        available: 0,
+        sold: 0,
+        under_offer: 0,
+        rented: 0,
+        inactive: 0
+    };
+    propertyStatusGroups.forEach(g => {
+        if (g._id && propStats[g._id] !== undefined) propStats[g._id] = g.count;
+    });
 
     res.status(200).json({
         success: true,
         data: {
             total_leads: totalLeads,
-            total_converted_leads: totalConverted,
-            total_lost_leads: totalLost,
+            total_converted: totalConverted,
+            total_lost: totalLost,
+            total_wasted: totalWasted,
+            active_deals: activeDeals,
+            pending_followups: totalPendingFollowups,
             followups_today: followupsToday,
-            followups_overdue: followupsOverdue
+            followups_overdue: followupsOverdue,
+            total_properties: totalProperties,
+            property_stats: propStats,
+            total_agents: isAdmin ? totalAgents : undefined,
+            agent_performance: isAdmin ? agentPerformance : undefined,
+            total_revenue: totalRevenue,
+            currency: 'INR'
         }
     });
 });
 
 const agent_activity_timeline = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
     const limitRaw = Number(req.query?.limit ?? 20);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(100, Math.floor(limitRaw)) : 20;
 
     const match = { is_active: true, tenant_id };
-    if (payload.role === 'agent') match.assigned_to = user._id;
-
+    if (payload.role === 'agent') {
+        match.assigned_to = user._id;
+    }
     const items = await Lead.find(match)
-        .select('name status priority updatedAt createdAt next_follow_up_date follow_up_status')
+        .select('name status priority updatedAt createdAt next_follow_up_date follow_up_status properties assigned_to')
+        .populate('properties', 'property_title')
+        .populate('assigned_to', 'user_name')
         .sort({ updatedAt: -1 })
         .limit(limit)
         .lean();

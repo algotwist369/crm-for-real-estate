@@ -7,9 +7,9 @@ import { useUpdateProperty } from "../../hooks/usePropertyHooks";
 import { useAgents } from "../../hooks/useAgentHooks";
 
 const PROPERTY_TYPES = ["Apartment", "Villa", "Office", "Plot", "Warehouse", "Studio", "Penthouse"];
-const LISTING_TYPES = ["sale", "rent"];
-const CURRENCIES = ["INR", "AED", "USD", "EUR"];
-const FURNISHED_STATUS = ["fully furnished", "semi furnished", "unfurnished", "NA"];
+const LISTING_TYPES = ["sale", "rent", "investment"];
+const CURRENCIES = ["INR", "AED", "USD", "EUR", "GBP", "JPY"];
+const FURNISHED_STATUS = ["fully furnished", "semi furnished", "unfurnished", "furnished", "NA"];
 const AMENITY_OPTIONS = ["Infinity Pool", "Gym", "24/7 Security", "Covered Parking", "Concierge Service", "Balcony", "Central AC", "Elevator", "Power Backup", "Clubhouse"];
 
 const EditPropertiesModel = ({ isOpen, onClose, property }) => {

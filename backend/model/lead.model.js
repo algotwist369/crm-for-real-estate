@@ -69,7 +69,7 @@ const leadSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['new', 'contacted', 'qualified', 'lost', 'converted', 'archived', 'follow_up', 'wasted'],
+        enum: ['new', 'contacted', 'qualified', 'lost', 'converted', 'archived', 'follow_up', 'wasted', 'closed'],
         default: 'new'
     },
     next_follow_up_date: {

@@ -112,7 +112,7 @@ const propertiesSchema = new Schema({
     },
     furnished_status: {
         type: String,
-        enum: ['furnished', 'unfurnished', 'fully furnished', 'NA'],
+        enum: ['furnished', 'unfurnished', 'fully furnished', 'semi furnished', 'NA'],
         default: 'NA',
         index: true
     },

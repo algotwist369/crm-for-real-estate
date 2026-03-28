@@ -4,8 +4,8 @@ import { useUpdateLead } from "../../hooks/useLeadHooks";
 import { useProperties } from "../../hooks/usePropertyHooks";
 
 const REQUIREMENTS = ["1BHK Flat", "2BHK Flat", "3BHK Flat", "Villa", "Plot", "Office Space", "Commercial Shop", "Penthouse", "Studio Flat"];
-const SOURCES = ["Facebook", "Instagram", "Google Ads", "Website", "Walk-in", "Referral", "Personal"];
-const CLIENT_TYPES = ["Rent", "Buying", "Investing"];
+const SOURCES = ["Website", "Facebook", "Instagram", "LinkedIn", "WhatsApp", "Google Ads", "Referral", "Advertisement", "Walk-in", "Personal", "Other"];
+const CLIENT_TYPES = ["Buying", "Rent", "Investing", "Selling", "Other"];
 
 const getBudgetOptions = (currency) => {
     switch(currency) {

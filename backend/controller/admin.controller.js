@@ -131,7 +131,9 @@ const get_agent_by_id = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Agent id is required');
 
-    const agent = await Agent.findOne({ _id: id, tenant_id: req.auth.tenant_id })
+    const agentMatch = { _id: id, tenant_id: req.auth.tenant_id };
+
+    const agent = await Agent.findOne(agentMatch)
         .populate('agent_details', 'user_name email phone_number profile_pic role is_active')
         .populate('assigned_properties', 'property_title listing_type property_status');
 
@@ -269,9 +271,8 @@ const update_agent = wrapAsync(async (req, res) => {
         const existing = await User.findOne({ _id: { $ne: user._id }, $or: or }).lean();
         if (existing) throw httpError(409, 'Email or phone number already in use');
     }
-
     if (agentUpdates.agent_pin !== undefined) {
-        const existingPin = await Agent.findOne({ _id: { $ne: agent._id }, agent_pin: agentUpdates.agent_pin }).select('_id').lean();
+        const existingPin = await Agent.findOne({ _id: { $ne: agent._id }, agent_pin: agentUpdates.agent_pin, tenant_id: req.auth.tenant_id }).select('_id').lean();
         if (existingPin) throw httpError(409, 'Agent pin already in use');
     }
 

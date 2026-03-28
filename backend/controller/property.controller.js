@@ -19,6 +19,7 @@ function uniqueStrings(values) {
 async function notifyAllAgentsNewProperty(property) {
     const agents = await User.find({
         role: 'agent',
+        tenant_id: property.tenant_id,
         is_active: true,
         is_deleted: false,
         email: { $exists: true, $ne: '' }
@@ -334,9 +335,9 @@ function populatePropertyQuery(query) {
         .populate('created_by', 'user_name email phone_number profile_pic role')
         .populate('updated_by', 'user_name email phone_number profile_pic role');
 }
-
 const get_all_properties = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
     const { page, limit, skip } = parsePagination(req);
 
     const match = { tenant_id };
@@ -402,7 +403,9 @@ const get_property_by_id = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
 
-    const property = await populatePropertyQuery(Properties.findOne({ _id: id, tenant_id }));
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
+    const propMatch = { _id: id, tenant_id };
+    const property = await populatePropertyQuery(Properties.findOne(propMatch));
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -469,7 +472,8 @@ const update_property = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
 
-    const property = await Properties.findOne({ _id: id, tenant_id });
+    const propMatch = { _id: id, tenant_id };
+    const property = await Properties.findOne(propMatch);
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -530,16 +534,12 @@ const update_property = wrapAsync(async (req, res) => {
 const update_property_status = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
 
-    const id = req.params?.id;
-    if (!id) throw httpError(400, 'Property id is required');
+    const propertyId = req.params?.id;
+    if (!propertyId) throw httpError(400, 'Property id is required');
 
-    const statusInput = req.body?.property_status ?? req.body?.status;
-    const enabledInput = req.body?.is_active ?? req.body?.enabled;
-    if (statusInput === undefined && enabledInput === undefined) {
-        throw httpError(400, 'status or is_active is required');
-    }
-
-    const property = await Properties.findOne({ _id: id, tenant_id });
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
+    const propMatch = { _id: propertyId, tenant_id };
+    const property = await Properties.findOne(propMatch);
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
@@ -547,6 +547,9 @@ const update_property_status = wrapAsync(async (req, res) => {
         const assigned = agent && Array.isArray(property.assign_agent) && property.assign_agent.some(a => String(a._id || a) === String(agent._id));
         if (!assigned) throw httpError(403, 'Forbidden');
     }
+
+    const statusInput = req.body?.status ?? req.body?.property_status;
+    const enabledInput = req.body?.is_active ?? req.body?.enabled ?? req.body?.isActive;
 
     const rawStatus = String(statusInput ?? '').trim().toLowerCase();
     const isBooleanLike = v => ['true', 'false', '1', '0', 'yes', 'no', 'active', 'inactive'].includes(String(v).trim().toLowerCase());
@@ -577,11 +580,13 @@ const update_property_status = wrapAsync(async (req, res) => {
 
 const delete_property = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
 
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Property id is required');
 
-    const property = await Properties.findOne({ _id: id, tenant_id });
+    const propMatch = { _id: id, tenant_id };
+    const property = await Properties.findOne(propMatch);
     if (!property) throw httpError(404, 'Property not found');
 
     if (payload.role === 'agent') {
