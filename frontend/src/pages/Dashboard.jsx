@@ -16,6 +16,7 @@ import {
     useAgentActivityTimeline, 
     useMyFollowups 
 } from "../hooks/useLeadHooks";
+import { RefreshButton } from "../component/common/RefreshButton";
 
 const formatCurrency = (value) => {
     if (!value) return "₹0";
@@ -28,13 +29,19 @@ const Dashboard = () => {
     const { user } = useAuth();
     const isAgent = user?.role === "agent";
 
-    const { data: summaryData, isLoading: isLoadingSummary } = useAgentDashboardSummary();
+    const { data: summaryData, isLoading: isLoadingSummary, refetch: refetchSummary } = useAgentDashboardSummary();
     
     const activityParams = useMemo(() => ({ limit: 5 }), []);
-    const { data: activityData, isLoading: isLoadingActivity } = useAgentActivityTimeline(activityParams);
+    const { data: activityData, refetch: refetchActivity } = useAgentActivityTimeline(activityParams);
     
     const followupParams = useMemo(() => ({ bucket: 'today', limit: 5 }), []);
-    const { data: followupsData, isLoading: isLoadingFollowups } = useMyFollowups(followupParams);
+    const { data: followupsData, refetch: refetchFollowups } = useMyFollowups(followupParams);
+
+    const handleRefresh = () => {
+        refetchSummary();
+        refetchActivity();
+        refetchFollowups();
+    };
 
     const stats = summaryData?.data || {};
     const activities = activityData?.data || [];
@@ -70,8 +77,11 @@ const Dashboard = () => {
                 <h1 className="text-xl font-medium text-white">
                     CRM Dashboard
                 </h1>
-                <div className="text-xs text-zinc-500">
-                    Live updates as of {new Date().toLocaleTimeString()}
+                <div className="flex items-center gap-3">
+                    <span className="text-xs text-zinc-500">
+                        Live updates as of {new Date().toLocaleTimeString()}
+                    </span>
+                    <RefreshButton onClick={handleRefresh} />
                 </div>
             </div>
 
