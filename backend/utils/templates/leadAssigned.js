@@ -1,50 +1,136 @@
-const { htmlLayout, paragraphHtml, buttonHtml, escapeHtml } = require('./shared');
-
 function render(data = {}, env = {}) {
     const appName = env.appName || 'LeadReal';
     const title = 'New lead assigned';
-    const preheader = 'A new lead has been assigned to you.';
+    const preheader = 'You have a new lead.';
 
-    const leadName = data.leadName || 'New Lead';
-    const leadPhone = data.leadPhone || '';
-    const leadEmail = data.leadEmail || '';
-    const requirement = data.requirement || '';
-    const budget = data.budget || '';
-    const source = data.source || '';
-    const assignedBy = data.assignedBy || '';
-    const leadUrl = data.leadUrl || '';
+    const {
+        leadName = 'New Lead',
+        leadPhone = '',
+        leadEmail = '',
+        requirement = '',
+        budget = '',
+        source = '',
+        assignedBy = '',
+        leadUrl = ''
+    } = data;
 
     const rows = [
         ['Lead', leadName],
-        ['Phone', leadPhone],
-        ['Email', leadEmail],
-        ['Requirement', requirement],
-        ['Budget', budget],
-        ['Source', source],
-        ['Assigned by', assignedBy]
-    ].filter(([, v]) => v);
-
-    const detailsHtml = rows.length
-        ? `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:14px 0 6px 0;border:1px solid #27272a;border-radius:14px;overflow:hidden;">
-        ${rows.map(([k, v]) => `<tr><td style="padding:10px 12px;background:#0b0b0c;color:#a1a1aa;font-size:12px;font-weight:700;width:140px;">${escapeHtml(k)}</td><td style="padding:10px 12px;background:#0f0f10;color:#e4e4e7;font-size:13px;">${escapeHtml(v)}</td></tr>`).join('')}
-        </table>`
-        : '';
-
-    const contentHtml = [
-        paragraphHtml('A new lead was assigned to you.'),
-        detailsHtml,
-        leadUrl ? buttonHtml({ url: leadUrl, label: 'Open Lead' }) : ''
-    ].filter(Boolean).join('');
-
-    const html = htmlLayout({ appName, title: `${appName}: ${title}`, preheader, contentHtml });
-    const textLines = [
-        `A new lead was assigned to you.`,
-        '',
-        ...rows.map(([k, v]) => `${k}: ${v}`),
-        leadUrl ? `\nOpen Lead: ${leadUrl}` : ''
+        leadPhone && ['Phone', leadPhone],
+        leadEmail && ['Email', leadEmail],
+        requirement && ['Requirement', requirement],
+        budget && ['Budget', budget],
+        source && ['Source', source],
+        assignedBy && ['Assigned by', assignedBy],
     ].filter(Boolean);
 
-    return { subject: `${appName}: ${title}`, html, text: `${textLines.join('\n')}\n` };
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #111827;
+  }
+
+  .container {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .text {
+    font-size: 14px;
+    margin-bottom: 20px;
+    color: #374151;
+  }
+
+  .details {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .details p {
+    margin: 6px 0;
+  }
+
+  .label {
+    color: #6b7280;
+  }
+
+  .value {
+    font-weight: 500;
+    color: #111827;
+  }
+
+  .action {
+    margin-top: 20px;
+  }
+
+  .link {
+    font-size: 14px;
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  .footer {
+    margin-top: 32px;
+    font-size: 12px;
+    color: #9ca3af;
+  }
+</style>
+</head>
+
+<body>
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${preheader}</div>
+  <div class="container">
+
+    <div class="title">New Lead Assigned</div>
+
+    <div class="text">
+      A new lead has been assigned to you.
+    </div>
+
+    <div class="details">
+      ${rows.map(([k, v]) => `<p><span class="label">${k}:</span> <span class="value">${v}</span></p>`).join('\n      ')}
+    </div>
+
+    ${leadUrl ? `
+    <div class="action">
+      <a href="${leadUrl}" class="link">View lead →</a>
+    </div>` : ''}
+
+    <div class="footer">
+      © ${new Date().getFullYear()} ${appName}
+    </div>
+
+  </div>
+</body>
+</html>
+    `.trim();
+
+    const textLines = [
+        `A new lead has been assigned to you.`,
+        '',
+        ...rows.map(([k, v]) => `${k}: ${v}`),
+        leadUrl ? `\nView lead: ${leadUrl}` : ''
+    ].filter(Boolean);
+
+    return {
+        subject: `${appName}: ${title}`,
+        html,
+        text: `${textLines.join('\n')}\n`
+    };
 }
 
 module.exports = { render };

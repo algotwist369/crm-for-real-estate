@@ -31,50 +31,36 @@ Thank you.
 <style>
   body {
     margin: 0;
-    padding: 0;
-    background-color: #f5f5f7;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    color: #1f2937;
-  }
-
-  .wrapper {
-    max-width: 560px;
-    margin: 40px auto;
+    padding: 24px;
     background: #ffffff;
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #111827;
   }
 
-  .header {
-    padding: 20px 28px;
-    border-bottom: 1px solid #f1f5f9;
-    font-weight: 600;
+  .container {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .title {
     font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
   }
 
-  .content {
-    padding: 28px;
-    font-size: 15px;
-    line-height: 1.6;
+  .text {
+    font-size: 14px;
+    margin-bottom: 20px;
+    color: #374151;
   }
 
   .details {
-    margin: 20px 0;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  .row {
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 16px;
     font-size: 14px;
+    line-height: 1.6;
   }
 
-  .row:not(:last-child) {
-    border-bottom: 1px solid #f1f5f9;
+  .details p {
+    margin: 6px 0;
   }
 
   .label {
@@ -86,73 +72,45 @@ Thank you.
     color: #111827;
   }
 
-  .button-wrap {
-    text-align: left;
-    margin-top: 24px;
+  .action {
+    margin-top: 20px;
   }
 
-  .button {
-    display: inline-block;
-    padding: 10px 18px;
-    background-color: #111827;
-    color: #ffffff;
-    text-decoration: none;
-    border-radius: 6px;
+  .link {
     font-size: 14px;
-    font-weight: 500;
+    color: #2563eb;
+    text-decoration: none;
   }
 
   .footer {
-    padding: 20px 28px;
+    margin-top: 32px;
     font-size: 12px;
     color: #9ca3af;
-    border-top: 1px solid #f1f5f9;
   }
 </style>
 </head>
 
 <body>
-  <div class="wrapper">
+  <div class="container">
 
-    <div class="header">
-      New Property Added
+    <div class="title">New Property Added</div>
+
+    <div class="text">
+      ${addedBy} has added a new property to the system.
     </div>
 
-    <div class="content">
-      <p>Hello,</p>
+    <div class="details">
+      <p><span class="label">Title:</span> <span class="value">${propertyTitle}</span></p>
+      <p><span class="label">Listing Type:</span> <span class="value" style="text-transform: capitalize;">${listingType}</span></p>
+      <p><span class="label">Price:</span> <span class="value">${askingPrice}</span></p>
+    </div>
 
-      <p>
-        <strong>${addedBy}</strong> has added a new property to the system.
-      </p>
-
-      <div class="details">
-        <div class="row">
-          <span class="label">Title</span>
-          <span class="value">${propertyTitle}</span>
-        </div>
-        <div class="row">
-          <span class="label">Listing Type</span>
-          <span class="value" style="text-transform: capitalize;">${listingType}</span>
-        </div>
-        <div class="row">
-          <span class="label">Price</span>
-          <span class="value">${askingPrice}</span>
-        </div>
-      </div>
-
-      <div class="button-wrap">
-        <a href="${actionUrl}" class="button">${actionText}</a>
-      </div>
-
-      <p style="margin-top: 24px; font-size: 14px; color: #6b7280;">
-        Please review the listing for complete details.
-      </p>
+    <div class="action">
+      <a href="${actionUrl}" class="link">${actionText}</a>
     </div>
 
     <div class="footer">
-      © ${new Date().getFullYear()} ${env.appName || 'Grand Gate Properties'}  
-      <br/>
-      This is an automated notification.
+      © ${new Date().getFullYear()} ${env.appName || 'Grand Gate Properties'}
     </div>
 
   </div>

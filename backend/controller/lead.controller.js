@@ -7,6 +7,7 @@ const FollowUpReminder = require('../model/followUpReminder.model');
 const { parseBudget } = require('../utils/budgetParser');
 const { convertCurrency } = require('../utils/currencyConverter');
 const { sendMail } = require('../utils/sendMail');
+const { notifyPropertyAgentsOnNewLead } = require('../services/notification.service');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
     normalizePhone,
@@ -265,52 +266,7 @@ async function scheduleFollowUpReminders({ lead, actionUserId }) {
     }
 }
 
-async function notifyAdminsAndAssignedAgentsNewLead({ lead, createdByUser }) {
-    const adminUsers = await User.find({
-        role: { $in: ['admin', 'super_admin'] },
-        tenant_id: lead.tenant_id,
-        is_active: true,
-        is_deleted: false,
-        email: { $exists: true, $ne: '' }
-    }).select('email').lean();
-    const adminEmails = adminUsers.map(u => u.email);
 
-    const assignedIds = Array.isArray(lead.assigned_to) ? lead.assigned_to.map(x => String(x)) : [];
-    const assignedUsers = assignedIds.length
-        ? await User.find({
-            _id: { $in: assignedIds },
-            is_active: true,
-            is_deleted: false,
-            email: { $exists: true, $ne: '' }
-        }).select('email').lean()
-        : [];
-    const assignedEmails = assignedUsers.map(u => u.email);
-
-    const all = uniqueStrings(adminEmails.concat(assignedEmails));
-    if (!all.length) return;
-
-    const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
-    const leadUrl = appUrl ? `${appUrl}/leads/${lead._id}` : '';
-
-    const to = all[0];
-    const bcc = all.length > 1 ? all.slice(1) : undefined;
-
-    await sendMail({
-        to,
-        bcc,
-        template: 'leadAssigned',
-        templateData: {
-            leadName: lead.name,
-            leadPhone: lead.phone,
-            leadEmail: lead.email,
-            requirement: lead.requirement,
-            budget: lead.budget,
-            source: lead.source,
-            assignedBy: createdByUser?.user_name || '',
-            leadUrl
-        }
-    });
-}
 const get_my_leads = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
     const isAdmin = ['admin', 'super_admin'].includes(payload.role);
@@ -492,11 +448,9 @@ const create_lead = wrapAsync(async (req, res) => {
 
     res.status(201).json({ success: true, message: 'Lead created successfully', data: populated });
 
-    if (payload.role === 'agent') {
-        Promise.resolve()
-            .then(() => notifyAdminsAndAssignedAgentsNewLead({ lead: created, createdByUser: user }))
-            .catch(() => { });
-    }
+    Promise.resolve()
+        .then(() => notifyPropertyAgentsOnNewLead(populated, user._id))
+        .catch(() => { });
 });
 
 const update_lead = wrapAsync(async (req, res) => {
