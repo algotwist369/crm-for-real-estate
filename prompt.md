@@ -1,151 +1,223 @@
-Analyze the existing codebase first and understand the current authentication, authorization, admin, agent, property, and lead management flow before making any changes.
+You are a senior full-stack engineer (Node.js, Express, MongoDB) with strong experience in SaaS CRM systems, event-driven architecture, and role-based access control.
 
-Task Requirement
+Carefully read and analyze my ENTIRE backend codebase before making any changes.
 
-Implement and/or verify the following role-based access control and ownership logic:
+IMPORTANT RULES:
+- Do NOT break existing functionality
+- Do NOT duplicate logic
+- Reuse existing notification/email services
+- Follow current project structure and coding standards
+- Write clean, modular, scalable, production-ready code
 
-Scenario
+------------------------------------------------
 
-If AdminA creates 3 Agents and also creates PropertyA, then assigns all 3 agents to PropertyA:
+🎯 PROBLEM STATEMENT:
 
-Property Access Rules
+My system has:
+- Admin
+- Multiple Agents under admin
+- Properties
+- Leads linked to properties
 
-All assigned agents of PropertyA should be able to:
+Each property can be assigned to MULTIPLE agents.
 
-Create
-Read
-Update
-Delete
+Now the requirement is:
 
-operations for PropertyA, based on the business rule.
+👉 Notifications (email notifications) for leads should be LIMITED ONLY to agents assigned to that specific property (NOT all agents under admin).
 
-Also, AdminA should always retain full access to PropertyA.
+------------------------------------------------
 
-Lead Access Rules
+✅ REQUIRED SOLUTION:
 
-If any assigned agent creates a Lead for PropertyA, then that lead should be accessible by:
+Implement a PROPERTY-BASED LEAD NOTIFICATION SYSTEM
 
-AdminA
-All agents assigned to PropertyA
-The agent who created the lead
-These users should be able to perform full:
-Create
-Read
-Update
-Delete
+------------------------------------------------
 
-operations on that Lead, as per the business logic.
+📌 CORE LOGIC (VERY IMPORTANT):
 
-Expected Authorization Logic
+Each property has:
+→ assignedAgents: [agentIds]
 
-Implement or verify the following permission rules:
+When a lead is created for a property:
 
-For Properties
+👉 ONLY notify:
+   - Agents assigned to that property
+   - Admin (optional but recommended)
 
-A user can access a property if:
+👉 DO NOT notify:
+   - Agents NOT assigned to that property
 
-The user is the Admin who created the property
-OR the user is an Agent assigned to that property
-For Leads
+------------------------------------------------
 
-A user can access a lead if:
+📩 NOTIFICATION RULES:
 
-The user is the Admin who owns the property linked to that lead
-OR the user is an Agent assigned to that property
-OR the user is the Agent who created the lead
+------------------------------------------------
 
-Important: Since the lead belongs to a property, all agents assigned to that property should have access to that lead.
+1️⃣ NEW LEAD CREATED FOR PROPERTY
 
-Implementation Instructions
+CASE A: Admin creates lead
 
-Please do the following carefully:
+→ Notify:
+   - ONLY agents assigned to that property
 
-Read and understand the current codebase first
-Existing models
-Controllers
-Routes
-Middleware
-Auth flow
-Role system
-Property assignment logic
-Lead ownership/access logic
-Do not create unnecessary new files
-Reuse and improve the current architecture
-Only create a new file if absolutely necessary
-Update the existing code properly
-Add missing authorization checks
-Fix broken ownership logic
-Ensure consistent permission handling across APIs
-Keep the implementation production-ready
-Clean code
-Reusable helper functions/middleware if needed
-Avoid duplicate authorization logic
-What to Check / Build
+→ DO NOT notify:
+   - Admin (creator)
+   - Unassigned agents
 
-Please verify or implement:
+------------------------------------------------
 
-Property Module
-Property creation by Admin
-Assigning multiple agents to a property
-Property CRUD access for assigned agents
-Admin ownership validation
-Lead Module
-Lead creation under a property
-Lead visibility for all assigned agents of that property
-Lead CRUD access for Admin + all assigned agents
-Proper creator/ownership tracking
-Important Edge Cases
+CASE B: Agent creates lead
 
-Handle these cases properly:
+→ Notify:
+   - Admin
+   - OTHER agents assigned to that property
 
-An unassigned agent must not access PropertyA
-An unassigned agent must not access leads of PropertyA
-If an agent is removed from PropertyA assignment, they should lose access to:
-that property
-all leads related to that property
-If AdminA owns the property, another admin should not automatically get access
-Ensure no unauthorized user can modify or delete unrelated data
-Expected Output
+→ DO NOT notify:
+   - Creator agent
+   - Unassigned agents
 
-After completing the task, provide:
+------------------------------------------------
 
-1. What you changed
-Files updated
-Logic added/modified
-2. Access control summary
+🎯 FINAL RULE:
 
-Explain clearly:
+👉 Notifications = ONLY assigned agents of that property + admin (if applicable)
 
-Who can access properties
-Who can access leads
-Why
-3. API test scenarios
+👉 NEVER notify:
+   - Creator
+   - Unassigned agents
 
-Give test cases for:
+------------------------------------------------
 
-Admin creates property
-Admin assigns agents
-Assigned agent updates property
-Unassigned agent denied
-Assigned agent creates lead
-Other assigned agent accesses same lead
-Removed agent denied access
-4. If there is any issue in current architecture
+2️⃣ LEAD ASSIGNMENT (OPTIONAL)
 
-Mention:
+→ Notify ONLY the assigned agent
 
-security issue
-scalability issue
-bad access control pattern
-recommended improvement
-Important Rule
+------------------------------------------------
 
-Do not blindly rewrite the whole module.
+3️⃣ LEAD STATUS UPDATE (OPTIONAL)
 
-First:
+→ Notify:
+   - Admin
+   - Assigned agents of that property
 
-inspect current code
-understand relationships
-then apply minimal but correct changes
+→ Exclude:
+   - Actor (who triggered update)
 
-The final implementation must be secure, scalable, and logically correct.
+------------------------------------------------
+
+------------------------------------------------
+
+🔐 AUTHENTICATION & MULTI-TENANT SECURITY:
+
+- Use existing auth middleware (JWT/session)
+- Ensure:
+   → Data is scoped per admin
+   → No cross-admin notifications
+
+- Always validate:
+   → property belongs to same admin
+   → agents belong to same admin
+
+------------------------------------------------
+
+⚙️ IMPLEMENTATION REQUIREMENTS:
+
+1️⃣ Understand Data Relationships:
+
+- Property:
+   → assignedAgents: [agentIds]
+
+- Lead:
+   → propertyId
+
+------------------------------------------------
+
+2️⃣ Fetch Recipients:
+
+When lead is created:
+
+- Get propertyId from lead
+- Fetch property:
+   → Get assignedAgents[]
+
+- Query users:
+   → WHERE _id IN assignedAgents
+   → AND adminId = currentAdmin
+
+- Apply filtering:
+   → Exclude creator
+
+------------------------------------------------
+
+3️⃣ Notification Service:
+
+Create/extend:
+
+services/notification.service.js
+
+Functions:
+
+- notifyLeadCreatedByAdmin()
+- notifyLeadCreatedByAgent()
+- notifyLeadUpdate()
+
+------------------------------------------------
+
+4️⃣ Async Processing:
+
+- Use Promise.all OR queue (Bull/Redis if exists)
+- Do NOT block API response
+
+------------------------------------------------
+
+5️⃣ Code Structure:
+
+- controllers/lead.controller.js
+- services/lead.service.js
+- services/notification.service.js
+
+------------------------------------------------
+
+⚠️ EDGE CASES:
+
+Handle:
+
+- Property has NO assigned agents
+   → Notify ONLY admin
+
+- Agent not assigned but tries action
+   → Validate permissions (optional)
+
+- Duplicate notifications
+- Invalid users/emails
+- Bulk lead creation
+
+------------------------------------------------
+
+🧪 VALIDATION:
+
+- Ensure ONLY assigned agents are notified
+- Ensure creator is excluded
+- Ensure no cross-property notifications
+- Ensure no cross-admin data leak
+
+------------------------------------------------
+
+📌 EXPECTED OUTPUT:
+
+- Property-based notification filtering implemented
+- Clean recipient selection logic
+- Secure multi-tenant handling
+- Optimized queries
+- Clean, readable, production-ready code
+
+------------------------------------------------
+
+⚠️ FINAL INSTRUCTION:
+
+Before writing code:
+- Understand property-agent relationship deeply
+- Understand current lead flow
+- Extend logic cleanly without rewriting everything
+
+Think like a senior engineer building a scalable CRM like HubSpot or Zoho with property-level access control.

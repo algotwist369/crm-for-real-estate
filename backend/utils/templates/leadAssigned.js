@@ -26,8 +26,8 @@ function render(data = {}, env = {}) {
 
     const detailsHtml = rows.length
         ? `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:14px 0 6px 0;border:1px solid #27272a;border-radius:14px;overflow:hidden;">
-  ${rows.map(([k, v]) => `<tr><td style="padding:10px 12px;background:#0b0b0c;color:#a1a1aa;font-size:12px;font-weight:700;width:140px;">${escapeHtml(k)}</td><td style="padding:10px 12px;background:#0f0f10;color:#e4e4e7;font-size:13px;">${escapeHtml(v)}</td></tr>`).join('')}
-</table>`
+        ${rows.map(([k, v]) => `<tr><td style="padding:10px 12px;background:#0b0b0c;color:#a1a1aa;font-size:12px;font-weight:700;width:140px;">${escapeHtml(k)}</td><td style="padding:10px 12px;background:#0f0f10;color:#e4e4e7;font-size:13px;">${escapeHtml(v)}</td></tr>`).join('')}
+        </table>`
         : '';
 
     const contentHtml = [

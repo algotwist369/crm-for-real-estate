@@ -3,7 +3,7 @@ import { FiChevronLeft, FiChevronRight, FiSearch } from "react-icons/fi";
 
 const Table = () => {
     const data = [
-        { id: 1, name: "Ankit Pathak", email: "ankit@email.com", role: "Admin" },
+        { id: 1, name: "username", email: "your@email.com", role: "Admin" },
         { id: 2, name: "Rahul Sharma", email: "rahul@email.com", role: "User" },
         { id: 3, name: "Priya Singh", email: "priya@email.com", role: "Manager" },
         { id: 4, name: "Amit Verma", email: "amit@email.com", role: "User" },

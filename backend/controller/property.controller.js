@@ -16,37 +16,7 @@ function uniqueStrings(values) {
     return Array.from(set);
 }
 
-async function notifyAllAgentsNewProperty(property) {
-    const agents = await User.find({
-        role: 'agent',
-        tenant_id: property.tenant_id,
-        is_active: true,
-        is_deleted: false,
-        email: { $exists: true, $ne: '' }
-    }).select('email').lean();
-
-    const emails = uniqueStrings(agents.map(a => a.email));
-    if (!emails.length) return;
-
-    const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
-    const propertyUrl = appUrl ? `${appUrl}/properties/${property._id}` : '';
-
-    const to = emails[0];
-    const bcc = emails.length > 1 ? emails.slice(1) : undefined;
-
-    await sendMail({
-        to,
-        bcc,
-        template: 'genericNotification',
-        templateData: {
-            title: 'New Property Added',
-            preheader: 'A new property has been added to the inventory.',
-            message: `${property.property_title}${property.listing_type ? ` (${property.listing_type})` : ''}`,
-            actionUrl: propertyUrl,
-            actionText: 'Open Property'
-        }
-    });
-}
+const { notifyUsersOnNewProperty } = require('../services/notification.service');
 
 async function requireUser(req, allowedRoles) {
     const token = extractBearerToken(req);
@@ -462,7 +432,7 @@ const create_property = wrapAsync(async (req, res) => {
 
 
     Promise.resolve()
-        .then(() => notifyAllAgentsNewProperty(populated))
+        .then(() => notifyUsersOnNewProperty(populated, user._id))
         .catch(() => {});
 });
 

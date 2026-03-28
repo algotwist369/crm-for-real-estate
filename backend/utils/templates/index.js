@@ -6,6 +6,7 @@ const followUpReminder = require('./followUpReminder');
 const propertyInquiry = require('./propertyInquiry');
 const subscriptionReceipt = require('./subscriptionReceipt');
 const genericNotification = require('./genericNotification');
+const propertyNotification = require('./propertyNotification');
 
 const templates = {
     welcome,
@@ -15,7 +16,8 @@ const templates = {
     followUpReminder,
     propertyInquiry,
     subscriptionReceipt,
-    genericNotification
+    genericNotification,
+    propertyNotification
 };
 
 function getTemplate(name) {

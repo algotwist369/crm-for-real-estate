@@ -138,7 +138,7 @@ const AddAgentModal = ({ isOpen, onClose }) => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className={labelClasses}>Full Name</label>
-                                    <input type="text" name="name" value={formData.name} onChange={handleChange} required className={inputClasses} placeholder="Ankit Pathak" />
+                                    <input type="text" name="name" value={formData.name} onChange={handleChange} required className={inputClasses} placeholder="username" />
                                 </div>
                                 <div>
                                     <label className={labelClasses}>Agent Role</label>
@@ -153,35 +153,13 @@ const AddAgentModal = ({ isOpen, onClose }) => {
                                 </div>
                                 <div>
                                     <label className={labelClasses}>Email Address</label>
-                                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className={inputClasses} placeholder="ankit@example.com" />
+                                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className={inputClasses} placeholder="your@example.com" />
                                 </div>
                             </div>
 
                             <div>
                                 <label className={labelClasses}>Security Pin (4-6 digits)</label>
                                 <input type="text" name="pin" value={formData.pin} onChange={handleChange} required className={inputClasses} placeholder="1234" />
-                            </div>
-
-                            <div className="pt-2">
-                                <div className="flex items-center justify-between mb-3">
-                                    <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                                        <FiCheckSquare className="text-zinc-500" /> Assign Properties
-                                    </label>
-                                    <button type="button" onClick={handleSelectAllProperties} className="text-[10px] uppercase tracking-wider text-blue-400 hover:text-blue-300 transition-colors font-bold">
-                                        {formData.assignedProperties.length === PROPERTIES.length ? "Deselect All" : "Select All"}
-                                    </button>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 gap-3 bg-zinc-950 p-4 rounded border border-zinc-800 max-h-40 overflow-y-auto custom-scrollbar">
-                                    {PROPERTIES.map((prop) => (
-                                        <label key={prop.id} className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-5 h-5 rounded border ${formData.assignedProperties.includes(prop.id) ? 'bg-blue-600 border-blue-600' : 'bg-zinc-900 border-zinc-700 group-hover:border-zinc-500'} flex items-center justify-center transition-colors`}>
-                                                {formData.assignedProperties.includes(prop.id) && <FiCheck className="text-white relative z-10" size={12} strokeWidth={3} />}
-                                            </div>
-                                            <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">{prop.label}</span>
-                                        </label>
-                                    ))}
-                                </div>
                             </div>
                         </div>
 

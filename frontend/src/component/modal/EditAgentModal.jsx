@@ -141,7 +141,7 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className={labelClasses}>Full Name</label>
-                                <input type="text" name="name" value={formData.name} onChange={handleChange} required className={inputClasses} placeholder="Ankit Pathak" />
+                                <input type="text" name="name" value={formData.name} onChange={handleChange} required className={inputClasses} placeholder="username" />
                             </div>
                             <div>
                                 <label className={labelClasses}>Agent Role</label>
@@ -156,7 +156,7 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
                             </div>
                             <div>
                                 <label className={labelClasses}>Email Address</label>
-                                <input type="email" name="email" value={formData.email} onChange={handleChange} required className={inputClasses} placeholder="ankit@example.com" />
+                                <input type="email" name="email" value={formData.email} onChange={handleChange} required className={inputClasses} placeholder="your@example.com" />
                             </div>
                         </div>
 
