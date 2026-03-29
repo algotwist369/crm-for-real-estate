@@ -5,21 +5,16 @@ import { FiMenu, FiLogOut, FiBell } from "react-icons/fi";
 import { GoSidebarCollapse, GoSidebarExpand } from "react-icons/go";
 import { NotificationSidebar } from "../common/NotificationSidebar";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 const AppLayout = ({ children }) => {
     const { user, logout, isLoggingOut } = useAuth();
+    const { notifications, unreadCount, markAsRead, markAllRead, clearAll, deleteOne } = useNotifications();
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
-
-    const [notifications, setNotifications] = useState([
-        { title: "New Lead Assigned", description: "Lead #245 is assigned to you", time: "2m ago", read: false },
-        { title: "Property Updated", description: "PROP003 status changed to sold", time: "15m ago", read: false },
-        { title: "Agent Reminder", description: "Follow-up due today for Lead #198", time: "1h ago", read: false },
-        { title: "System Notice", description: "Nightly backup completed successfully", time: "3h ago", read: true }
-    ]);
 
     const getTitle = (path) => {
         switch (path) {
@@ -86,7 +81,7 @@ const AppLayout = ({ children }) => {
                             className="relative text-zinc-400 hover:text-white transition-colors p-1"
                         >
                             <FiBell size={20} />
-                            {notifications.some(n => !n.read) && (
+                            {unreadCount > 0 && (
                                 <span className="absolute top-0 right-0 w-2 h-2 bg-yellow-600 rounded-full border-2 border-black"></span>
                             )}
                         </button>
@@ -129,14 +124,14 @@ const AppLayout = ({ children }) => {
                     isOpen={notifOpen}
                     onClose={() => setNotifOpen(false)}
                     notifications={notifications}
-                    onMarkAllRead={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
-                    onClearAll={() => setNotifications([])}
-                    onReadItem={(idx) => setNotifications(prev => prev.map((n, i) => i === idx ? ({ ...n, read: true }) : n))}
-                    onViewItem={(idx) => {
-                        setNotifications(prev => prev.map((n, i) => i === idx ? ({ ...n, read: true }) : n));
+                    onMarkAllRead={markAllRead}
+                    onClearAll={clearAll}
+                    onReadItem={markAsRead}
+                    onViewItem={(id) => {
+                        markAsRead(id);
                         setNotifOpen(false);
                     }}
-                    onClearItem={(idx) => setNotifications(prev => prev.filter((_, i) => i !== idx))}
+                    onClearItem={deleteOne}
                 />
 
             </div>

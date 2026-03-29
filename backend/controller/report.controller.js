@@ -69,6 +69,8 @@ const report_export = wrapAsync(async (req, res) => {
             { metric: 'Active Inventory', value: stats.active_inventory },
             { metric: 'Avg Response Time (hrs)', value: stats.avg_response_time ?? 'N/A' },
             { metric: 'Pending Follow-ups', value: stats.pending_followups },
+            { metric: 'Missed Follow-ups', value: stats.missed_followups },
+            { metric: 'Completed Follow-ups', value: stats.completed_followups },
             { metric: 'Closed Deals', value: stats.closed_deals },
         ]);
 
@@ -153,6 +155,8 @@ const report_export = wrapAsync(async (req, res) => {
         ['Active Inventory', stats.active_inventory],
         ['Avg Response Time', stats.avg_response_time ? `${stats.avg_response_time} hrs` : 'N/A'],
         ['Pending Follow-ups', stats.pending_followups],
+        ['Missed Follow-ups', stats.missed_followups],
+        ['Completed Follow-ups', stats.completed_followups],
         ['Closed Deals', stats.closed_deals],
     ];
     kpis.forEach(([label, val]) => pdfRow(doc, label, String(val)));

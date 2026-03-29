@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const { connectToDatabase } = require('./config/db');
 const { startFollowUpReminderWorker } = require('./jobs/followUpReminderWorker');
 const { createApp } = require('./app');
+const socketService = require('./services/socket.service');
 
 const NUM_WORKERS = process.env.NODE_ENV === 'production' 
     ? Number(process.env.WEB_CONCURRENCY || os.cpus().length) 
@@ -84,6 +85,8 @@ if (cluster.isPrimary) {
         const server = app.listen(port, () => {
             process.stdout.write(`Worker ${process.pid} — API running on http://localhost:${port}\n`);
         });
+        
+        socketService.init(server);
 
         const shutdown = async () => {
             process.stdout.write(`Worker ${process.pid} shutting down...\n`);

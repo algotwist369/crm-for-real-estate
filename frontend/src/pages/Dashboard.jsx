@@ -9,7 +9,7 @@ import {
     FiLoader,
     FiActivity
 } from "react-icons/fi";
-import { MdPendingActions } from "react-icons/md";
+import { MdPendingActions, MdEditCalendar, MdAssignmentTurnedIn } from "react-icons/md";
 import { useAuth } from "../context/AuthContext";
 import { 
     useAgentDashboardSummary, 
@@ -55,8 +55,20 @@ const Dashboard = () => {
         { 
             title: "Pending Follow-Ups", 
             value: stats.pending_followups || "0", 
-            icon: <MdPendingActions />, 
-            color: (stats.followups_overdue > 0) ? "text-red-400 border-red-500/30 bg-red-500/10" : "text-zinc-400 bg-zinc-900 border-zinc-800" 
+            icon: <MdEditCalendar />, 
+            color: "text-amber-400 bg-amber-500/10 border-amber-500/20"
+        },
+        { 
+            title: "Missed Follow-Ups", 
+            value: stats.missed_followups || "0", 
+            icon: <FiPhoneCall />, 
+            color: (stats.missed_followups > 0) ? "text-red-400 bg-red-500/10 border-red-500/30" : "text-zinc-500 bg-zinc-900 border-zinc-800"
+        },
+        { 
+            title: "Completed Follow-Ups", 
+            value: stats.completed_followups || "0", 
+            icon: <MdAssignmentTurnedIn />, 
+            color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
         },
         { title: "Revenue", value: formatCurrency(stats.total_revenue), icon: <FiDollarSign /> }
     ];
@@ -86,7 +98,7 @@ const Dashboard = () => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {dashboardStats.map((item, index) => (
                     <div
                         key={index}

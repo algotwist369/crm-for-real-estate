@@ -484,6 +484,22 @@ const ReportsPage = () => {
             border: "border-amber-500/20"
         },
         {
+            title: "Missed Follow-ups",
+            value: stats.missed_followups ?? 0,
+            icon: <FiPhoneCall />,
+            color: "text-red-500",
+            bg: "bg-red-500/10",
+            border: "border-red-500/20"
+        },
+        {
+            title: "Completed Follow-ups",
+            value: stats.completed_followups ?? 0,
+            icon: <FiTarget />,
+            color: "text-emerald-500",
+            bg: "bg-emerald-500/10",
+            border: "border-emerald-500/20"
+        },
+        {
             title: "Contacted Leads",
             value: stats.contacted_leads ?? 0,
             icon: <FiPhoneCall />,

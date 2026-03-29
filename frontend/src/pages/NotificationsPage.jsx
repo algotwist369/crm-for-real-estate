@@ -3,32 +3,29 @@ import AppLayout from "../component/layout/AppLayout";
 import { FiBell, FiCheckCircle, FiEye, FiTrash2, FiCheck } from "react-icons/fi";
 import { Pagination } from "../component/common/Pagination";
 
-const initialNotifications = [
-  { title: "New Lead Assigned", description: "Lead #245 is assigned to you", time: "2m ago", read: false },
-  { title: "Property Updated", description: "PROP003 status changed to sold", time: "15m ago", read: false },
-  { title: "Agent Reminder", description: "Follow-up due today for Lead #198", time: "1h ago", read: false },
-  { title: "System Notice", description: "Nightly backup completed successfully", time: "3h ago", read: true },
-  { title: "Export Complete", description: "Reports exported successfully", time: "1d ago", read: true },
-];
+import { useNotifications } from "../context/NotificationContext";
+import { useNavigate } from "react-router-dom";
 
 const NotificationRow = ({ n, onRead, onView, onClear }) => (
-  <div className={`flex items-center gap-4 p-4 border-b border-zinc-800 transition-colors ${n.read ? "bg-zinc-950/20" : "bg-zinc-900/30"}`}>
-    <div className={`w-10 h-10 rounded shrink-0 flex items-center justify-center ${n.read ? "bg-zinc-900 text-zinc-500" : "bg-yellow-500/10 text-yellow-500"}`}>
+  <div className={`flex items-center gap-4 p-4 border-b border-zinc-800 transition-colors ${n.is_read ? "bg-zinc-950/20" : "bg-zinc-900/30"}`}>
+    <div className={`w-10 h-10 rounded shrink-0 flex items-center justify-center ${n.is_read ? "bg-zinc-900 text-zinc-500" : "bg-yellow-500/10 text-yellow-500"}`}>
       <FiBell size={18} />
     </div>
     
     <div className="flex-1 min-w-0">
       <div className="flex items-center justify-between gap-4 mb-1">
-        <p className={`text-sm font-medium truncate ${n.read ? "text-zinc-400" : "text-zinc-100"}`}>
+        <p className={`text-sm font-medium truncate ${n.is_read ? "text-zinc-400" : "text-zinc-100"}`}>
           {n.title}
         </p>
-        <span className="text-xs text-zinc-500 shrink-0">{n.time}</span>
+        <span className="text-xs text-zinc-500 shrink-0">
+          {new Date(n.createdAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}
+        </span>
       </div>
-      <p className="text-sm text-zinc-400 truncate">{n.description}</p>
+      <p className="text-sm text-zinc-400 truncate">{n.message}</p>
     </div>
 
     <div className="flex items-center gap-2 shrink-0 ml-4">
-      {!n.read && (
+      {!n.is_read && (
         <button
           type="button"
           onClick={onRead}
@@ -59,15 +56,25 @@ const NotificationRow = ({ n, onRead, onView, onClear }) => (
 );
 
 const NotificationsPage = () => {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const { notifications, loading, markAsRead, markAllRead, clearAll, deleteOne } = useNotifications();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-
+  
   const paginated = notifications.slice((page - 1) * rowsPerPage, page * rowsPerPage);
-  const totalPages = Math.ceil(notifications.length / rowsPerPage) || 1;
 
-  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  const clearAll = () => setNotifications([]);
+  if (loading && notifications.length === 0) {
+    return (
+      <AppLayout>
+        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center animate-pulse">
+          <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 rounded flex items-center justify-center text-zinc-700 mb-4">
+             <FiBell size={20} />
+          </div>
+          <p className="text-zinc-500 font-medium">Loading notifications...</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -81,7 +88,7 @@ const NotificationsPage = () => {
           <button
             type="button"
             onClick={markAllRead}
-            disabled={notifications.every(n => n.read)}
+            disabled={notifications.every(n => n.is_read)}
             className="px-4 py-2 text-sm font-medium rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Mark all read
@@ -109,13 +116,16 @@ const NotificationsPage = () => {
           </div>
         ) : (
           <div className="flex-1 flex flex-col">
-            {paginated.map((n, idx) => (
+            {paginated.map((n) => (
               <NotificationRow
-                key={`${n.title}-${idx}`}
+                key={n._id}
                 n={n}
-                onRead={() => setNotifications(prev => prev.map((m, i) => i === (page - 1) * rowsPerPage + idx ? ({ ...m, read: true }) : m))}
-                onView={() => setNotifications(prev => prev.map((m, i) => i === (page - 1) * rowsPerPage + idx ? ({ ...m, read: true }) : m))}
-                onClear={() => setNotifications(prev => prev.filter((_, i) => i !== (page - 1) * rowsPerPage + idx))}
+                onRead={() => markAsRead(n._id)}
+                onView={() => {
+                   markAsRead(n._id);
+                   if (n.action_url) navigate(n.action_url);
+                }}
+                onClear={() => deleteOne(n._id)}
               />
             ))}
           </div>
@@ -126,7 +136,7 @@ const NotificationsPage = () => {
           <div className="p-4 bg-zinc-900/30 mt-auto">
             <Pagination
               currentPage={page}
-              totalPages={totalPages}
+              totalPages={Math.ceil(notifications.length / rowsPerPage) || 1}
               onPageChange={setPage}
               rowsPerPage={rowsPerPage}
               onRowsPerPageChange={(val) => { setRowsPerPage(val); setPage(1); }}

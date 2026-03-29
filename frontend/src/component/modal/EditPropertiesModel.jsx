@@ -48,6 +48,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
         assign_agent: [],
         possession_date: "",
         available_from: "",
+        photos: [],
         photos_base64: [],
         documents: [],
         documents_base64: [],
@@ -56,6 +57,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
 
     const [previewImages, setPreviewImages] = useState([]);
     const [activeSection, setActiveSection] = useState("basic");
+    const [newPhotoUrl, setNewPhotoUrl] = useState("");
 
     const { data: agentsData, isLoading: isLoadingAgents } = useAgents();
     const updateMutation = useUpdateProperty();
@@ -66,7 +68,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
             setFormData({
                 property_title: property.property_title || "",
                 property_description: property.property_description || "",
-                property_type: (property.property_type || "").toLowerCase(),
+                property_type: property.property_type || PROPERTY_TYPES[0],
                 listing_type: property.listing_type || "sale",
                 asking_price: property.asking_price || "",
                 currency: property.currency || "INR",
@@ -93,11 +95,12 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                 built_up_area: property.built_up_area || "",
                 total_bedrooms: property.total_bedrooms || "",
                 total_bathrooms: property.total_bathrooms || "",
-                furnished_status: (property.furnished_status || "unfurnished").toLowerCase(),
+                furnished_status: property.furnished_status === "NA" ? "NA" : (property.furnished_status || "unfurnished").toLowerCase(),
                 amenities: property.amenities || [],
                 assign_agent: Array.isArray(property.assign_agent) ? property.assign_agent.map(a => a._id || a) : [],
                 possession_date: property.possession_date ? new Date(property.possession_date).toISOString().split('T')[0] : "",
                 available_from: property.available_from ? new Date(property.available_from).toISOString().split('T')[0] : "",
+                photos: property.photos || [],
                 photos_base64: [],
                 documents: property.documents || [],
                 documents_base64: [],
@@ -157,8 +160,33 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
         });
     };
 
+    const handleAddPhotoUrl = () => {
+        if (!newPhotoUrl.trim()) return;
+        const url = newPhotoUrl.trim();
+        setFormData(prev => ({
+            ...prev,
+            photos: [...prev.photos, url]
+        }));
+        setPreviewImages(prev => [...prev, url]);
+        setNewPhotoUrl("");
+    };
+
     const removeImage = (index) => {
+        const urlToRemove = previewImages[index];
         setPreviewImages(prev => prev.filter((_, i) => i !== index));
+        
+        setFormData(prev => {
+            const isExisting = (prev.photos || []).includes(urlToRemove);
+            const isNewBase64 = (prev.photos_base64 || []).includes(urlToRemove);
+
+            if (isExisting) {
+                return { ...prev, photos: prev.photos.filter(u => u !== urlToRemove) };
+            }
+            if (isNewBase64) {
+                return { ...prev, photos_base64: prev.photos_base64.filter(b => b !== urlToRemove) };
+            }
+            return prev;
+        });
     };
 
     const handleDocFileChange = (e) => {
@@ -287,7 +315,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                                     <div>
                                         <label className={labelClasses}>Type</label>
                                         <select name="property_type" value={formData.property_type} onChange={handleChange} className={inputClasses}>
-                                            {PROPERTY_TYPES.map(t => <option key={t} value={t.toLowerCase()}>{t}</option>)}
+                                            {PROPERTY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                         </select>
                                     </div>
                                     <div>
@@ -403,9 +431,29 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                                     ))}
                                     <label className="aspect-square rounded border border-dashed border-zinc-700 flex flex-col items-center justify-center gap-2 hover:border-zinc-500 cursor-pointer transition-all bg-zinc-950">
                                         <FiPlus size={20} className="text-zinc-500" />
-                                        <span className="text-xs text-zinc-500">Add Photo</span>
+                                        <span className="text-xs text-zinc-500 text-center px-1">Upload File</span>
                                         <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
                                     </label>
+                                </div>
+
+                                <div className="pt-4 border-t border-zinc-800">
+                                    <label className={labelClasses}>Add Photo via URL</label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            value={newPhotoUrl} 
+                                            onChange={(e) => setNewPhotoUrl(e.target.value)} 
+                                            placeholder="https://example.com/image.jpg" 
+                                            className={inputClasses} 
+                                        />
+                                        <button 
+                                            type="button" 
+                                            onClick={handleAddPhotoUrl}
+                                            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold rounded whitespace-nowrap"
+                                        >
+                                            Add URL
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}

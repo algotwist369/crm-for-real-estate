@@ -223,7 +223,13 @@ async function resolveDocumentUrls(req, { folder, tags } = {}) {
 
 function buildPropertyDocFromBody(body = {}) {
     const property_title = String(body.property_title ?? body.title ?? '').trim();
-    const property_type = String(body.property_type ?? '').trim() || undefined;
+    // Normalize property type to capitalized first letter if it doesn't match exactly
+    let property_type = String(body.property_type ?? '').trim();
+    if (property_type) {
+        property_type = property_type.charAt(0).toUpperCase() + property_type.slice(1).toLowerCase();
+    } else {
+        property_type = undefined;
+    }
     const listing_type = String(body.listing_type ?? '').trim();
     const asking_price = toNumberOrUndefined(body.asking_price ?? body.price);
     const currency = String(body.currency ?? '').trim();
@@ -460,13 +466,10 @@ const update_property = wrapAsync(async (req, res) => {
     }
 
     const photoUrls = await resolvePhotoUrls(req, { tags: ['property', String(user._id), String(property._id)] });
-    // In updates, we usually append photos if uploaded, or rewrite if specifically passed.
-    // If they explicitly send empty photos array, we should respect it
-    if (photoUrls.length) {
-        const existing = Array.isArray(property.photos) ? property.photos : [];
-        updates.photos = Array.from(new Set(existing.concat(photoUrls)));
-    } else if (req.body.photos && Array.isArray(req.body.photos) && req.body.photos.length === 0) {
-        updates.photos = [];
+    // In updates, we use the processed photoUrls as the absolute set if provided, 
+    // or if files were uploaded. This allows for both addition and removal.
+    if (photoUrls.length || (req.body.photos && Array.isArray(req.body.photos))) {
+        updates.photos = photoUrls;
     }
 
     const documentUrls = await resolveDocumentUrls(req, { tags: ['property_doc', String(user._id), String(property._id)] });

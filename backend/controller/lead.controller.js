@@ -698,7 +698,9 @@ const agent_dashboard_summary = wrapAsync(async (req, res) => {
         totalAgents,
         agentPerformance,
         convertedLeadsData,
-        totalPendingFollowups
+        totalPendingFollowups,
+        totalMissedFollowups,
+        totalCompletedFollowups
     ] = await Promise.all([
         Lead.countDocuments(leadMatch),
         Lead.countDocuments({ ...leadMatch, status: 'converted' }),
@@ -741,7 +743,22 @@ const agent_dashboard_summary = wrapAsync(async (req, res) => {
                 return results.sort((a, b) => b.deals - a.deals);
             }) : Promise.resolve([]),
         Lead.find({ ...leadMatch, status: 'converted' }).select('budget currency budget_min').lean(),
-        Lead.countDocuments({ ...leadMatch, follow_up_status: { $in: ['pending', 'rescheduled'] } })
+        Lead.countDocuments({
+            ...leadMatch,
+            follow_up_status: { $in: ['pending', 'rescheduled'] },
+            next_follow_up_date: { $gte: startOfToday }
+        }),
+        Lead.countDocuments({
+            ...leadMatch,
+            $or: [
+                { follow_up_status: 'missed' },
+                { 
+                    follow_up_status: { $in: ['pending', 'rescheduled'] }, 
+                    next_follow_up_date: { $lt: startOfToday } 
+                }
+            ]
+        }),
+        Lead.countDocuments({ ...leadMatch, follow_up_status: 'done' })
     ]);
 
     // Calculate Revenue
@@ -776,6 +793,8 @@ const agent_dashboard_summary = wrapAsync(async (req, res) => {
             total_wasted: totalWasted,
             active_deals: activeDeals,
             pending_followups: totalPendingFollowups,
+            missed_followups: totalMissedFollowups,
+            completed_followups: totalCompletedFollowups,
             followups_today: followupsToday,
             followups_overdue: followupsOverdue,
             total_properties: totalProperties,

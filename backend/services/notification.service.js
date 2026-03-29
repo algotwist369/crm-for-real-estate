@@ -3,7 +3,9 @@ const Properties = require('../model/properties.model');
 const Agent = require('../model/agent.model');
 const mongoose = require('mongoose');
 const { sendMail } = require('../utils/sendMail');
-const { convertCurrency } = require('../utils/currencyConverter'); // Ensure this utility is available or just hardcode format
+const Notification = require('../model/notification.model');
+const socketService = require('./socket.service');
+const { convertCurrency } = require('../utils/currencyConverter');
 
 function uniqueStrings(values) {
     const set = new Set(values.filter(Boolean).map(v => String(v).trim()).filter(Boolean));
@@ -18,6 +20,36 @@ function uniqueObjectIds(values) {
 function formatINR(value) {
     if (!value) return 'Price on Request';
     return `₹${Number(value).toLocaleString('en-IN')}`;
+}
+
+async function createSystemNotification({ recipients, senderId, type, category, title, message, url, metadata, tenantId }) {
+    try {
+        const userIds = uniqueObjectIds(Array.isArray(recipients) ? recipients : [recipients]);
+        if (!userIds.length) return;
+
+        const notifications = userIds.map(userId => ({
+            recipient: userId,
+            sender: senderId,
+            type: type || 'info',
+            category,
+            title,
+            message,
+            action_url: url,
+            metadata: metadata || {},
+            tenant_id: tenantId
+        }));
+
+        const saved = await Notification.insertMany(notifications);
+        
+        // Emit real-time pulse
+        saved.forEach(notif => {
+            socketService.emitToUser(notif.recipient, 'new_notification', notif);
+        });
+        
+        return saved;
+    } catch (error) {
+        console.error('Error creating system notification:', error.message);
+    }
 }
  
 async function notifyUsersOnNewProperty(property, creatorId) {
@@ -57,19 +89,31 @@ async function notifyUsersOnNewProperty(property, creatorId) {
         const to = emails[0];
         const bcc = emails.length > 1 ? emails.slice(1) : undefined;
 
-        await sendMail({
-            to,
-            bcc,
-            template: 'propertyNotification',
-            templateData: {
-                property_title: property.property_title,
-                listing_type: property.listing_type || 'Listing',
-                asking_price: priceStr,
-                added_by: addedBy,
-                actionUrl: propertyUrl,
-                actionText: 'View Property'
-            }
-        });
+        await Promise.all([
+            sendMail({
+                to,
+                bcc,
+                template: 'propertyNotification',
+                templateData: {
+                    property_title: property.property_title,
+                    listing_type: property.listing_type || 'Listing',
+                    asking_price: priceStr,
+                    added_by: addedBy,
+                    actionUrl: propertyUrl,
+                    actionText: 'View Property'
+                }
+            }),
+            createSystemNotification({
+                recipients: recipients.map(r => r._id),
+                senderId: creatorId,
+                type: 'info',
+                category: 'property_added',
+                title: 'New Property Added',
+                message: `${addedBy} added a new property: ${property.property_title}`,
+                url: `/properties/${property._id}`,
+                tenantId: property.tenant_id
+            })
+        ]);
     } catch (error) {
         console.error('Error in notifyUsersOnNewProperty:', error.message);
         // We swallow the error deliberately so it doesn't break the parent API response
@@ -124,21 +168,33 @@ async function notifyPropertyAgentsOnNewLead(lead, creatorId) {
         const to = emails[0];
         const bcc = emails.length > 1 ? emails.slice(1) : undefined;
 
-        await sendMail({
-            to,
-            bcc,
-            template: 'leadAssigned',
-            templateData: {
-                leadName: lead.name,
-                leadPhone: lead.phone || 'N/A',
-                leadEmail: lead.email || 'N/A',
-                requirement: lead.requirement || 'N/A',
-                budget: lead.budget || 'N/A',
-                source: lead.source || 'N/A',
-                assignedBy,
-                leadUrl
-            }
-        });
+        await Promise.all([
+            sendMail({
+                to,
+                bcc,
+                template: 'leadAssigned',
+                templateData: {
+                    leadName: lead.name,
+                    leadPhone: lead.phone || 'N/A',
+                    leadEmail: lead.email || 'N/A',
+                    requirement: lead.requirement || 'N/A',
+                    budget: lead.budget || 'N/A',
+                    source: lead.source || 'N/A',
+                    assignedBy,
+                    leadUrl
+                }
+            }),
+            createSystemNotification({
+                recipients: recipients.map(r => r._id),
+                senderId: creatorId,
+                type: 'success',
+                category: 'lead_assigned',
+                title: 'New Lead Assigned',
+                message: `${assignedBy} assigned a new lead: ${lead.name}`,
+                url: `/leads/${lead._id}`,
+                tenantId: lead.tenant_id
+            })
+        ]);
     } catch (error) {
         console.error('Error in notifyPropertyAgentsOnNewLead:', error.message);
     }
@@ -207,22 +263,34 @@ async function notifyFollowUpCreated(lead, actionUserId) {
         const to = emails[0];
         const bcc = emails.length > 1 ? emails.slice(1) : undefined;
 
-        await sendMail({
-            to,
-            bcc,
-            template: 'followUpReminder',
-            templateData: {
-                leadName: lead.name,
-                leadPhone: lead.phone,
-                requirement: lead.requirement,
-                budget: lead.budget,
-                priority: lead.priority,
-                followUpDate: lead.next_follow_up_date,
-                remarks: lead.remarks || lead.notes || '',
-                leadUrl,
-                actorName
-            }
-        });
+        await Promise.all([
+            sendMail({
+                to,
+                bcc,
+                template: 'followUpReminder',
+                templateData: {
+                    leadName: lead.name,
+                    leadPhone: lead.phone,
+                    requirement: lead.requirement,
+                    budget: lead.budget,
+                    priority: lead.priority,
+                    followUpDate: lead.next_follow_up_date,
+                    remarks: lead.remarks || lead.notes || '',
+                    leadUrl,
+                    actorName
+                }
+            }),
+            createSystemNotification({
+                recipients: recipients.filter(u => String(u._id) !== String(actionUserId)).map(u => u._id),
+                senderId: actionUserId,
+                type: 'warning',
+                category: 'followup_reminder',
+                title: 'Follow-up Scheduled',
+                message: `${actorName} scheduled a follow-up for ${lead.name}`,
+                url: `/leads/${lead._id}`,
+                tenantId: lead.tenant_id
+            })
+        ]);
     } catch (error) {
         console.error('Error in notifyFollowUpCreated:', error.message);
     }
@@ -248,22 +316,34 @@ async function notifyLeadStatusChanged(lead, oldStatus, newStatus, actionUserId)
         const to = emails[0];
         const bcc = emails.length > 1 ? emails.slice(1) : undefined;
 
-        await sendMail({
-            to,
-            bcc,
-            template: 'leadStatusUpdated',
-            templateData: {
-                leadName: lead.name,
-                oldStatus: (oldStatus || 'None').toUpperCase(),
-                newStatus: newStatus.toUpperCase(),
-                updatedBy,
-                leadUrl,
-                requirement: lead.requirement || 'N/A',
-                budget: lead.budget || 'N/A',
-                phone: lead.phone || 'N/A',
-                email: lead.email || 'N/A'
-            }
-        });
+        await Promise.all([
+            sendMail({
+                to,
+                bcc,
+                template: 'leadStatusUpdated',
+                templateData: {
+                    leadName: lead.name,
+                    oldStatus: (oldStatus || 'None').toUpperCase(),
+                    newStatus: newStatus.toUpperCase(),
+                    updatedBy,
+                    leadUrl,
+                    requirement: lead.requirement || 'N/A',
+                    budget: lead.budget || 'N/A',
+                    phone: lead.phone || 'N/A',
+                    email: lead.email || 'N/A'
+                }
+            }),
+            createSystemNotification({
+                recipients: recipients.filter(u => String(u._id) !== String(actionUserId)).map(u => u._id),
+                senderId: actionUserId,
+                type: 'info',
+                category: 'status_changed',
+                title: 'Lead Status Updated',
+                message: `${updatedBy} changed ${lead.name}'s status to ${newStatus.toUpperCase()}`,
+                url: `/leads/${lead._id}`,
+                tenantId: lead.tenant_id
+            })
+        ]);
     } catch (error) {
         console.error('Error in notifyLeadStatusChanged:', error.message);
     }

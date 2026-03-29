@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { FiX, FiBell, FiCheckCircle, FiEye, FiTrash2 } from "react-icons/fi";
 
-const NotificationItem = ({ title, description, time, read, onRead, onView, onClear }) => {
+const NotificationItem = ({ title, message, time, read, onRead, onClear }) => {
     return (
         <div className="grid grid-cols-[auto,1fr,auto] items-start gap-4 p-3 rounded bg-zinc-900/40 border border-zinc-800/50 hover:border-zinc-700 transition-colors">
             <div className={`w-8 h-8 rounded shrink-0 flex items-center justify-center ${read ? "bg-zinc-800 text-zinc-600 border border-zinc-700/50" : "bg-yellow-600/10 text-yellow-500 border border-yellow-500/20"}`}>
@@ -12,8 +12,10 @@ const NotificationItem = ({ title, description, time, read, onRead, onView, onCl
                     <p className={`text-xs font-medium truncate ${read ? "text-zinc-500" : "text-white"}`}>{title}</p>
                     {!read && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0"></span>}
                 </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed mb-1.5 line-clamp-2">{description}</p>
-                <span className="text-[10px] text-zinc-600 font-medium uppercase tracking-wider">{time}</span>
+                <p className="text-[11px] text-zinc-400 leading-relaxed mb-1.5 line-clamp-2">{message}</p>
+                <span className="text-[10px] text-zinc-600 font-medium uppercase tracking-wider">
+                    {new Date(time).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}
+                </span>
             </div>
             <div className="flex flex-col gap-1">
                 <button
@@ -107,16 +109,16 @@ export const NotificationSidebar = ({ isOpen, onClose, notifications = [], onMar
                             <p className="text-zinc-600 text-xs">When you receive new leads or reminders, they'll appear here.</p>
                         </div>
                     ) : (
-                        notifications.map((n, idx) => (
+                        notifications.map((n) => (
                             <NotificationItem
-                                key={idx}
+                                key={n._id}
                                 title={n.title}
-                                description={n.description}
-                                time={n.time}
-                                read={!!n.read}
-                                onRead={() => onReadItem?.(idx)}
-                                onView={() => onViewItem?.(idx)}
-                                onClear={() => onClearItem?.(idx)}
+                                message={n.message}
+                                time={n.createdAt}
+                                read={n.is_read}
+                                onRead={() => onReadItem?.(n._id)}
+                                onView={() => onViewItem?.(n._id)}
+                                onClear={() => onClearItem?.(n._id)}
                             />
                         ))
                     )}

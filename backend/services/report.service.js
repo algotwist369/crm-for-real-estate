@@ -42,6 +42,8 @@ async function getReportStats(tenantId) {
         convertedLeads,
         closedDeals,
         pendingFollowups,
+        missedFollowups,
+        completedFollowups,
         activeInventory,
         convertedLeadsData,
         contactedLeads,
@@ -52,8 +54,19 @@ async function getReportStats(tenantId) {
         Lead.countDocuments({
             ...base,
             follow_up_status: { $in: ['pending', 'rescheduled'] },
-            next_follow_up_date: { $exists: true, $ne: null }
+            next_follow_up_date: { $gte: new Date(new Date().setHours(0,0,0,0)) }
         }),
+        Lead.countDocuments({
+            ...base,
+            $or: [
+                { follow_up_status: 'missed' },
+                { 
+                    follow_up_status: { $in: ['pending', 'rescheduled'] }, 
+                    next_follow_up_date: { $lt: new Date(new Date().setHours(0,0,0,0)) } 
+                }
+            ]
+        }),
+        Lead.countDocuments({ ...base, follow_up_status: 'done' }),
         Properties.countDocuments({ tenant_id: tenantId, is_active: true, property_status: 'available' }),
         Lead.find({ ...base, status: 'converted' }).select('budget currency budget_min').lean(),
         Lead.countDocuments({ ...base, status: { $in: ['contacted', 'qualified', 'follow_up', 'converted', 'closed'] } }),
@@ -93,6 +106,8 @@ async function getReportStats(tenantId) {
         active_inventory: activeInventory,
         avg_response_time: avgResponseHours, // in hours, null if no data
         pending_followups: pendingFollowups,
+        missed_followups: missedFollowups,
+        completed_followups: completedFollowups,
         closed_deals: closedDeals,
         contacted_leads: contactedLeads,
         currency: 'INR'

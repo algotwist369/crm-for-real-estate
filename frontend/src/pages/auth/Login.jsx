@@ -10,11 +10,11 @@ const Login = () => {
     const [password, setPassword] = useState("");
     const [remember, setRemember] = useState(false);
     const [error, setError] = useState(null);
-    
+
     const { login, loginAgent, isAuthenticated, isLoggingIn, isAgentLoggingIn } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    
+
     const from = location.state?.from?.pathname || "/dashboard";
 
     useEffect(() => {
@@ -38,10 +38,10 @@ const Login = () => {
 
         try {
             if (loginRole === "admin") {
-                await login({ 
-                    phone_or_email: identifier, 
+                await login({
+                    phone_or_email: identifier,
                     password,
-                    remember 
+                    remember
                 });
             } else {
                 await loginAgent({
@@ -63,7 +63,6 @@ const Login = () => {
             <div className="w-full max-w-md">
                 {/* Logo Area */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded bg-yellow-600 text-white font-bold text-xl mb-4 shadow-lg shadow-yellow-500/20">LR</div>
                     <h1 className="text-xl font-medium text-white tracking-tight">AlgoTwist CRM</h1>
                 </div>
 
@@ -72,8 +71,8 @@ const Login = () => {
                     <div className="flex border-b border-zinc-900 bg-zinc-900/10">
                         <button
                             onClick={() => { setLoginRole("admin"); setError(null); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-4 text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${loginRole === "admin" 
-                                ? "text-yellow-500 bg-transparent border-b-2 border-yellow-500" 
+                            className={`flex-1 flex items-center justify-center gap-2 py-4 text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${loginRole === "admin"
+                                ? "text-yellow-500 bg-transparent border-b-2 border-yellow-500"
                                 : "text-zinc-500 hover:text-zinc-300 bg-transparent"}`}
                         >
                             <FiShield size={14} />
@@ -81,8 +80,8 @@ const Login = () => {
                         </button>
                         <button
                             onClick={() => { setLoginRole("agent"); setError(null); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-4 text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${loginRole === "agent" 
-                                ? "text-yellow-500 bg-transparent border-b-2 border-yellow-500" 
+                            className={`flex-1 flex items-center justify-center gap-2 py-4 text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${loginRole === "agent"
+                                ? "text-yellow-500 bg-transparent border-b-2 border-yellow-500"
                                 : "text-zinc-500 hover:text-zinc-300 bg-transparent"}`}
                         >
                             <FiUsers size={14} />
@@ -156,11 +155,11 @@ const Login = () => {
                                     />
                                     <span className="text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors">Keep me signed in</span>
                                 </label>
-                                {loginRole === "admin" && (
+                                {/* {loginRole === "admin" && (
                                     <Link to="/forgot-password" px-2 className="text-xs text-yellow-500 hover:text-yellow-400 font-medium">
                                         Forgot?
                                     </Link>
-                                )}
+                                )} */}
                             </div>
 
                             <button
