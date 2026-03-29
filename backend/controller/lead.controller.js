@@ -7,7 +7,7 @@ const FollowUpReminder = require('../model/followUpReminder.model');
 const { parseBudget } = require('../utils/budgetParser');
 const { convertCurrency } = require('../utils/currencyConverter');
 const { sendMail } = require('../utils/sendMail');
-const { notifyPropertyAgentsOnNewLead } = require('../services/notification.service');
+const { notifyPropertyAgentsOnNewLead, getFollowUpRecipientsForLead, notifyFollowUpCreated } = require('../services/notification.service');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
     normalizePhone,
@@ -171,49 +171,6 @@ function buildLeadDocFromBody(body = {}) {
     return doc;
 }
 
-async function getFollowUpRecipientsForLead(lead, actionUserId) {
-    const leadPropertyIds = Array.isArray(lead.properties) ? lead.properties.map(p => String(p)) : [];
-    const propertyIds = leadPropertyIds.filter(id => mongoose.Types.ObjectId.isValid(id));
-
-    let agentIds = [];
-    if (propertyIds.length) {
-        const props = await Properties.find({ _id: { $in: propertyIds } }).select('assign_agent').lean();
-        agentIds = props
-            .flatMap(p => Array.isArray(p.assign_agent) ? p.assign_agent : [])
-            .map(a => String(a))
-            .filter(id => mongoose.Types.ObjectId.isValid(id));
-    }
-
-    let propertyAgentUserIds = [];
-    if (agentIds.length) {
-        const agents = await Agent.find({ _id: { $in: uniqueObjectIds(agentIds) }, is_active: true })
-            .select('agent_details')
-            .lean();
-        propertyAgentUserIds = agents
-            .map(a => a.agent_details ? String(a.agent_details) : '')
-            .filter(id => mongoose.Types.ObjectId.isValid(id));
-    }
-
-    const adminUsers = await User.find({
-        role: { $in: ['admin', 'super_admin'] },
-        is_active: true,
-        is_deleted: false
-    }).select('_id').lean();
-    const adminIds = adminUsers.map(u => String(u._id));
-
-    const assignedToIds = Array.isArray(lead.assigned_to) ? lead.assigned_to.map(x => String(x)) : [];
-
-    const base = uniqueObjectIds([
-        ...adminIds,
-        ...propertyAgentUserIds,
-        ...assignedToIds,
-        lead.created_by ? String(lead.created_by) : '',
-        lead.followed_by ? String(lead.followed_by) : '',
-        actionUserId ? String(actionUserId) : ''
-    ]).filter(id => mongoose.Types.ObjectId.isValid(id));
-
-    return base;
-}
 
 async function cancelPendingReminders(leadId) {
     await FollowUpReminder.updateMany(
@@ -234,7 +191,8 @@ async function scheduleFollowUpReminders({ lead, actionUserId }) {
     if (followUpDate.getTime() <= now.getTime()) return;
 
     const recipients = await getFollowUpRecipientsForLead(lead, actionUserId);
-    if (!recipients.length) return;
+    if (!recipients || !recipients.length) return;
+    const recipientIds = recipients.map(u => String(u._id));
 
     await cancelPendingReminders(lead._id);
 
@@ -255,7 +213,7 @@ async function scheduleFollowUpReminders({ lead, actionUserId }) {
             {
                 $set: {
                     due_at: r.due_at,
-                    recipients,
+                    recipients: recipientIds,
                     status: 'pending',
                     error_message: '',
                     cleanup_at: computeCleanupAt(r.due_at)
@@ -554,6 +512,10 @@ const set_follow_up = wrapAsync(async (req, res) => {
     await lead.save();
 
     await scheduleFollowUpReminders({ lead, actionUserId: user._id });
+
+    Promise.resolve()
+        .then(() => notifyFollowUpCreated(lead, user._id))
+        .catch(() => {});
 
     res.status(200).json({ success: true, message: 'Follow-up updated successfully', data: lead });
 });

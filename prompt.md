@@ -1,4 +1,4 @@
-You are a senior full-stack engineer (Node.js, Express, MongoDB) with strong experience in SaaS CRM systems, event-driven architecture, and role-based access control.
+You are a senior full-stack engineer (Node.js, Express, MongoDB, Redis/Queue systems) with strong experience in SaaS CRM systems, background jobs, and event-driven architecture.
 
 Carefully read and analyze my ENTIRE backend codebase before making any changes.
 
@@ -6,46 +6,40 @@ IMPORTANT RULES:
 - Do NOT break existing functionality
 - Do NOT duplicate logic
 - Reuse existing notification/email services
-- Follow current project structure and coding standards
+- Follow current project architecture and coding standards
 - Write clean, modular, scalable, production-ready code
 
 ------------------------------------------------
 
 🎯 PROBLEM STATEMENT:
 
-My system has:
-- Admin
-- Multiple Agents under admin
-- Properties
-- Leads linked to properties
+My system has a Follow-Up Leads section where:
+- Admin or assigned agent can set a follow-up date & time for a lead
 
-Each property can be assigned to MULTIPLE agents.
-
-Now the requirement is:
-
-👉 Notifications (email notifications) for leads should be LIMITED ONLY to agents assigned to that specific property (NOT all agents under admin).
+Currently:
+- No proper reminder system exists OR it is incomplete
 
 ------------------------------------------------
 
 ✅ REQUIRED SOLUTION:
 
-Implement a PROPERTY-BASED LEAD NOTIFICATION SYSTEM
+Implement a COMPLETE FOLLOW-UP REMINDER SYSTEM or UPDATE EXISTING ONE with:
+
+1) Immediate notification (when follow-up is created)
+2) Scheduled reminder (1 hour before follow-up time)
 
 ------------------------------------------------
 
-📌 CORE LOGIC (VERY IMPORTANT):
+📌 CORE REQUIREMENT:
 
-Each property has:
-→ assignedAgents: [agentIds]
+When a follow-up is created:
 
-When a lead is created for a property:
+👉 Send IMMEDIATE email notification to:
+   - Assigned agent(s) of that lead/property
+   - Admin
 
-👉 ONLY notify:
-   - Agents assigned to that property
-   - Admin (optional but recommended)
-
-👉 DO NOT notify:
-   - Agents NOT assigned to that property
+👉 Then schedule another reminder:
+   - 1 hour BEFORE follow-up date & time
 
 ------------------------------------------------
 
@@ -53,171 +47,206 @@ When a lead is created for a property:
 
 ------------------------------------------------
 
-1️⃣ NEW LEAD CREATED FOR PROPERTY
+1️⃣ IMMEDIATE NOTIFICATION (ON FOLLOW-UP CREATE)
 
-CASE A: Admin creates lead
+Trigger:
+→ When follow-up is created
 
-→ Notify:
-   - ONLY agents assigned to that property
+Notify:
+- Admin
+- Assigned agent(s)
 
-→ DO NOT notify:
-   - Admin (creator)
-   - Unassigned agents
+Exclude:
+- Creator (if required based on your system rules)
 
 ------------------------------------------------
 
-CASE B: Agent creates lead
+2️⃣ SCHEDULED REMINDER (1 HOUR BEFORE)
 
-→ Notify:
-   - Admin
-   - OTHER agents assigned to that property
+Trigger:
+→ followUpDateTime - 1 hour
 
-→ DO NOT notify:
-   - Creator agent
-   - Unassigned agents
+Notify:
+- Admin
+- Assigned agent(s)
 
 ------------------------------------------------
 
 🎯 FINAL RULE:
 
-👉 Notifications = ONLY assigned agents of that property + admin (if applicable)
-
-👉 NEVER notify:
-   - Creator
-   - Unassigned agents
-
-------------------------------------------------
-
-2️⃣ LEAD ASSIGNMENT (OPTIONAL)
-
-→ Notify ONLY the assigned agent
+- Notifications should be:
+   → Property-based (use assigned agents)
+   → Lead-based (use lead assignment if exists)
+- Never notify unrelated users
 
 ------------------------------------------------
 
-3️⃣ LEAD STATUS UPDATE (OPTIONAL)
+🔐 AUTHENTICATION & SECURITY:
 
-→ Notify:
-   - Admin
-   - Assigned agents of that property
-
-→ Exclude:
-   - Actor (who triggered update)
-
-------------------------------------------------
-
-------------------------------------------------
-
-🔐 AUTHENTICATION & MULTI-TENANT SECURITY:
-
-- Use existing auth middleware (JWT/session)
+- Use existing auth middleware
 - Ensure:
-   → Data is scoped per admin
-   → No cross-admin notifications
-
-- Always validate:
-   → property belongs to same admin
-   → agents belong to same admin
+   → Follow-up belongs to correct admin
+   → No cross-admin data access
 
 ------------------------------------------------
 
 ⚙️ IMPLEMENTATION REQUIREMENTS:
 
-1️⃣ Understand Data Relationships:
+------------------------------------------------
 
-- Property:
-   → assignedAgents: [agentIds]
+1️⃣ Understand Data Relationships:
 
 - Lead:
    → propertyId
+   → assignedAgent(s) (if exists)
+
+- Property:
+   → assignedAgents
+
+- FollowUp:
+   → leadId
+   → followUpDateTime
 
 ------------------------------------------------
 
-2️⃣ Fetch Recipients:
+2️⃣ Recipient Logic:
 
-When lead is created:
-
-- Get propertyId from lead
-- Fetch property:
-   → Get assignedAgents[]
-
-- Query users:
-   → WHERE _id IN assignedAgents
-   → AND adminId = currentAdmin
-
-- Apply filtering:
-   → Exclude creator
+- Get lead → propertyId
+- Get property → assignedAgents[]
+- Include:
+   → assignedAgents
+   → admin
+- Exclude:
+   → creator (optional based on rules)
 
 ------------------------------------------------
 
-3️⃣ Notification Service:
+3️⃣ Immediate Email:
 
-Create/extend:
-
-services/notification.service.js
-
-Functions:
-
-- notifyLeadCreatedByAdmin()
-- notifyLeadCreatedByAgent()
-- notifyLeadUpdate()
+- Trigger inside follow-up creation API
+- Use existing email service
 
 ------------------------------------------------
 
-4️⃣ Async Processing:
+4️⃣ Scheduled Reminder System (VERY IMPORTANT):
 
-- Use Promise.all OR queue (Bull/Redis if exists)
+Use a background job system:
+
+IF already using:
+→ Bull / BullMQ (Redis)
+
+ELSE:
+→ Implement with node-cron OR queue-based system
+
+------------------------------------------------
+
+5️⃣ Scheduling Logic:
+
+When follow-up is created:
+
+- Calculate:
+   reminderTime = followUpDateTime - 1 hour
+
+- Schedule a job:
+   → Send reminder email at reminderTime
+
+------------------------------------------------
+
+6️⃣ Job Queue Structure:
+
+Create:
+
+- queues/followup.queue.js
+- jobs/followupReminder.job.js
+
+Job payload:
+{
+  leadId,
+  followUpId,
+  adminId
+}
+
+------------------------------------------------
+
+7️⃣ Email Content:
+
+Include:
+- Lead details
+- Property name
+- Follow-up date & time
+- Assigned agent name
+
+------------------------------------------------
+
+8️⃣ Edge Case Handling:
+
+- If follow-up time < 1 hour from now:
+   → Send reminder immediately OR skip scheduling
+
+- If follow-up updated:
+   → Cancel previous job
+   → Schedule new job
+
+- If follow-up deleted:
+   → Cancel scheduled job
+
+------------------------------------------------
+
+9️⃣ Performance:
+
 - Do NOT block API response
+- Use async job processing
+- Avoid duplicate scheduling
 
 ------------------------------------------------
 
-5️⃣ Code Structure:
+🔁 OPTIONAL (ADVANCED):
 
-- controllers/lead.controller.js
-- services/lead.service.js
-- services/notification.service.js
+- Add multiple reminders:
+   → 24 hours before
+   → 1 hour before
 
-------------------------------------------------
-
-⚠️ EDGE CASES:
-
-Handle:
-
-- Property has NO assigned agents
-   → Notify ONLY admin
-
-- Agent not assigned but tries action
-   → Validate permissions (optional)
-
-- Duplicate notifications
-- Invalid users/emails
-- Bulk lead creation
+- Add notification logs
 
 ------------------------------------------------
 
 🧪 VALIDATION:
 
-- Ensure ONLY assigned agents are notified
-- Ensure creator is excluded
-- Ensure no cross-property notifications
-- Ensure no cross-admin data leak
+- Ensure correct recipients
+- Ensure no duplicate emails
+- Ensure job runs at correct time
+- Ensure timezone handling is correct
+
+------------------------------------------------
+
+📌 CODE STRUCTURE:
+
+- controllers/followup.controller.js
+- services/followup.service.js
+- services/notification.service.js
+- queues/followup.queue.js
+- jobs/followupReminder.job.js
 
 ------------------------------------------------
 
 📌 EXPECTED OUTPUT:
 
-- Property-based notification filtering implemented
-- Clean recipient selection logic
+- Immediate follow-up notification working
+- Scheduled reminder (1 hour before) working
+- Queue-based background processing
+- Clean, scalable architecture
+- Proper recipient filtering (property-based)
 - Secure multi-tenant handling
-- Optimized queries
-- Clean, readable, production-ready code
 
 ------------------------------------------------
 
 ⚠️ FINAL INSTRUCTION:
 
 Before writing code:
-- Understand property-agent relationship deeply
-- Understand current lead flow
-- Extend logic cleanly without rewriting everything
+- Understand follow-up schema
+- Understand lead → property → agent relationship
+- Understand current email system
 
-Think like a senior engineer building a scalable CRM like HubSpot or Zoho with property-level access control.
+Extend existing system cleanly.
+
+Think like a senior engineer building a CRM reminder system like HubSpot/Zoho.

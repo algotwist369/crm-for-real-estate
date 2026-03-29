@@ -1,30 +1,81 @@
-const { htmlLayout, paragraphHtml, buttonHtml, escapeHtml, formatDate } = require('./shared');
-
 function render(data = {}, env = {}) {
     const appName = env.appName || 'LeadReal';
     const title = 'Follow-up reminder';
     const preheader = 'You have a lead follow-up scheduled.';
 
     const leadName = data.leadName || 'Lead';
-    const followUpDate = formatDate(data.followUpDate) || '';
-    const notes = data.notes || data.remarks || '';
+    const leadPhone = data.leadPhone || '';
+    const requirement = data.requirement || '';
+    const budget = data.budget || '';
+    const priority = data.priority || '';
+    const followUpDate = data.followUpDate 
+        ? new Date(data.followUpDate).toISOString().split('T')[0] 
+        : '';
+    const remarks = data.remarks || data.notes || '';
     const leadUrl = data.leadUrl || '';
+    const actorName = data.actorName || '';
+    
+    const isImmediate = !!actorName;
+    const textDesc = isImmediate 
+        ? `${actorName} scheduled a follow-up for you.`
+        : `A lead follow-up is due.`;
 
-    const contentParts = [
-        paragraphHtml(`Follow-up reminder for ${leadName}.`)
-    ];
+    const rows = [
+        ['Lead', leadName],
+        leadPhone && ['Phone', leadPhone],
+        requirement && ['Requirement', requirement],
+        budget && ['Budget', budget],
+        priority && ['Priority', priority],
+        followUpDate && ['Due Date', followUpDate],
+        remarks && ['Latest Remarks', remarks]
+    ].filter(Boolean);
 
-    if (followUpDate) {
-        contentParts.push(`<div style="margin:16px 0;padding:14px;border-radius:14px;border:1px solid #27272a;background:#0f172a;color:#e2e8f0;font-weight:800;text-align:center;">${escapeHtml(followUpDate)}</div>`);
-    }
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 24px; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #111827; }
+  .container { max-width: 520px; margin: 0 auto; }
+  .title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .text { font-size: 14px; margin-bottom: 20px; color: #374151; }
+  .details { font-size: 14px; line-height: 1.6; }
+  .details p { margin: 6px 0; }
+  .label { color: #6b7280; }
+  .value { font-weight: 500; color: #111827; }
+  .action { margin-top: 20px; }
+  .link { font-size: 14px; color: #2563eb; text-decoration: none; font-weight: 500; }
+  .footer { margin-top: 32px; font-size: 12px; color: #9ca3af; }
+</style>
+</head>
+<body>
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${preheader}</div>
+  <div class="container">
+    <div class="title">Follow-up Reminder</div>
+    <div class="text">${textDesc}</div>
+    <div class="details">
+      ${rows.map(([k, v]) => `<p><span class="label">${k}:</span> <span class="value">${v}</span></p>`).join('\n      ')}
+    </div>
+    ${leadUrl ? `<div class="action"><a href="${leadUrl}" class="link">View lead →</a></div>` : ''}
+    <div class="footer">© ${new Date().getFullYear()} ${appName}</div>
+  </div>
+</body>
+</html>
+    `.trim();
 
-    if (notes) contentParts.push(paragraphHtml(notes));
-    if (leadUrl) contentParts.push(buttonHtml({ url: leadUrl, label: 'Open Lead' }));
+    const textLines = [
+        textDesc,
+        '',
+        ...rows.map(([k, v]) => `${k}: ${v}`),
+        leadUrl ? `\nView lead: ${leadUrl}` : ''
+    ].filter(Boolean);
 
-    const html = htmlLayout({ appName, title: `${appName}: ${title}`, preheader, contentHtml: contentParts.join('') });
-    const text = `Follow-up reminder for ${leadName}.${followUpDate ? `\n\nDate: ${followUpDate}` : ''}${notes ? `\n\nNotes: ${notes}` : ''}${leadUrl ? `\n\nOpen Lead: ${leadUrl}` : ''}\n`;
-
-    return { subject: `${appName}: ${title}`, html, text };
+    return {
+        subject: `${appName}: ${title}`,
+        html,
+        text: `${textLines.join('\n')}\n`
+    };
 }
 
 module.exports = { render };

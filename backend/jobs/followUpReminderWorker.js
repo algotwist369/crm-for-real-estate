@@ -90,8 +90,12 @@ async function processOneDueReminder(now) {
                 template: 'followUpReminder',
                 templateData: {
                     leadName: lead.name,
+                    leadPhone: lead.phone,
+                    requirement: lead.requirement,
+                    budget: lead.budget,
+                    priority: lead.priority,
                     followUpDate: followUpDate ? followUpDate.toISOString().split('T')[0] : '',
-                    notes: lead.remarks || lead.notes || '',
+                    remarks: lead.remarks || lead.notes || '',
                     leadUrl
                 }
             });

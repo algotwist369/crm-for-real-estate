@@ -144,7 +144,93 @@ async function notifyPropertyAgentsOnNewLead(lead, creatorId) {
     }
 }
 
+// Highly restricted recipient query engine
+async function getFollowUpRecipientsForLead(lead, actionUserId) {
+    if (!lead) return [];
+
+    const propertyIds = Array.isArray(lead.properties) 
+        ? lead.properties.map(p => String(p._id || p)) 
+        : [];
+        
+    let propertyAgentUserIds = [];
+    if (propertyIds.length) {
+        const props = await Properties.find({ _id: { $in: uniqueObjectIds(propertyIds) } }).select('assign_agent').lean();
+        const agentIds = props.flatMap(p => Array.isArray(p.assign_agent) ? p.assign_agent : []).map(a => String(a));
+        
+        if (agentIds.length) {
+            const agents = await Agent.find({ _id: { $in: uniqueObjectIds(agentIds) }, is_active: true }).select('agent_details').lean();
+            propertyAgentUserIds = agents.map(a => String(a.agent_details)).filter(Boolean);
+        }
+    }
+
+    const assignedToIds = Array.isArray(lead.assigned_to) ? lead.assigned_to.map(x => String(x)) : [];
+
+    const validUserIds = uniqueObjectIds([
+        ...propertyAgentUserIds,
+        ...assignedToIds,
+        lead.created_by ? String(lead.created_by) : '',
+        lead.followed_by ? String(lead.followed_by) : '',
+        actionUserId ? String(actionUserId) : ''
+    ]);
+
+    // Query target recipients: Admin OR explicitly involved Agents
+    const recipients = await User.find({
+        $or: [
+            { _id: lead.tenant_id }, // Admin
+            { _id: { $in: validUserIds }, tenant_id: lead.tenant_id } // Assigned explicitly under the tenant
+        ],
+        is_active: true,
+        is_deleted: false,
+        email: { $exists: true, $ne: '' }
+    }).select('_id email').lean();
+
+    return recipients;
+}
+
+// Triggered immediately when a follow up is scheduled
+async function notifyFollowUpCreated(lead, actionUserId) {
+    try {
+        if (!lead || !lead.next_follow_up_date) return;
+        
+        const recipients = await getFollowUpRecipientsForLead(lead, actionUserId);
+        
+        // Exclude the person who just scheduled it from the "Immediate" notification to avoid spamming them
+        const emails = uniqueStrings(recipients.filter(u => String(u._id) !== String(actionUserId)).map(u => u.email));
+        if (!emails.length) return;
+
+        const creator = await User.findById(actionUserId).select('user_name').lean();
+        const actorName = creator?.user_name || 'A team member';
+
+        const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
+        const leadUrl = appUrl ? `${appUrl}/leads/${lead._id}` : '';
+
+        const to = emails[0];
+        const bcc = emails.length > 1 ? emails.slice(1) : undefined;
+
+        await sendMail({
+            to,
+            bcc,
+            template: 'followUpReminder',
+            templateData: {
+                leadName: lead.name,
+                leadPhone: lead.phone,
+                requirement: lead.requirement,
+                budget: lead.budget,
+                priority: lead.priority,
+                followUpDate: lead.next_follow_up_date,
+                remarks: lead.remarks || lead.notes || '',
+                leadUrl,
+                actorName
+            }
+        });
+    } catch (error) {
+        console.error('Error in notifyFollowUpCreated:', error.message);
+    }
+}
+
 module.exports = {
     notifyUsersOnNewProperty,
-    notifyPropertyAgentsOnNewLead
+    notifyPropertyAgentsOnNewLead,
+    getFollowUpRecipientsForLead,
+    notifyFollowUpCreated
 };

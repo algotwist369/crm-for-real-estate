@@ -77,12 +77,12 @@ const register_admin = wrapAsync(async (req, res) => {
         else details.push({ path: 'profile_pic', message: 'profile_pic must be a valid URL or data URI' });
     }
 
-    // if (details.length) throw httpError(400, 'Validation error', details);
+    if (details.length) throw httpError(400, 'Validation error', details);
 
     const email = normalizeEmail(emailRaw);
 
     const existing = await User.findOne({
-        $or: [{ email }, { phone_number }]
+        $or: [{ email }, { phone_number: phone }]
     }).lean();
     if (existing) throw httpError(409, 'Admin already exists with this email or phone');
 
