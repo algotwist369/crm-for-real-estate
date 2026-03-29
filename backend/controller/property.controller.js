@@ -8,7 +8,8 @@ const { wrapAsync } = require('../middleware/errorHandler');
 const {
     httpError,
     extractBearerToken,
-    ensureNotBlacklisted
+    ensureNotBlacklisted,
+    generateSlug
 } = require('../utils/common');
 
 function uniqueStrings(values) {
@@ -47,6 +48,34 @@ async function requireAgentForUser(userId) {
     const agent = await Agent.findOne({ agent_details: userId, is_active: true });
     if (!agent) throw httpError(403, 'Agent profile not found or inactive');
     return agent;
+}
+
+// Helper to ensure slug uniqueness by appending 4-char hex if collision occurs
+async function ensureUniqueSlug(title, model, excludeId = null) {
+    const baseSlug = generateSlug(title);
+    if (!baseSlug) return '';
+
+    let slug = baseSlug;
+    let exists = true;
+    let counter = 0;
+
+    while (exists) {
+        const query = { slug };
+        if (excludeId) query._id = { $ne: excludeId };
+
+        const collision = await model.findOne(query).select('_id').lean();
+        if (!collision) {
+            exists = false;
+        } else {
+            // Append short random hex to ensure uniqueness
+            const suffix = Math.random().toString(36).substring(2, 6);
+            slug = `${baseSlug}-${suffix}`;
+            counter++;
+            // Safety break
+            if (counter > 10) break;
+        }
+    }
+    return slug;
 }
 
 function parsePagination(req) {
@@ -423,6 +452,9 @@ const create_property = wrapAsync(async (req, res) => {
     doc.tenant_id = tenant_id;
     if (doc.is_active === undefined) doc.is_active = true;
 
+    // Automated Slug Generation
+    doc.slug = await ensureUniqueSlug(doc.property_title, Properties);
+
     const created = await Properties.create(doc);
     const populated = await populatePropertyQuery(Properties.findById(created._id));
 
@@ -485,6 +517,12 @@ const update_property = wrapAsync(async (req, res) => {
 
     Object.assign(property, updates);
     property.updated_by = user._id;
+
+    // Regenerate slug if title changed
+    if (updates.property_title && updates.property_title !== property.property_title) {
+        property.slug = await ensureUniqueSlug(updates.property_title, Properties, property._id);
+    }
+
     await property.save();
 
     // Bidirectional assignment update

@@ -97,6 +97,16 @@ async function ensureNotBlacklisted(token) {
     if (blocked) throw httpError(401, 'Invalid or expired token');
 }
 
+function generateSlug(text) {
+    if (!text) return '';
+    return String(text)
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '') // remove non-word chars (except spaces & hyphens)
+        .replace(/[\s_-]+/g, '-') // replace spaces, underscores, multiple hyphens with single hyphen
+        .replace(/^-+|-+$/g, ''); // trim hyphens from start & end
+}
+
 module.exports = {
     httpError,
     normalizeEmail,
@@ -110,5 +120,6 @@ module.exports = {
     pickProfilePicFile,
     isProbablyUrl,
     isDataUri,
-    ensureNotBlacklisted
+    ensureNotBlacklisted,
+    generateSlug
 };

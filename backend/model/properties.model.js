@@ -7,6 +7,11 @@ const propertiesSchema = new Schema({
         required: true,
         trim: true
     },
+    slug: {
+        type: String,
+        trim: true,
+        unique: true
+    },
     property_type: {
         type: String,
         trim: true,
