@@ -30,7 +30,7 @@ const AppLayout = ({ children }) => {
             case "/reports": return "Analytics Reports";
             case "/settings": return "System Settings";
             case "/notifications": return "Activity Center";
-            default: return "LeadReal CRM";
+            default: return "AlgoTwist CRM";
         }
     };
 
@@ -87,7 +87,7 @@ const AppLayout = ({ children }) => {
                         >
                             <FiBell size={20} />
                             {notifications.some(n => !n.read) && (
-                                <span className="absolute top-0 right-0 w-2 h-2 bg-blue-600 rounded-full border-2 border-black"></span>
+                                <span className="absolute top-0 right-0 w-2 h-2 bg-yellow-600 rounded-full border-2 border-black"></span>
                             )}
                         </button>
 
@@ -102,7 +102,7 @@ const AppLayout = ({ children }) => {
                                 {user?.profile_pic ? (
                                     <img src={user.profile_pic} alt="Profile" className="w-full h-full object-cover" />
                                 ) : (
-                                    <span className="text-xs font-bold text-blue-500">
+                                    <span className="text-xs font-bold text-yellow-500">
                                         {user?.user_name?.substring(0, 1).toUpperCase() || "A"}
                                     </span>
                                 )}

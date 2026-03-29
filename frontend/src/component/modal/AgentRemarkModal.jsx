@@ -59,7 +59,7 @@ const AgentRemarkModal = ({ isOpen, onClose, agent }) => {
                         <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-zinc-800 text-sm font-medium text-white hover:bg-zinc-700">
                             Cancel
                         </button>
-                        <button type="submit" disabled={isLoading} className="px-4 py-2 rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 flex items-center gap-2">
+                        <button type="submit" disabled={isLoading} className="px-4 py-2 rounded bg-yellow-600 text-sm font-medium text-white hover:bg-yellow-500 disabled:opacity-50 flex items-center gap-2">
                             {isLoading ? "Saving..." : "Save Remark"}
                         </button>
                     </div>

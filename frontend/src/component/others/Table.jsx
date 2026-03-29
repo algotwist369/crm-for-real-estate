@@ -68,7 +68,7 @@ const Table = () => {
                                         <td className="p-4">{row.email}</td>
                                         <td className="p-4">
                                             <span className={`px-2 py-0.5 text-[10px] rounded border uppercase tracking-wider ${
-                                                row.role === 'Admin' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
+                                                row.role === 'Admin' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 
                                                 row.role === 'Manager' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' : 
                                                 'bg-zinc-800 text-zinc-400 border-zinc-700'
                                             }`}>

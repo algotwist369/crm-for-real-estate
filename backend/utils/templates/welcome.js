@@ -1,7 +1,7 @@
 const { htmlLayout, paragraphHtml, buttonHtml } = require('./shared');
 
 function render(data = {}, env = {}) {
-    const appName = env.appName || 'LeadReal';
+    const appName = env.appName || 'AlgoTwist';
     const appUrl = env.appUrl || '';
     const name = data.name || 'there';
 

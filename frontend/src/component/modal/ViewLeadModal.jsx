@@ -17,7 +17,7 @@ const ViewLeadModal = ({ isOpen, onClose, lead }) => {
 
     const StatusBadge = ({ status }) => {
         const colors = {
-            new: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+            new: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
             contacted: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
             qualified: "bg-violet-500/10 text-violet-400 border-violet-500/20",
             follow_up: "bg-orange-500/10 text-orange-400 border-orange-500/20",
@@ -55,7 +55,7 @@ const ViewLeadModal = ({ isOpen, onClose, lead }) => {
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/50">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+                        <div className="w-10 h-10 rounded bg-yellow-600/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500">
                             <FiUser size={20} />
                         </div>
                         <div>
@@ -163,7 +163,7 @@ const ViewLeadModal = ({ isOpen, onClose, lead }) => {
                                         <FiClock className="text-zinc-500" size={14} />
                                         <span className="text-xs text-zinc-400">Next Follow-up</span>
                                     </div>
-                                    <span className="text-xs font-medium text-blue-400">{formatDate(lead.next_follow_up_date)}</span>
+                                    <span className="text-xs font-medium text-yellow-400">{formatDate(lead.next_follow_up_date)}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -179,7 +179,7 @@ const ViewLeadModal = ({ isOpen, onClose, lead }) => {
                             <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                                 <FiMessageSquare size={14} /> Latest Remarks
                             </h3>
-                            <div className="p-4 bg-blue-600/5 border border-blue-500/10 rounded min-h-[85px]">
+                            <div className="p-4 bg-yellow-600/5 border border-yellow-500/10 rounded min-h-[85px]">
                                 <p className="text-xs text-zinc-300 italic leading-relaxed">
                                     {lead.remarks ? `"${lead.remarks}"` : "No remarks recorded for this lead."}
                                 </p>

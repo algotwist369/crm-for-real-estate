@@ -1,4 +1,4 @@
-# LeadReal Backend (Internal Real-Estate CRM)
+# AlgoTwist Backend (Internal Real-Estate CRM)
 
 This backend is an internal CRM for a real-estate consultancy. It provides:
 
@@ -39,7 +39,7 @@ The codebase uses:
 - `MAIL_PASS`
 - `MAIL_SECURE` (optional: `"true"` for port 465)
 - `MAIL_FROM` (optional; defaults to `MAIL_USER`)
-- `APP_NAME` (optional; defaults to `LeadReal`)
+- `APP_NAME` (optional; defaults to `AlgoTwist`)
 - `APP_URL` (optional; used to generate deep-links in emails)
 
 ## Response Shape (API Convention)

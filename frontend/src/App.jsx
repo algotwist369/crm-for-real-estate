@@ -12,6 +12,7 @@ import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import PropertyDetailsPage from "./pages/PropertyDetailsPage";
+import LeadDetailsPage from "./pages/LeadDetailsPage";
 
 const App = () => {
   return (
@@ -61,6 +62,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <LeadsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leads/:id"
+            element={
+              <ProtectedRoute>
+                <LeadDetailsPage />
               </ProtectedRoute>
             }
           />

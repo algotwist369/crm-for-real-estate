@@ -165,7 +165,7 @@ const AddAgentModal = ({ isOpen, onClose }) => {
 
                         <div className="p-6 border-t border-zinc-800 bg-zinc-900 flex justify-end gap-3">
                             <button type="button" onClick={handleClose} className="px-4 py-2 rounded bg-zinc-800 text-sm font-medium text-white hover:bg-zinc-700">Cancel</button>
-                            <button type="submit" disabled={isPending} className="px-4 py-2 rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+                            <button type="submit" disabled={isPending} className="px-4 py-2 rounded bg-yellow-600 text-sm font-medium text-white hover:bg-yellow-500 disabled:opacity-50">
                                 {isPending ? "Creating..." : "Create Agent"}
                             </button>
                         </div>
@@ -193,22 +193,22 @@ const AddAgentModal = ({ isOpen, onClose }) => {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">Generated Password</p>
-                                        <p className="text-sm font-mono font-bold text-blue-400">{credentials.password}</p>
+                                        <p className="text-sm font-mono font-bold text-yellow-400">{credentials.password}</p>
                                     </div>
                                     <CopyButton text={credentials.password} />
                                 </div>
                             </div>
 
-                            <div className="bg-blue-500/5 border border-blue-500/10 rounded p-4 flex gap-3">
-                                <FiInfo className="text-blue-500 flex-shrink-0 mt-0.5" size={16} />
+                            <div className="bg-yellow-500/5 border border-yellow-500/10 rounded p-4 flex gap-3">
+                                <FiInfo className="text-yellow-500 flex-shrink-0 mt-0.5" size={16} />
                                 <p className="text-xs text-zinc-400 leading-relaxed italic">
-                                    The agent can use their <span className="text-blue-400 font-bold">Email</span> or <span className="text-blue-400 font-bold">Phone Number</span> with this password or their <span className="text-blue-400 font-bold">Security PIN</span> to log in.
+                                    The agent can use their <span className="text-yellow-400 font-bold">Email</span> or <span className="text-yellow-400 font-bold">Phone Number</span> with this password or their <span className="text-yellow-400 font-bold">Security PIN</span> to log in.
                                 </p>
                             </div>
                         </div>
 
                         <div className="pt-4 flex justify-end">
-                            <button type="button" onClick={handleClose} className="px-4 py-2 w-full rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 transition-colors">Close and Finish</button>
+                            <button type="button" onClick={handleClose} className="px-4 py-2 w-full rounded bg-yellow-600 text-sm font-medium text-white hover:bg-yellow-500 transition-colors">Close and Finish</button>
                         </div>
                     </div>
                 )}

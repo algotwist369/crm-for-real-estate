@@ -13,7 +13,7 @@ const initialNotifications = [
 
 const NotificationRow = ({ n, onRead, onView, onClear }) => (
   <div className={`flex items-center gap-4 p-4 border-b border-zinc-800 transition-colors ${n.read ? "bg-zinc-950/20" : "bg-zinc-900/30"}`}>
-    <div className={`w-10 h-10 rounded shrink-0 flex items-center justify-center ${n.read ? "bg-zinc-900 text-zinc-500" : "bg-blue-500/10 text-blue-500"}`}>
+    <div className={`w-10 h-10 rounded shrink-0 flex items-center justify-center ${n.read ? "bg-zinc-900 text-zinc-500" : "bg-yellow-500/10 text-yellow-500"}`}>
       <FiBell size={18} />
     </div>
     

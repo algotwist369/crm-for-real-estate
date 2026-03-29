@@ -7,7 +7,7 @@ const FollowUpReminder = require('../model/followUpReminder.model');
 const { parseBudget } = require('../utils/budgetParser');
 const { convertCurrency } = require('../utils/currencyConverter');
 const { sendMail } = require('../utils/sendMail');
-const { notifyPropertyAgentsOnNewLead, getFollowUpRecipientsForLead, notifyFollowUpCreated } = require('../services/notification.service');
+const { notifyPropertyAgentsOnNewLead, getFollowUpRecipientsForLead, notifyFollowUpCreated, notifyLeadStatusChanged } = require('../services/notification.service');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
     normalizePhone,
@@ -290,11 +290,11 @@ const get_my_leads = wrapAsync(async (req, res) => {
 
     const [items, total, statusGroups] = await Promise.all([
         Lead.find(match)
-            .populate('assigned_to', 'user_name email phone_number profile_pic role is_active')
-            .populate('followed_by', 'user_name email phone_number profile_pic role is_active')
+            .populate('assigned_to', 'user_name profile_pic')
+            .populate('followed_by', 'user_name profile_pic')
             .populate('created_by', 'user_name email phone_number profile_pic role')
             .populate('updated_by', 'user_name email phone_number profile_pic role')
-            .populate('properties')
+            .populate('properties', 'property_title property_type asking_price currency property_status property_address')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit),
@@ -340,11 +340,11 @@ const get_lead_by_id = wrapAsync(async (req, res) => {
 
     const leadMatch = { _id: id, tenant_id };
     const lead = await Lead.findOne(leadMatch)
-        .populate('assigned_to', 'user_name email phone_number profile_pic role is_active')
-        .populate('followed_by', 'user_name email phone_number profile_pic role is_active')
+        .populate('assigned_to', 'user_name profile_pic')
+        .populate('followed_by', 'user_name profile_pic')
         .populate('created_by', 'user_name email phone_number profile_pic role')
         .populate('updated_by', 'user_name email phone_number profile_pic role')
-        .populate('properties');
+        .populate('properties', 'property_title property_type asking_price currency property_status property_address');
 
     await ensureLeadAccess({ lead, payload, user });
     res.status(200).json({ success: true, data: lead });
@@ -398,11 +398,11 @@ const create_lead = wrapAsync(async (req, res) => {
 
     const created = await Lead.create(doc);
     const populated = await Lead.findById(created._id)
-        .populate('assigned_to', 'user_name email phone_number profile_pic role is_active')
-        .populate('followed_by', 'user_name email phone_number profile_pic role is_active')
+        .populate('assigned_to', 'user_name profile_pic')
+        .populate('followed_by', 'user_name profile_pic')
         .populate('created_by', 'user_name email phone_number profile_pic role')
         .populate('updated_by', 'user_name email phone_number profile_pic role')
-        .populate('properties');
+        .populate('properties', 'property_title property_type asking_price currency property_status property_address');
 
     res.status(201).json({ success: true, message: 'Lead created successfully', data: populated });
 
@@ -443,16 +443,23 @@ const update_lead = wrapAsync(async (req, res) => {
         updates.phone = normalized;
     }
 
+    const oldStatus = lead.status;
     Object.assign(lead, updates);
     lead.updated_by = user._id;
     await lead.save();
 
     const populated = await Lead.findById(lead._id)
-        .populate('assigned_to', 'user_name email phone_number profile_pic role is_active')
-        .populate('followed_by', 'user_name email phone_number profile_pic role is_active')
+        .populate('assigned_to', 'user_name profile_pic')
+        .populate('followed_by', 'user_name profile_pic')
         .populate('created_by', 'user_name email phone_number profile_pic role')
         .populate('updated_by', 'user_name email phone_number profile_pic role')
-        .populate('properties');
+        .populate('properties', 'property_title property_type asking_price currency property_status property_address');
+
+    if (updates.status && updates.status !== oldStatus) {
+        Promise.resolve()
+            .then(() => notifyLeadStatusChanged(populated, oldStatus, updates.status, user._id))
+            .catch(() => { });
+    }
 
     res.status(200).json({ success: true, message: 'Lead updated successfully', data: populated });
 });
@@ -503,6 +510,7 @@ const set_follow_up = wrapAsync(async (req, res) => {
     }
     if (details.length) throw httpError(400, 'Validation error', details);
 
+    const oldStatus = lead.status;
     lead.next_follow_up_date = followUpDate;
     lead.follow_up_status = status || 'pending';
     lead.followed_by = user._id;
@@ -512,6 +520,12 @@ const set_follow_up = wrapAsync(async (req, res) => {
     await lead.save();
 
     await scheduleFollowUpReminders({ lead, actionUserId: user._id });
+
+    if (lead.status !== oldStatus) {
+        Promise.resolve()
+            .then(() => notifyLeadStatusChanged(lead, oldStatus, lead.status, user._id))
+            .catch(() => { });
+    }
 
     Promise.resolve()
         .then(() => notifyFollowUpCreated(lead, user._id))
@@ -529,6 +543,7 @@ const mark_lead_converted = wrapAsync(async (req, res) => {
     const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
+    const oldStatus = lead.status;
     lead.status = 'converted';
     lead.converted_at = new Date();
     lead.follow_up_status = 'done';
@@ -536,6 +551,10 @@ const mark_lead_converted = wrapAsync(async (req, res) => {
     await lead.save();
 
     await cancelPendingReminders(lead._id);
+
+    Promise.resolve()
+        .then(() => notifyLeadStatusChanged(lead, oldStatus, 'converted', user._id))
+        .catch(() => { });
 
     res.status(200).json({ success: true, message: 'Lead marked as converted', data: lead });
 });
@@ -550,6 +569,7 @@ const mark_lead_lost = wrapAsync(async (req, res) => {
     await ensureLeadAccess({ lead, payload, user });
 
     const reason = String(req.body?.lost_reason ?? req.body?.reason ?? '').trim();
+    const oldStatus = lead.status;
     lead.status = 'lost';
     lead.lost_reason = reason || lead.lost_reason || '';
     lead.follow_up_status = 'done';
@@ -557,6 +577,10 @@ const mark_lead_lost = wrapAsync(async (req, res) => {
     await lead.save();
 
     await cancelPendingReminders(lead._id);
+
+    Promise.resolve()
+        .then(() => notifyLeadStatusChanged(lead, oldStatus, 'lost', user._id))
+        .catch(() => { });
 
     res.status(200).json({ success: true, message: 'Lead marked as lost', data: lead });
 });

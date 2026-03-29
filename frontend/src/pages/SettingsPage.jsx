@@ -50,7 +50,7 @@ const SettingsToggle = ({ enabled, onChange }) => (
     <button
         type="button"
         onClick={onChange}
-        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none ${enabled ? 'bg-blue-600' : 'bg-zinc-700'}`}
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none ${enabled ? 'bg-yellow-600' : 'bg-zinc-700'}`}
     >
         <span className="sr-only">Use setting</span>
         <span
@@ -92,9 +92,9 @@ const SettingsPage = () => {
     }, [user]);
 
     const [agencyData, setAgencyData] = useState({
-        agencyName: "LeadReal Solutions",
+        agencyName: "AlgoTwist Solutions",
         license: "REA-2024-0012",
-        website: "https://leadreal.com",
+        website: "https://AlgoTwist.com",
         address: "123, Business District, Metro City, 400001"
     });
 
@@ -166,7 +166,7 @@ const SettingsPage = () => {
                         <div className="relative group">
                             <div 
                                 onClick={() => profilePicMode === 'upload' && fileInputRef.current.click()}
-                                className="w-24 h-24 rounded bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden cursor-pointer hover:border-blue-500/50 transition-all text-zinc-500 hover:text-white"
+                                className="w-24 h-24 rounded bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden cursor-pointer hover:border-yellow-500/50 transition-all text-zinc-500 hover:text-white"
                             >
                                 {profileData.profile_pic ? (
                                     <img src={profileData.profile_pic} alt="Profile" className="w-full h-full object-cover" />
@@ -267,8 +267,8 @@ const SettingsPage = () => {
                                 <p className="text-xs text-zinc-500 flex items-center gap-1.5 mb-1">
                                     <FiActivity size={14} className="text-zinc-400" /> System Status
                                 </p>
-                                <span className={`text-sm font-medium flex items-center gap-1.5 ${user?.is_active ? 'text-blue-400' : 'text-red-400'}`}>
-                                    <div className={`w-1.5 h-1.5 rounded-full ${user?.is_active ? 'bg-blue-400' : 'bg-red-400'}`}></div> {user?.is_active ? 'Active Account' : 'Inactive'}
+                                <span className={`text-sm font-medium flex items-center gap-1.5 ${user?.is_active ? 'text-yellow-400' : 'text-red-400'}`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${user?.is_active ? 'bg-yellow-400' : 'bg-red-400'}`}></div> {user?.is_active ? 'Active Account' : 'Inactive'}
                                 </span>
                             </div>
 
@@ -456,7 +456,7 @@ const SettingsPage = () => {
                     <button 
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded flex items-center justify-center transition-colors w-full md:w-auto h-10"
+                        className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded flex items-center justify-center transition-colors w-full md:w-auto h-10"
                     >
                         {isSaving ? "Saving..." : "Save Changes"}
                     </button>

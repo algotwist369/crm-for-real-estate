@@ -1,5 +1,5 @@
 function render(data = {}, env = {}) {
-    const appName = env.appName || 'LeadReal';
+    const appName = env.appName || 'AlgoTwist';
     const title = 'Follow-up reminder';
     const preheader = 'You have a lead follow-up scheduled.';
 
@@ -9,7 +9,13 @@ function render(data = {}, env = {}) {
     const budget = data.budget || '';
     const priority = data.priority || '';
     const followUpDate = data.followUpDate 
-        ? new Date(data.followUpDate).toISOString().split('T')[0] 
+        ? new Date(data.followUpDate).toLocaleString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        }) 
         : '';
     const remarks = data.remarks || data.notes || '';
     const leadUrl = data.leadUrl || '';

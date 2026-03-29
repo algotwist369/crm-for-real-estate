@@ -109,8 +109,8 @@ const Register = () => {
             <div className="w-full max-w-md">
                 {/* Logo Area */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded bg-blue-600 text-white font-bold text-xl mb-4">LR</div>
-                    <h1 className="text-xl font-medium text-white">LeadReal CRM</h1>
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded bg-yellow-600 text-white font-bold text-xl mb-4">LR</div>
+                    <h1 className="text-xl font-medium text-white">AlgoTwist CRM</h1>
                 </div>
 
                 <form 
@@ -119,7 +119,7 @@ const Register = () => {
                 >
                     <div className="space-y-1 text-center">
                         <h2 className="text-lg font-medium text-white">Create Account</h2>
-                        <p className="text-sm text-zinc-500">Join the LeadReal platform</p>
+                        <p className="text-sm text-zinc-500">Join the AlgoTwist platform</p>
                     </div>
 
                     {error && (
@@ -226,7 +226,7 @@ const Register = () => {
                                             <button 
                                                 type="button" 
                                                 onClick={() => fileInputRef.current.click()}
-                                                className="text-xs text-blue-500 hover:text-blue-400"
+                                                className="text-xs text-yellow-500 hover:text-yellow-400"
                                             >
                                                 Select system file
                                             </button>
@@ -247,7 +247,7 @@ const Register = () => {
 
                         <div className="space-y-3 pt-2">
                             <label className="flex items-center gap-2 cursor-pointer group">
-                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${acceptTerms ? 'bg-blue-600 border-blue-600 text-white' : 'bg-zinc-900 border-zinc-800 group-hover:border-zinc-700'}`}>
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${acceptTerms ? 'bg-yellow-600 border-yellow-600 text-white' : 'bg-zinc-900 border-zinc-800 group-hover:border-zinc-700'}`}>
                                     {acceptTerms && <FiCheck size={12} strokeWidth={4} />}
                                 </div>
                                 <input
@@ -256,11 +256,11 @@ const Register = () => {
                                     onChange={(e) => setAcceptTerms(e.target.checked)}
                                     className="hidden"
                                 />
-                                <span className="text-xs text-zinc-400">I agree to the <span className="text-blue-500">Terms & Conditions</span></span>
+                                <span className="text-xs text-zinc-400">I agree to the <span className="text-yellow-500">Terms & Conditions</span></span>
                             </label>
 
                             <label className="flex items-center gap-2 cursor-pointer group">
-                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${remember ? 'bg-blue-600 border-blue-600 text-white' : 'bg-zinc-900 border-zinc-800 group-hover:border-zinc-700'}`}>
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${remember ? 'bg-yellow-600 border-yellow-600 text-white' : 'bg-zinc-900 border-zinc-800 group-hover:border-zinc-700'}`}>
                                     {remember && <FiCheck size={12} strokeWidth={4} />}
                                 </div>
                                 <input
@@ -276,7 +276,7 @@ const Register = () => {
                         <button
                             type="submit"
                             disabled={isRegistering}
-                            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full py-2.5 px-4 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isRegistering ? "Creating..." : "Create Account"}
                         </button>
@@ -284,7 +284,7 @@ const Register = () => {
                         <div className="text-center">
                             <p className="text-xs text-zinc-500">
                                 Already have an account?{" "}
-                                <Link to="/login" className="text-blue-500 hover:text-blue-400 font-medium">
+                                <Link to="/login" className="text-yellow-500 hover:text-yellow-400 font-medium">
                                     Sign In
                                 </Link>
                             </p>

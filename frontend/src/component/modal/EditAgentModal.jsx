@@ -170,7 +170,7 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
                                 <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                                     <FiCheckSquare className="text-zinc-500" /> Assigned Properties
                                 </label>
-                                <button type="button" onClick={handleSelectAllProperties} className="text-[10px] uppercase tracking-wider text-blue-400 hover:text-blue-300 transition-colors font-bold">
+                                <button type="button" onClick={handleSelectAllProperties} className="text-[10px] uppercase tracking-wider text-yellow-400 hover:text-yellow-300 transition-colors font-bold">
                                     {formData.assignedProperties.length === PROPERTIES.length ? "Deselect All" : "Select All"}
                                 </button>
                             </div>
@@ -178,7 +178,7 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
                             <div className="grid grid-cols-2 gap-3 bg-zinc-950 p-4 rounded border border-zinc-800 max-h-40 overflow-y-auto custom-scrollbar">
                                 {PROPERTIES.map((prop) => (
                                     <label key={prop.id} className="flex items-center gap-3 cursor-pointer group">
-                                        <div className={`w-5 h-5 rounded border ${formData.assignedProperties.includes(prop.id) ? 'bg-blue-600 border-blue-600' : 'bg-zinc-900 border-zinc-700 group-hover:border-zinc-500'} flex items-center justify-center transition-colors`}>
+                                        <div className={`w-5 h-5 rounded border ${formData.assignedProperties.includes(prop.id) ? 'bg-yellow-600 border-yellow-600' : 'bg-zinc-900 border-zinc-700 group-hover:border-zinc-500'} flex items-center justify-center transition-colors`}>
                                             {formData.assignedProperties.includes(prop.id) && <FiCheck className="text-white relative z-10" size={12} strokeWidth={3} />}
                                         </div>
                                         <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">{prop.label}</span>
@@ -190,7 +190,7 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
 
                     <div className="p-6 border-t border-zinc-800 bg-zinc-900 flex justify-end gap-3">
                         <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-zinc-800 text-sm font-medium text-white hover:bg-zinc-700">Cancel</button>
-                        <button type="submit" disabled={isPending} className="px-4 py-2 rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+                        <button type="submit" disabled={isPending} className="px-4 py-2 rounded bg-yellow-600 text-sm font-medium text-white hover:bg-yellow-500 disabled:opacity-50">
                             {isPending ? "Saving..." : "Save Changes"}
                         </button>
                     </div>

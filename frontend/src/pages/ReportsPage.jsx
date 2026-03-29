@@ -40,7 +40,7 @@ const formatINR = (value) => {
 };
 
 const SOURCE_COLORS = {
-    website: "bg-blue-500",
+    website: "bg-yellow-500",
     facebook: "bg-indigo-500",
     instagram: "bg-pink-500",
     linkedin: "bg-sky-500",
@@ -53,7 +53,7 @@ const SOURCE_COLORS = {
     other: "bg-zinc-500"
 };
 
-const DAY_COLORS = ["bg-zinc-600", "bg-blue-600", "bg-indigo-600", "bg-violet-600", "bg-purple-600", "bg-pink-600", "bg-rose-600"];
+const DAY_COLORS = ["bg-zinc-600", "bg-yellow-600", "bg-indigo-600", "bg-violet-600", "bg-purple-600", "bg-pink-600", "bg-rose-600"];
 
 // ── Sub-components ─────────────────────────────────────
 
@@ -74,7 +74,7 @@ const ErrorState = ({ message = "Failed to load data" }) => (
 
 const FUNNEL_COLOR_MAP = {
     zinc: "bg-zinc-500",
-    blue: "bg-blue-500",
+    yellow: "bg-yellow-500",
     violet: "bg-violet-500",
     orange: "bg-orange-500",
     emerald: "bg-emerald-500"
@@ -138,7 +138,7 @@ const OverviewTab = () => {
                                 {requirement_mix[0] && (
                                     <circle cx="72" cy="72" r="58" stroke="currentColor" strokeWidth="12" fill="transparent"
                                         strokeDasharray="365" strokeDashoffset={Math.round(365 * (1 - (requirement_mix[0]?.percentage || 0) / 100))}
-                                        className="text-blue-500" />
+                                        className="text-yellow-500" />
                                 )}
                                 {requirement_mix[1] && (
                                     <circle cx="72" cy="72" r="58" stroke="currentColor" strokeWidth="12" fill="transparent"
@@ -156,7 +156,7 @@ const OverviewTab = () => {
                             {requirement_mix.map((item, i) => (
                                 <div key={i} className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <div className={`w-2 h-2 rounded-full ${["bg-blue-500", "bg-violet-500", "bg-orange-500", "bg-zinc-500", "bg-emerald-500"][i] || "bg-zinc-600"}`} />
+                                        <div className={`w-2 h-2 rounded-full ${["bg-yellow-500", "bg-violet-500", "bg-orange-500", "bg-zinc-500", "bg-emerald-500"][i] || "bg-zinc-600"}`} />
                                         <span className="text-sm text-zinc-400 capitalize">{item.label}</span>
                                     </div>
                                     <span className="text-sm font-medium text-white">{item.percentage}%</span>
@@ -236,7 +236,7 @@ const AgentPerformanceTab = () => {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="p-4 font-medium text-blue-400">{a.total_leads_added}</td>
+                                    <td className="p-4 font-medium text-yellow-400">{a.total_leads_added}</td>
                                     <td className="p-4">{a.total_leads_assigned}</td>
                                     <td className="p-4">{a.pending_leads}</td>
                                     <td className="p-4">{a.deals_closed}</td>
@@ -253,7 +253,7 @@ const AgentPerformanceTab = () => {
                                         <span className={`text-xs capitalize px-2 py-1 rounded border ${
                                             a.performance_status === "High" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
                                             a.performance_status === "Low" ? "bg-red-500/10 text-red-400 border-red-500/20" :
-                                            "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                            "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
                                         }`}>{a.performance_status}</span>
                                     </td>
                                     <td className="p-4 text-right">
@@ -326,7 +326,7 @@ const LeadInsightsTab = () => {
                             {[
                                 { label: "Hot", count: hot_vs_cold.hot || 0, color: "text-red-400 bg-red-500/10 border-red-500/20" },
                                 { label: "Warm", count: hot_vs_cold.warm || 0, color: "text-orange-400 bg-orange-500/10 border-orange-500/20" },
-                                { label: "Cold", count: hot_vs_cold.cold || 0, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" }
+                                { label: "Cold", count: hot_vs_cold.cold || 0, color: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20" }
                             ].map((item, i) => (
                                 <div key={i} className={`flex-1 rounded border px-3 py-3 text-center ${item.color}`}>
                                     <p className="text-xl font-semibold">{item.count}</p>
@@ -455,9 +455,9 @@ const ReportsPage = () => {
             title: "Conversion Rate",
             value: `${stats.conversion_rate ?? 0}%`,
             icon: <FiTrendingUp />,
-            color: "text-blue-500",
-            bg: "bg-blue-500/10",
-            border: "border-blue-500/20"
+            color: "text-yellow-500",
+            bg: "bg-yellow-500/10",
+            border: "border-yellow-500/20"
         },
         {
             title: "Active Inventory",

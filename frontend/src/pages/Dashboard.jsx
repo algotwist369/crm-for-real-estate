@@ -158,7 +158,7 @@ const Dashboard = () => {
                                 <div key={i} className="flex justify-between border-b border-zinc-800/50 pb-3 last:border-0 last:pb-0">
                                     <span className="text-sm text-zinc-300 font-medium">{item.name}</span>
                                     <div className="flex flex-col items-end gap-1">
-                                        <span className="text-xs text-blue-400">
+                                        <span className="text-xs text-yellow-400">
                                             {new Date(item.next_follow_up_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                         <span className={`text-[10px] uppercase font-bold ${
@@ -183,7 +183,7 @@ const Dashboard = () => {
                         {[
                             { label: "Available", key: "available", color: "bg-emerald-500" },
                             { label: "Under Negotiation", key: "under_offer", color: "bg-orange-500" },
-                            { label: "Sold / Rented", count: (stats.property_stats?.sold || 0) + (stats.property_stats?.rented || 0), color: "bg-blue-500" },
+                            { label: "Sold / Rented", count: (stats.property_stats?.sold || 0) + (stats.property_stats?.rented || 0), color: "bg-yellow-500" },
                             { label: "Inactive", key: "inactive", color: "bg-zinc-700" }
                         ].map((item, i) => {
                             const count = item.count !== undefined ? item.count : (stats.property_stats?.[item.key] || 0);

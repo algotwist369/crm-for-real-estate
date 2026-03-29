@@ -435,7 +435,7 @@ const AddPropertiesModel = ({ isOpen, onClose }) => {
                         <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-zinc-800 text-sm font-medium text-white hover:bg-zinc-700">
                             Cancel
                         </button>
-                        <button type="submit" disabled={createMutation.isPending} className="px-4 py-2 rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+                        <button type="submit" disabled={createMutation.isPending} className="px-4 py-2 rounded bg-yellow-600 text-sm font-medium text-white hover:bg-yellow-500 disabled:opacity-50">
                             {createMutation.isPending ? "Creating..." : "Create Property"}
                         </button>
                     </div>

@@ -52,7 +52,7 @@ const report_export = wrapAsync(async (req, res) => {
     if (type === 'excel') {
         const ExcelJS = require('exceljs');
         const wb = new ExcelJS.Workbook();
-        wb.creator = 'LeadReal CRM';
+        wb.creator = 'AlgoTwist CRM';
         wb.created = new Date();
 
         // ── Sheet 1: KPI Stats ──
@@ -139,7 +139,7 @@ const report_export = wrapAsync(async (req, res) => {
     doc.pipe(res);
 
     // Title
-    doc.fontSize(20).font('Helvetica-Bold').text('LeadReal CRM — Analytics Report', { align: 'center' });
+    doc.fontSize(20).font('Helvetica-Bold').text('AlgoTwist CRM — Analytics Report', { align: 'center' });
     doc.fontSize(10).font('Helvetica').fillColor('#666666')
         .text(`Generated on ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}`, { align: 'center' });
     doc.moveDown(1.5);

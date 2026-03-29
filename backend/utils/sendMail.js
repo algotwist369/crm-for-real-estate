@@ -57,7 +57,7 @@ async function sendMail({
     attachments
 }) {
     if (!to) throw new Error('to is required');
-    const appName = process.env.APP_NAME || 'LeadReal';
+    const appName = process.env.APP_NAME || 'AlgoTwist';
     const appUrl = process.env.APP_URL || '';
     const disabled = String(process.env.MAIL_DISABLED || '').toLowerCase() === 'true'
         || String(process.env.NODE_ENV || '').toLowerCase() === 'test';

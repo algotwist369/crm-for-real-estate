@@ -86,7 +86,7 @@ const PropertyDetailsPage = () => {
                         {property.property_status.replace('_', ' ')}
                     </span>
                     <span className={`px-3 py-1.5 rounded text-xs border ${
-                        property.is_active ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-red-500/10 border-red-500/20 text-red-400'
+                        property.is_active ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' : 'bg-red-500/10 border-red-500/20 text-red-400'
                     }`}>
                         {property.is_active ? 'Active' : 'Archived'}
                     </span>
@@ -185,7 +185,7 @@ const PropertyDetailsPage = () => {
                     </div>
 
                     <div className="pt-6">
-                        <button className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded py-3 transition-colors flex items-center justify-center">
+                        <button className="w-full bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded py-3 transition-colors flex items-center justify-center">
                             Acquire Listing
                         </button>
                     </div>

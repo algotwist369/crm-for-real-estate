@@ -228,9 +228,51 @@ async function notifyFollowUpCreated(lead, actionUserId) {
     }
 }
 
+async function notifyLeadStatusChanged(lead, oldStatus, newStatus, actionUserId) {
+    try {
+        if (!lead || !newStatus) return;
+        if (String(oldStatus || '').toLowerCase() === String(newStatus || '').toLowerCase()) return;
+
+        const recipients = await getFollowUpRecipientsForLead(lead, actionUserId);
+        
+        // Exclude the person who made the change to avoid spamming them
+        const emails = uniqueStrings(recipients.filter(u => String(u._id) !== String(actionUserId)).map(u => u.email));
+        if (!emails.length) return;
+
+        const actor = await User.findById(actionUserId).select('user_name').lean();
+        const updatedBy = actor?.user_name || 'A team member';
+
+        const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
+        const leadUrl = appUrl ? `${appUrl}/leads/${lead._id}` : '';
+
+        const to = emails[0];
+        const bcc = emails.length > 1 ? emails.slice(1) : undefined;
+
+        await sendMail({
+            to,
+            bcc,
+            template: 'leadStatusUpdated',
+            templateData: {
+                leadName: lead.name,
+                oldStatus: (oldStatus || 'None').toUpperCase(),
+                newStatus: newStatus.toUpperCase(),
+                updatedBy,
+                leadUrl,
+                requirement: lead.requirement || 'N/A',
+                budget: lead.budget || 'N/A',
+                phone: lead.phone || 'N/A',
+                email: lead.email || 'N/A'
+            }
+        });
+    } catch (error) {
+        console.error('Error in notifyLeadStatusChanged:', error.message);
+    }
+}
+
 module.exports = {
     notifyUsersOnNewProperty,
     notifyPropertyAgentsOnNewLead,
     getFollowUpRecipientsForLead,
-    notifyFollowUpCreated
+    notifyFollowUpCreated,
+    notifyLeadStatusChanged
 };

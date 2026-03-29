@@ -4,13 +4,13 @@ import { FiX, FiBell, FiCheckCircle, FiEye, FiTrash2 } from "react-icons/fi";
 const NotificationItem = ({ title, description, time, read, onRead, onView, onClear }) => {
     return (
         <div className="grid grid-cols-[auto,1fr,auto] items-start gap-4 p-3 rounded bg-zinc-900/40 border border-zinc-800/50 hover:border-zinc-700 transition-colors">
-            <div className={`w-8 h-8 rounded shrink-0 flex items-center justify-center ${read ? "bg-zinc-800 text-zinc-600 border border-zinc-700/50" : "bg-blue-600/10 text-blue-500 border border-blue-500/20"}`}>
+            <div className={`w-8 h-8 rounded shrink-0 flex items-center justify-center ${read ? "bg-zinc-800 text-zinc-600 border border-zinc-700/50" : "bg-yellow-600/10 text-yellow-500 border border-yellow-500/20"}`}>
                 <FiBell size={14} />
             </div>
             <div className="flex-1 min-w-0 pt-0.5">
                 <div className="flex items-center gap-2 mb-0.5">
                     <p className={`text-xs font-medium truncate ${read ? "text-zinc-500" : "text-white"}`}>{title}</p>
-                    {!read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>}
+                    {!read && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0"></span>}
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-relaxed mb-1.5 line-clamp-2">{description}</p>
                 <span className="text-[10px] text-zinc-600 font-medium uppercase tracking-wider">{time}</span>
@@ -84,7 +84,7 @@ export const NotificationSidebar = ({ isOpen, onClose, notifications = [], onMar
                              <div className="flex gap-3">
                                 <button
                                     onClick={onMarkAllRead}
-                                    className="text-[10px] text-blue-500 hover:text-blue-400 font-bold uppercase tracking-widest"
+                                    className="text-[10px] text-yellow-500 hover:text-yellow-400 font-bold uppercase tracking-widest"
                                 >
                                     Mark All Read
                                 </button>

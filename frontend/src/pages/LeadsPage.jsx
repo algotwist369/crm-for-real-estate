@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import AppLayout from "../component/layout/AppLayout";
 import {
    
@@ -16,9 +17,8 @@ import { SearchFilter } from "../component/common/SearchFilter";
 import { Pagination } from "../component/common/Pagination";
 import { RefreshButton } from "../component/common/RefreshButton";
 import AddLeadModal from "../component/modal/AddLeadModal";
-import EditLeadModal from "../component/modal/EditLeadModal";
 import FollowUpModal from "../component/modal/FollowUpModal";
-import ViewLeadModal from "../component/modal/ViewLeadModal";
+import MarkLostModal from "../component/modal/MarkLostModal";
 import { useLeads, useUpdateLead, useAgentDashboardSummary } from "../hooks/useLeadHooks";
 
 /* ─── Table Columns ─── */
@@ -40,8 +40,9 @@ const LeadsPage = () => {
     const [editingLead, setEditingLead] = useState(null);
     const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
     const [selectedLead, setSelectedLead] = useState(null);
-    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-    const [viewingLead, setViewingLead] = useState(null);
+    const [isMarkLostModalOpen, setIsMarkLostModalOpen] = useState(false);
+    const [leadToMarkLost, setLeadToMarkLost] = useState(null);
+    const navigate = useNavigate();
 
     // React Query Hooks
     const { data: dashboardData } = useAgentDashboardSummary();
@@ -87,7 +88,19 @@ const LeadsPage = () => {
     };
 
     const handleUpdateField = (id, field, value) => {
+        if (field === 'status' && value === 'lost') {
+            const lead = leads.find(l => l._id === id);
+            setLeadToMarkLost(lead);
+            setIsMarkLostModalOpen(true);
+            return;
+        }
         updateLeadMutation.mutate({ id, data: { [field]: value } });
+    };
+
+    const handleMarkLostSuccess = () => {
+        setIsMarkLostModalOpen(false);
+        setLeadToMarkLost(null);
+        refetch();
     };
 
     const handleSaveFollowUp = () => {
@@ -108,7 +121,7 @@ const LeadsPage = () => {
                     <RefreshButton onClick={handleRefresh} />
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded flex items-center justify-center transition-colors h-10"
+                        className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded flex items-center justify-center transition-colors h-10"
                     >
                         Add New Lead
                     </button>
@@ -126,7 +139,7 @@ const LeadsPage = () => {
                 </div>
 
                 <div className="flex-1 min-w-[180px] flex items-center gap-3 border-r border-zinc-800 last:border-0 h-12">
-                    <MdOutlineFactCheck size={20} className="text-blue-500" />
+                    <MdOutlineFactCheck size={20} className="text-yellow-500" />
                     <div>
                         <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">New Leads</p>
                         <h3 className="text-lg font-bold text-white mt-1 leading-none">{leadsStats.new}</h3>
@@ -163,13 +176,13 @@ const LeadsPage = () => {
                             onClick={() => { setStatusFilter(s); setPage(1); }}
                             className={`px-4 py-3 text-sm font-medium transition-all flex items-center gap-2 border-b-2 whitespace-nowrap ${
                                 isActive 
-                                ? "bg-blue-600/10 text-blue-400 border-blue-500" 
+                                ? "bg-yellow-600/10 text-yellow-400 border-yellow-500" 
                                 : "text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/5"
                             }`}
                         >
                             {s.replace("_", " ")}
                             <span className={`w-5 h-5 flex items-center justify-center text-[10px] rounded-full transition-colors ${
-                                isActive ? "bg-blue-500/20 text-blue-400" : "bg-zinc-800 text-zinc-500"
+                                isActive ? "bg-yellow-500/20 text-yellow-400" : "bg-zinc-800 text-zinc-500"
                             }`}>
                                 {count}
                             </span>
@@ -254,7 +267,6 @@ const LeadsPage = () => {
                                     <td className="p-3">
                                         <div className="flex flex-col gap-1.5">
                                             <div className="flex items-center gap-2">
-                                                <span>{lead.phone}</span>
                                                 <CopyButton text={lead.phone} />
                                             </div>
                                             {lead.email && lead.email !== "" && (
@@ -322,9 +334,17 @@ const LeadsPage = () => {
                                                     setSelectedLead(lead);
                                                     setIsFollowUpModalOpen(true);
                                                 }}
-                                                className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                                                className="text-sm font-medium text-yellow-400 hover:text-yellow-300 transition-colors"
                                             >
-                                                {lead.next_follow_up_date ? new Date(lead.next_follow_up_date).toLocaleDateString() : "Set Date"}
+                                                {lead.next_follow_up_date 
+                                                    ? new Date(lead.next_follow_up_date).toLocaleString([], { 
+                                                        year: 'numeric', 
+                                                        month: 'short', 
+                                                        day: 'numeric', 
+                                                        hour: '2-digit', 
+                                                        minute: '2-digit' 
+                                                    }) 
+                                                    : "Set Date"}
                                             </button>
                                             <div className="text-[10px] text-zinc-500 mb-1 mt-0.5">
                                                 {lead.followed_by ? 'By ' + lead.followed_by.user_name : ''}
@@ -339,15 +359,29 @@ const LeadsPage = () => {
                                     </td>
 
                                     <td className="p-3">
-                                        <select
-                                            value={lead.status || "new"}
-                                            onChange={(e) => handleUpdateField(lead._id, 'status', e.target.value)}
-                                            className="text-xs p-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-300 capitalize cursor-pointer focus:outline-none"
-                                        >
-                                            {statusOptions.slice(1).map(s => (
-                                                <option key={s} value={s.toLowerCase()}>{s.replace("_", "-")}</option>
-                                            ))}
-                                        </select>
+                                        <div className="flex flex-col gap-1.5">
+                                            <select
+                                                value={lead.status || "new"}
+                                                onChange={(e) => handleUpdateField(lead._id, 'status', e.target.value)}
+                                                className={`text-xs p-1.5 rounded border bg-zinc-900 capitalize cursor-pointer focus:outline-none w-full font-medium ${
+                                                    lead.status === 'new' ? 'text-yellow-400 border-yellow-500/30' :
+                                                    lead.status === 'contacted' ? 'text-zinc-300 border-zinc-700/30' :
+                                                    lead.status === 'qualified' ? 'text-violet-400 border-violet-500/30' :
+                                                    lead.status === 'follow_up' ? 'text-orange-400 border-orange-500/30' :
+                                                    lead.status === 'converted' ? 'text-teal-400 border-teal-500/30' :
+                                                    lead.status === 'closed' ? 'text-emerald-400 border-emerald-500/30' :
+                                                    lead.status === 'lost' ? 'text-red-400 border-red-500/30' :
+                                                    'text-zinc-500 border-zinc-800'
+                                                }`}
+                                            >
+                                                {statusOptions.slice(1).map(s => (
+                                                    <option key={s} value={s.toLowerCase()} className="bg-zinc-900 text-zinc-300">{s.replace("_", "-")}</option>
+                                                ))}
+                                            </select>
+                                            <span className="text-[10px] text-zinc-500 whitespace-nowrap">
+                                                {new Date(lead.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
                                     </td>
 
                                     <td className="p-3">
@@ -355,15 +389,12 @@ const LeadsPage = () => {
                                             <button
                                                 className="text-zinc-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-white transition-colors"
                                                 title="View Details"
-                                                onClick={() => {
-                                                    setViewingLead(lead);
-                                                    setIsViewModalOpen(true);
-                                                }}
+                                                onClick={() => navigate(`/leads/${lead._id}`)}
                                             >
                                                 <FiEye size={14} />
                                             </button>
                                             <button
-                                                className="text-blue-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-blue-300 transition-colors"
+                                                className="text-yellow-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-yellow-300 transition-colors"
                                                 title="Edit Lead"
                                                 onClick={() => {
                                                     setEditingLead(lead);
@@ -434,14 +465,12 @@ const LeadsPage = () => {
                 />
             )}
 
-            {isViewModalOpen && (
-                <ViewLeadModal
-                    isOpen={isViewModalOpen}
-                    onClose={() => {
-                        setIsViewModalOpen(false);
-                        setViewingLead(null);
-                    }}
-                    lead={viewingLead}
+            {isMarkLostModalOpen && (
+                <MarkLostModal
+                    isOpen={isMarkLostModalOpen}
+                    onClose={() => setIsMarkLostModalOpen(false)}
+                    lead={leadToMarkLost}
+                    onStatusUpdated={handleMarkLostSuccess}
                 />
             )}
         </AppLayout>

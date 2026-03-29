@@ -1,5 +1,5 @@
 function render(data = {}, env = {}) {
-    const appName = env.appName || 'LeadReal';
+    const appName = env.appName || 'AlgoTwist';
     const title = 'New lead assigned';
     const preheader = 'You have a new lead.';
 

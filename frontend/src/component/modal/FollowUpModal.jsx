@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FiX, FiCalendar, FiClock, FiSmartphone, FiMail, FiTarget, FiDollarSign, FiShare2 } from "react-icons/fi";
 import { useSetFollowUp, useCompleteFollowUp } from "../../hooks/useLeadHooks";
 
@@ -15,11 +15,30 @@ const FOLLOWUP_PRESETS = [
 
 const PRESET_LABELS = FOLLOWUP_PRESETS.map(p => p.label);
 
+const toLocalDate = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const toLocalTime = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
+    const dateInputRef = useRef(null);
+    const timeInputRef = useRef(null);
     const [formData, setFormData] = useState({
         remarks: "",
         followUpPreset: "",
-        followUpDate: "",
+        date: "",
+        time: "",
         status: "Pending",
         isCustomFollowUp: false
     });
@@ -30,18 +49,18 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
     useEffect(() => {
         if (lead && isOpen) {
             queueMicrotask(() => {
-                let dateStr = "";
+                let dStr = "";
+                let tStr = "";
                 if (lead.next_follow_up_date) {
-                    const d = new Date(lead.next_follow_up_date);
-                    if (!isNaN(d.getTime())) {
-                        dateStr = d.toISOString().split('T')[0];
-                    }
+                    dStr = toLocalDate(lead.next_follow_up_date);
+                    tStr = toLocalTime(lead.next_follow_up_date);
                 }
 
                 setFormData({
                     remarks: lead.remarks || "",
                     followUpPreset: "",
-                    followUpDate: dateStr,
+                    date: dStr,
+                    time: tStr,
                     status: (lead.follow_up_status || "Pending").charAt(0).toUpperCase() + (lead.follow_up_status || "Pending").slice(1),
                     isCustomFollowUp: false
                 });
@@ -64,12 +83,16 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
 
         const date = new Date();
         date.setDate(date.getDate() + preset.value);
-        const dateString = date.toISOString().split('T')[0];
+        const dStr = toLocalDate(date);
+        
+        // If time is not set, default to 10:00 AM
+        const tStr = formData.time || "10:00";
 
         setFormData(prev => ({
             ...prev,
             followUpPreset: presetLabel,
-            followUpDate: dateString,
+            date: dStr,
+            time: tStr,
             isCustomFollowUp: false
         }));
     };
@@ -91,8 +114,10 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                 }
             });
         } else {
-            if (formData.followUpDate) {
-                payload.next_follow_up_date = new Date(formData.followUpDate).toISOString();
+            if (formData.date && formData.time) {
+                payload.next_follow_up_date = new Date(`${formData.date}T${formData.time}`).toISOString();
+            } else if (formData.date) {
+                payload.next_follow_up_date = new Date(formData.date).toISOString();
             }
             payload.follow_up_status = "pending";
 
@@ -187,6 +212,28 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                                     </div>
                                 </div>
                             </div>
+
+                            <div className="space-y-4">
+                                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest block">Timeline & Schedule</label>
+                                
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <FiCalendar className="text-zinc-100" size={14} />
+                                        <div>
+                                            <p className="text-[10px] text-zinc-500 uppercase tracking-tight">Lead Created At</p>
+                                            <p className="text-xs text-zinc-300 font-medium">{new Date(lead.createdAt).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <FiClock className="text-zinc-100" size={14} />
+                                        <div>
+                                            <p className="text-[10px] text-zinc-500 uppercase tracking-tight">Active Follow-up</p>
+                                            <p className="text-xs text-yellow-400 font-semibold">{lead.next_follow_up_date ? new Date(lead.next_follow_up_date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : "Not Scheduled"}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Right Pane: Form (3/5) */}
@@ -221,7 +268,7 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                                     {formData.status === "Pending" && (
                                         <div className="space-y-2">
                                             <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest block">Schedule Next Follow-up</label>
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                                 <select
                                                     value={formData.followUpPreset || "Custom"}
                                                     onChange={(e) => handleFollowUpPreset(e.target.value)}
@@ -233,18 +280,45 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                                                 </select>
 
                                                 <div className="relative">
-                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-600">
+                                                    <div 
+                                                        onClick={() => {
+                                                            if (!(!formData.isCustomFollowUp && formData.followUpPreset !== 'Custom') && dateInputRef.current) {
+                                                                if (typeof dateInputRef.current.showPicker === 'function') dateInputRef.current.showPicker();
+                                                                else dateInputRef.current.click();
+                                                            }
+                                                        }}
+                                                        className={`absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-100 ${!formData.isCustomFollowUp && formData.followUpPreset !== 'Custom' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                                                    >
                                                         <FiCalendar size={14} />
                                                     </div>
                                                     <input
+                                                        ref={dateInputRef}
                                                         type="date"
-                                                        value={formData.followUpDate}
-                                                        onChange={(e) => setFormData(prev => ({ ...prev, followUpDate: e.target.value, followUpPreset: 'Custom', isCustomFollowUp: true }))}
+                                                        value={formData.date}
                                                         readOnly={!formData.isCustomFollowUp && formData.followUpPreset !== 'Custom'}
-                                                        className={`w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded pl-10 pr-3 py-3 focus:outline-none ${formData.isCustomFollowUp || formData.followUpPreset === 'Custom'
-                                                                ? "focus:border-zinc-700 cursor-text"
-                                                                : "opacity-60 cursor-not-allowed"
-                                                            }`}
+                                                        onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value, followUpPreset: 'Custom', isCustomFollowUp: true }))}
+                                                        className={`w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded pl-10 pr-3 py-3 focus:outline-none ${!formData.isCustomFollowUp && formData.followUpPreset !== 'Custom' ? 'opacity-60 cursor-not-allowed' : 'focus:border-zinc-700 cursor-text'}`}
+                                                    />
+                                                </div>
+
+                                                <div className="relative">
+                                                    <div 
+                                                        onClick={() => {
+                                                            if (timeInputRef.current) {
+                                                                if (typeof timeInputRef.current.showPicker === 'function') timeInputRef.current.showPicker();
+                                                                else timeInputRef.current.click();
+                                                            }
+                                                        }}
+                                                        className="absolute inset-y-0 left-0 pl-3 flex items-center cursor-pointer text-zinc-100"
+                                                    >
+                                                        <FiClock size={14} />
+                                                    </div>
+                                                    <input
+                                                        ref={timeInputRef}
+                                                        type="time"
+                                                        value={formData.time}
+                                                        onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                                                        className="w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded pl-10 pr-3 py-3 focus:outline-none focus:border-zinc-700 cursor-text"
                                                     />
                                                 </div>
                                             </div>
@@ -264,7 +338,7 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                                     <button
                                         type="submit"
                                         disabled={setFollowUpMutation.isPending || completeFollowUpMutation.isPending}
-                                        className="px-6 py-2.5 rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
+                                        className="px-6 py-2.5 rounded bg-yellow-600 text-sm font-medium text-white hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
                                     >
                                         {setFollowUpMutation.isPending || completeFollowUpMutation.isPending ? "Syncing..." : "Update Feedback"}
                                     </button>

@@ -5,7 +5,7 @@ export const PremiumTabs = ({
     options, 
     value, 
     onChange, 
-    variant = "blue", // blue, emerald, indigo, priority
+    variant = "yellow", // yellow, emerald, indigo, priority
     showLabel = true
 }) => {
     const getActiveStyles = (opt) => {
@@ -19,9 +19,9 @@ export const PremiumTabs = ({
             case "priority":
                 if (opt === "High") return "bg-red-500 text-white shadow-lg shadow-red-500/20";
                 if (opt === "Medium") return "bg-yellow-500 text-black shadow-lg shadow-yellow-500/20";
-                return "bg-blue-600 text-white shadow-lg shadow-blue-600/20";
-            default: // blue
-                return "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-[1.02]";
+                return "bg-yellow-600 text-white shadow-lg shadow-yellow-600/20";
+            default: // yellow
+                return "bg-yellow-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-[1.02]";
         }
     };
 

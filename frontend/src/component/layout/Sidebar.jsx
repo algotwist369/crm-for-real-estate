@@ -46,9 +46,8 @@ const Sidebar = ({ collapsed, mobileOpen }) => {
 
                 {/* Logo Area */}
                 <div className="h-16 flex items-center px-6 border-b border-zinc-800 mb-6">
-                    <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">LR</div>
                     {!collapsed && (
-                        <span className="ml-3 text-sm font-semibold text-white tracking-widest uppercase">LeadReal</span>
+                        <span className="ml-3 text-sm font-semibold text-white tracking-widest uppercase">AlgoTwist CRM</span>
                     )}
                 </div>
 
@@ -61,7 +60,7 @@ const Sidebar = ({ collapsed, mobileOpen }) => {
                             className={({ isActive }) => `
                                 flex items-center gap-3 px-3 py-2 rounded transition-all duration-200 group
                                 ${isActive
-                                    ? "bg-zinc-900 border border-zinc-800 text-blue-400 font-medium"
+                                    ? "bg-zinc-900 border border-zinc-800 text-yellow-400 font-medium"
                                     : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50"}
                             `}
                         >
@@ -75,7 +74,7 @@ const Sidebar = ({ collapsed, mobileOpen }) => {
                             
                             {/* Active Indicator on right */}
                             {!collapsed && (
-                                <div className={`ml-auto w-1 h-1 rounded-full bg-blue-500 opacity-0 group-[.active]:opacity-100 transition-opacity`}></div>
+                                <div className={`ml-auto w-1 h-1 rounded-full bg-yellow-500 opacity-0 group-[.active]:opacity-100 transition-opacity`}></div>
                             )}
                         </NavLink>
                     ))}
@@ -89,7 +88,7 @@ const Sidebar = ({ collapsed, mobileOpen }) => {
                                 Version 1.2.4-stable
                             </p>
                             <p className="text-[9px] text-zinc-700 font-medium">
-                                © {new Date().getFullYear()} LeadReal CRM
+                                © {new Date().getFullYear()} AlgoTwist CRM
                             </p>
                         </div>
                     ) : (

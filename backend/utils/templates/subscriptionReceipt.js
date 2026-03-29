@@ -1,7 +1,7 @@
 const { htmlLayout, paragraphHtml, buttonHtml, escapeHtml, formatMoney } = require('./shared');
 
 function render(data = {}, env = {}) {
-    const appName = env.appName || 'LeadReal';
+    const appName = env.appName || 'AlgoTwist';
     const title = 'Payment received';
     const preheader = 'Your subscription payment was received.';
 

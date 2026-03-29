@@ -110,7 +110,7 @@ const Agents = () => {
                     <RefreshButton onClick={handleRefresh} isRefreshing={isLoading} />
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded flex items-center gap-2 transition-colors"
+                        className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded flex items-center gap-2 transition-colors"
                     >
                         <FiUser size={16} /> Add Agent
                     </button>
@@ -193,7 +193,6 @@ const Agents = () => {
                                     <td className="p-3">
                                         <div className="flex flex-col gap-1.5">
                                             <div className="flex items-center gap-2">
-                                                <span>+{details.phone_number}</span>
                                                 <CopyButton text={details.phone_number} />
                                             </div>
                                             <span className="text-xs text-zinc-500 truncate max-w-[140px]" title={details.email}>{details.email}</span>
@@ -215,7 +214,7 @@ const Agents = () => {
                                                 checked={agent.is_active}
                                                 onChange={() => toggleStatus(agent._id, agent.is_active)}
                                             />
-                                            <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:border-gray-500 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 peer-checked:after:bg-white peer-checked:after:border-transparent"></div>
+                                            <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:border-gray-500 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-yellow-600 peer-checked:after:bg-white peer-checked:after:border-transparent"></div>
                                         </label>
                                     </td>
 
@@ -247,7 +246,7 @@ const Agents = () => {
                                                 <FiMessageSquare size={14} />
                                             </button>
                                             <button
-                                                className="text-blue-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-blue-300 transition-colors"
+                                                className="text-yellow-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-yellow-300 transition-colors"
                                                 onClick={() => {
                                                     setEditingAgent(agent);
                                                     setIsEditModalOpen(true);
@@ -329,7 +328,7 @@ const Agents = () => {
                                 </div>
                                 <div className="border border-zinc-800 bg-zinc-950/20 p-4 rounded">
                                     <p className="text-xs text-zinc-500 mb-1">Security PIN</p>
-                                    <p className="text-sm font-mono text-blue-400 font-bold">{selectedAgent.agent_pin}</p>
+                                    <p className="text-sm font-mono text-yellow-400 font-bold">{selectedAgent.agent_pin}</p>
                                 </div>
                                 <div className="border border-zinc-800 bg-zinc-950/20 p-4 rounded">
                                     <p className="text-xs text-zinc-500 mb-1">System ID</p>
@@ -344,7 +343,7 @@ const Agents = () => {
                                     <p className="text-xs text-zinc-500">Total Leads</p>
                                 </div>
                                 <div className="border border-zinc-800 bg-zinc-900/30 p-4 rounded text-center">
-                                    <p className="text-xl font-medium text-blue-400 mb-1">{selectedAgent.total_follow_ups || 0}</p>
+                                    <p className="text-xl font-medium text-yellow-400 mb-1">{selectedAgent.total_follow_ups || 0}</p>
                                     <p className="text-xs text-zinc-500">Follow-ups</p>
                                 </div>
                                 <div className="border border-zinc-800 bg-zinc-900/30 p-4 rounded text-center">

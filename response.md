@@ -1,89 +1,199 @@
-{
-    "success": true,
-    "data": [
-        {
-            "_id": "69c3c03229d6d98b0ed79c93",
-            "agent_details": {
-                "_id": "69c3c03229d6d98b0ed79c91",
-                "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774438193/leadmanager_profiles/eqodse9lbiavh8vjglq6.jpg",
-                "user_name": "Testing agen1",
-                "email": "testing@gmail.com",
-                "phone_number": "9632587412",
-                "role": "agent",
-                "is_active": true
+   ///////////////////////////===> CURRENT LEAD RESPONE <===/////////////////////////
+   
+   {
+            "utm": {
+                "source": "",
+                "medium": "",
+                "campaign": "",
+                "term": "",
+                "content": ""
             },
-            "agent_role": "Sales",
-            "agent_pin": 9632,
-            "assigned_projects": [],
-            "total_leads": 0,
-            "total_converted_leads": 0,
-            "total_lost_leads": 0,
-            "total_qualified_leads": 0,
-            "total_follow_ups": 0,
-            "total_wasted_leads": 0,
-            "total_pending_leads": 0,
-            "remark": "this is testing remakr",
-            "is_active": true,
-            "createdAt": "2026-03-25T11:00:02.999Z",
-            "updatedAt": "2026-03-27T10:49:58.466Z",
-            "__v": 0,
-            "assigned_properties": [
+            "_id": "69c7e03c7630d90e99c5c881",
+            "name": "AlgoTwist",
+            "email": "info.algotwist@gmail.com",
+            "phone": "07388480128",
+            "requirement": "1BHK Flat",
+            "budget": "₹2Cr - ₹5Cr",
+            "currency": "₹",
+            "budget_min": 20000000,
+            "budget_max": 50000000,
+            "inquiry_for": "Buying",
+            "client_type": "buying",
+            "source": "website",
+            "properties": [
                 {
-                    "_id": "69c28942c3a9a1f33c19803d",
+                    "property_location": {
+                        "line1": "",
+                        "line2": "",
+                        "city": "",
+                        "state": "",
+                        "postal_code": "",
+                        "landmark": "",
+                        "country": "India"
+                    },
+                    "_id": "69c7b9b4f54c31192f80aeb3",
                     "property_title": "Luxury 2BHK Apartment in Downtown Dubai",
-                    "listing_type": "rent",
-                    "property_status": "available"
+                    "property_type": "apartment",
+                    "listing_type": "sale",
+                    "asking_price": 125000,
+                    "currency": "AED",
+                    "price_negotiable": true,
+                    "assign_agent": [
+                        "69c7b98ef54c31192f80aea2",
+                        "69c7b915f54c31192f80ae73"
+                    ],
+                    "property_status": "available",
+                    "property_address": "",
+                    "area_unit": "sqft",
+                    "property_description": "This is the testing properties",
+                    "furnished_status": "unfurnished",
+                    "amenities": [],
+                    "photos": [],
+                    "documents": [],
+                    "created_by": "69c7b893c475a58e3518f62d",
+                    "updated_by": "69c7b893c475a58e3518f62d",
+                    "is_active": true,
+                    "tenant_id": "69c7b893c475a58e3518f62d",
+                    "createdAt": "2026-03-28T11:21:24.743Z",
+                    "updatedAt": "2026-03-28T11:22:41.080Z",
+                    "__v": 1
                 }
             ],
-            "tenant_id": "69c27287a6d1e2adb3e69a3f"
-        },
-        {
-            "_id": "69c276f88a1feb805d0de5ca",
-            "agent_details": {
-                "_id": "69c276f88a1feb805d0de5c8",
-                "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774438209/leadmanager_profiles/rcf95rchhl2pvhoymchk.jpg",
-                "user_name": "Agent1",
-                "email": "agemtmale@gmail.com",
-                "phone_number": "9632587410",
+            "priority": "medium",
+            "status": "follow_up",
+            "follow_up_status": "pending",
+            "followed_by": {
+                "_id": "69c7b98ef54c31192f80aea0",
+                "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774696846/leadmanager_profiles/smkxnnsaqnbg8kxtygqn.png",
+                "user_name": "Bimal Kumar",
+                "email": "bkbimal250@gmail.com",
+                "phone_number": "9116458453",
                 "role": "agent",
                 "is_active": true
             },
-            "agent_role": "agent role",
-            "agent_pin": 1478,
-            "assigned_projects": [],
-            "total_leads": 0,
-            "total_converted_leads": 0,
-            "total_lost_leads": 0,
-            "total_qualified_leads": 0,
-            "total_follow_ups": 0,
-            "total_wasted_leads": 0,
-            "total_pending_leads": 0,
-            "remark": "",
-            "is_active": true,
-            "createdAt": "2026-03-24T11:35:20.728Z",
-            "updatedAt": "2026-03-27T10:55:30.003Z",
-            "__v": 0,
-            "assigned_properties": [
+            "lost_reason": "",
+            "remarks": "",
+            "assigned_to": [
                 {
-                    "_id": "69c28942c3a9a1f33c19803d",
-                    "property_title": "Luxury 2BHK Apartment in Downtown Dubai",
-                    "listing_type": "rent",
-                    "property_status": "available"
+                    "_id": "69c7b915f54c31192f80ae71",
+                    "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774696723/leadmanager_profiles/qfl5pcxzfbf3ugcohvqr.jpg",
+                    "user_name": "Fatima",
+                    "email": "info.algotwist@gmail.com",
+                    "phone_number": "9876543210",
+                    "role": "agent",
+                    "is_active": true
                 },
                 {
-                    "_id": "69c28895c3a9a1f33c198029",
-                    "property_title": "Luxury 3BHK Sea View Apartment",
-                    "listing_type": "sale",
-                    "property_status": "available"
+                    "_id": "69c7b98ef54c31192f80aea0",
+                    "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774696846/leadmanager_profiles/smkxnnsaqnbg8kxtygqn.png",
+                    "user_name": "Bimal Kumar",
+                    "email": "bkbimal250@gmail.com",
+                    "phone_number": "9116458453",
+                    "role": "agent",
+                    "is_active": true
                 }
             ],
-            "tenant_id": "69c27287a6d1e2adb3e69a3f"
-        }
-    ],
-    "pagination": {
-        "page": 1,
-        "limit": 10,
-        "total": 2,
-        "pages": 1
-    }
-}
+            "created_by": {
+                "_id": "69c7b915f54c31192f80ae71",
+                "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774696723/leadmanager_profiles/qfl5pcxzfbf3ugcohvqr.jpg",
+                "user_name": "Fatima",
+                "email": "info.algotwist@gmail.com",
+                "phone_number": "9876543210",
+                "role": "agent"
+            },
+            "updated_by": {
+                "_id": "69c7b98ef54c31192f80aea0",
+                "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774696846/leadmanager_profiles/smkxnnsaqnbg8kxtygqn.png",
+                "user_name": "Bimal Kumar",
+                "email": "bkbimal250@gmail.com",
+                "phone_number": "9116458453",
+                "role": "agent"
+            },
+            "tags": [],
+            "notes": "",
+            "is_active": true,
+            "tenant_id": "69c7b893c475a58e3518f62d",
+            "createdAt": "2026-03-28T14:05:48.394Z",
+            "updatedAt": "2026-03-29T08:21:18.445Z",
+            "__v": 0,
+            "next_follow_up_date": "2026-03-29T09:30:00.000Z",
+            "last_contacted_at": "2026-03-29T07:53:21.996Z"
+        },
+
+///////////////////////////===> I WANT LEAD RESPONE <===/////////////////////////
+   
+   {
+            "_id": "69c7e03c7630d90e99c5c881",
+            "name": "AlgoTwist",
+            "email": "info.algotwist@gmail.com",
+            "phone": "07388480128",
+            "requirement": "1BHK Flat",
+            "budget": "₹2Cr - ₹5Cr",
+            "currency": "₹",
+            "budget_min": 20000000,
+            "budget_max": 50000000,
+            "inquiry_for": "Buying",
+            "client_type": "buying",
+            "source": "website",
+            "properties": [
+                {
+                   
+                    "_id": "69c7b9b4f54c31192f80aeb3",
+                    "property_title": "Luxury 2BHK Apartment in Downtown Dubai",
+                    "property_type": "apartment",
+                    "asking_price": 125000,
+                    "currency": "AED",
+                    "property_status": "available",
+                    "property_address": "",
+                }
+            ],
+            "priority": "medium",
+            "status": "follow_up",
+            "follow_up_status": "pending",
+            "followed_by": {
+                "_id": "69c7b98ef54c31192f80aea0",
+                "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774696846/leadmanager_profiles/smkxnnsaqnbg8kxtygqn.png",
+                "user_name": "Bimal Kumar",
+            },
+            "lost_reason": "",
+            "remarks": "",
+            "assigned_to": [
+                {
+                    "_id": "69c7b915f54c31192f80ae71",
+                    "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774696723/leadmanager_profiles/qfl5pcxzfbf3ugcohvqr.jpg",
+                    "user_name": "Fatima",
+                },
+                {
+                    "_id": "69c7b98ef54c31192f80aea0",
+                    "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774696846/leadmanager_profiles/smkxnnsaqnbg8kxtygqn.png",
+                    "user_name": "Bimal Kumar",
+                }
+            ],
+            "created_by": {
+                "_id": "69c7b915f54c31192f80ae71",
+                "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774696723/leadmanager_profiles/qfl5pcxzfbf3ugcohvqr.jpg",
+                "user_name": "Fatima",
+                "email": "info.algotwist@gmail.com",
+                "phone_number": "9876543210",
+                "role": "agent"
+            },
+            "updated_by": {
+                "_id": "69c7b98ef54c31192f80aea0",
+                "profile_pic": "https://res.cloudinary.com/dcm79v527/image/upload/v1774696846/leadmanager_profiles/smkxnnsaqnbg8kxtygqn.png",
+                "user_name": "Bimal Kumar",
+                "email": "bkbimal250@gmail.com",
+                "phone_number": "9116458453",
+                "role": "agent"
+            },
+            "tags": [],
+            "notes": "",
+            "is_active": true,
+            "tenant_id": "69c7b893c475a58e3518f62d",
+            "createdAt": "2026-03-28T14:05:48.394Z",
+            "updatedAt": "2026-03-29T08:21:18.445Z",
+            "__v": 0,
+            "next_follow_up_date": "2026-03-29T09:30:00.000Z",
+            "last_contacted_at": "2026-03-29T07:53:21.996Z"
+        },
+
+        And without breaking anything also create one more page so that admin or agent can see the full lead details /leads/lead_id and remove the leadmodel and make a lead detals page and show the full updated response with same UI

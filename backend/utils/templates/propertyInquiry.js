@@ -1,7 +1,7 @@
 const { htmlLayout, paragraphHtml, buttonHtml, escapeHtml, formatMoney } = require('./shared');
 
 function render(data = {}, env = {}) {
-    const appName = env.appName || 'LeadReal';
+    const appName = env.appName || 'AlgoTwist';
     const title = 'New property inquiry';
     const preheader = 'A customer is interested in a property.';
 

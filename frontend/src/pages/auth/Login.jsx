@@ -63,8 +63,8 @@ const Login = () => {
             <div className="w-full max-w-md">
                 {/* Logo Area */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded bg-blue-600 text-white font-bold text-xl mb-4 shadow-lg shadow-blue-500/20">LR</div>
-                    <h1 className="text-xl font-medium text-white tracking-tight">LeadReal CRM</h1>
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded bg-yellow-600 text-white font-bold text-xl mb-4 shadow-lg shadow-yellow-500/20">LR</div>
+                    <h1 className="text-xl font-medium text-white tracking-tight">AlgoTwist CRM</h1>
                 </div>
 
                 <div className="bg-zinc-950 border border-zinc-800 rounded overflow-hidden shadow-2xl">
@@ -73,7 +73,7 @@ const Login = () => {
                         <button
                             onClick={() => { setLoginRole("admin"); setError(null); }}
                             className={`flex-1 flex items-center justify-center gap-2 py-4 text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${loginRole === "admin" 
-                                ? "text-blue-500 bg-transparent border-b-2 border-blue-500" 
+                                ? "text-yellow-500 bg-transparent border-b-2 border-yellow-500" 
                                 : "text-zinc-500 hover:text-zinc-300 bg-transparent"}`}
                         >
                             <FiShield size={14} />
@@ -82,7 +82,7 @@ const Login = () => {
                         <button
                             onClick={() => { setLoginRole("agent"); setError(null); }}
                             className={`flex-1 flex items-center justify-center gap-2 py-4 text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${loginRole === "agent" 
-                                ? "text-blue-500 bg-transparent border-b-2 border-blue-500" 
+                                ? "text-yellow-500 bg-transparent border-b-2 border-yellow-500" 
                                 : "text-zinc-500 hover:text-zinc-300 bg-transparent"}`}
                         >
                             <FiUsers size={14} />
@@ -145,7 +145,7 @@ const Login = () => {
 
                             <div className="flex items-center justify-between">
                                 <label className="flex items-center gap-2 cursor-pointer group">
-                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${remember ? 'bg-blue-600 border-blue-600 text-white' : 'bg-zinc-900 border-zinc-800 group-hover:border-zinc-700'}`}>
+                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${remember ? 'bg-yellow-600 border-yellow-600 text-white' : 'bg-zinc-900 border-zinc-800 group-hover:border-zinc-700'}`}>
                                         {remember && <FiCheck size={12} strokeWidth={4} />}
                                     </div>
                                     <input
@@ -157,7 +157,7 @@ const Login = () => {
                                     <span className="text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors">Keep me signed in</span>
                                 </label>
                                 {loginRole === "admin" && (
-                                    <Link to="/forgot-password" px-2 className="text-xs text-blue-500 hover:text-blue-400 font-medium">
+                                    <Link to="/forgot-password" px-2 className="text-xs text-yellow-500 hover:text-yellow-400 font-medium">
                                         Forgot?
                                     </Link>
                                 )}
@@ -166,7 +166,7 @@ const Login = () => {
                             <button
                                 type="submit"
                                 disabled={isPending}
-                                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/10"
+                                className="w-full py-3 px-4 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-semibold rounded transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-yellow-500/10"
                             >
                                 {isPending ? "Validating..." : `Sign In as ${loginRole === "admin" ? "Admin" : "Agent"}`}
                             </button>
@@ -175,7 +175,7 @@ const Login = () => {
                                 <div className="text-center pt-2">
                                     <p className="text-xs text-zinc-500">
                                         New to the platform?{" "}
-                                        <Link to="/register" className="text-blue-500 hover:text-blue-400 font-semibold">
+                                        <Link to="/register" className="text-yellow-500 hover:text-yellow-400 font-semibold">
                                             Create Admin Account
                                         </Link>
                                     </p>

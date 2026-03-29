@@ -101,7 +101,7 @@ const PropertiesPage = () => {
                     <RefreshButton onClick={handleRefresh} isRefreshing={isFetching} />
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded flex items-center gap-2 transition-colors"
+                        className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded flex items-center gap-2 transition-colors"
                     >
                         <FiPlus size={16} /> Add Property
                     </button>
@@ -270,7 +270,7 @@ const PropertiesPage = () => {
                                                 <FiEye size={14} />
                                             </button>
                                             <button
-                                                className="text-blue-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-blue-300 transition-colors"
+                                                className="text-yellow-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-yellow-300 transition-colors"
                                                 onClick={() => {
                                                     setEditingProperty(prop);
                                                     setIsEditModalOpen(true);

@@ -274,7 +274,7 @@ const EditLeadModal = ({ isOpen, onClose, onUpdate, lead }) => {
                                     <button
                                         type="button"
                                         onClick={() => setFormData(prev => ({ ...prev, isCustomBudget: !prev.isCustomBudget, budget: "" }))}
-                                        className="text-[10px] text-blue-400 hover:text-blue-300"
+                                        className="text-[10px] text-yellow-400 hover:text-yellow-300"
                                     >
                                         {formData.isCustomBudget ? "Use Dropdown" : "Custom Budget"}
                                     </button>
@@ -405,7 +405,7 @@ const EditLeadModal = ({ isOpen, onClose, onUpdate, lead }) => {
                         <button
                             type="submit"
                             disabled={updateLeadMutation.isPending}
-                            className="px-4 py-2 rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 rounded bg-yellow-600 text-sm font-medium text-white hover:bg-yellow-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {updateLeadMutation.isPending ? "Saving changes..." : "Save changes"}
                         </button>
