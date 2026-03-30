@@ -14,14 +14,12 @@ import SettingsPage from "./pages/SettingsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import PropertyDetailsPage from "./pages/PropertyDetailsPage";
 import LeadDetailsPage from "./pages/LeadDetailsPage";
-import { Toaster } from "react-hot-toast";
 
 const App = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
-          <Toaster />
           <Routes>
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />

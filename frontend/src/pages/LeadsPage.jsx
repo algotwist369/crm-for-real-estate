@@ -2,11 +2,9 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../component/layout/AppLayout";
 import {
-   
     FiEdit,
     FiTrash2,
     FiEye,
-    
     FiMessageSquare,
     FiTrendingUp,
   
@@ -17,6 +15,7 @@ import { SearchFilter } from "../component/common/SearchFilter";
 import { Pagination } from "../component/common/Pagination";
 import { RefreshButton } from "../component/common/RefreshButton";
 import AddLeadModal from "../component/modal/AddLeadModal";
+import EditLeadModal from "../component/modal/EditLeadModal";
 import FollowUpModal from "../component/modal/FollowUpModal";
 import MarkLostModal from "../component/modal/MarkLostModal";
 import { useLeads, useUpdateLead, useAgentDashboardSummary } from "../hooks/useLeadHooks";
