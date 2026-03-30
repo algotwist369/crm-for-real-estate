@@ -57,7 +57,7 @@ async function resolveProfilePicForUser(req, userId) {
 
         const uploaded = await uploadImage(
             buffer ? { buffer } : filePath ? { filePath } : isDataUri(nextProfilePic) ? { dataUri: nextProfilePic } : { base64: nextProfilePicBase64, mimeType: nextProfilePicMimeType },
-            { folder: process.env.CLOUDINARY_PROFILE_FOLDER || 'lead_real/profile_pics', tags: ['profile_pic', String(userId)], resourceType: 'image' }
+            { folder: process.env.CLOUDINARY_PROFILE_FOLDER || 'profile_pics', tags: ['profile_pic', String(userId)], resourceType: 'image' }
         );
 
         return uploaded.secureUrl || uploaded.url || '';

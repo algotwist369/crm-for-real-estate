@@ -39,6 +39,14 @@ function errorHandler(err, req, res, next) {
     const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
     const message = normalized?.message || err?.message || 'Server error';
 
+    // Always log 500-level errors to the terminal so the real cause is visible
+    if (statusCode >= 500) {
+        const errMsg = err?.message || String(err) || 'Unknown error';
+        const errStack = err?.stack || `No stack. Type: ${typeof err}. Message: ${errMsg}`;
+        console.error(`[SERVER ERROR] ${req.method} ${req.originalUrl} - ${errMsg}`);
+        console.error(errStack);
+    }
+
     const payload = {
         success: false,
         message: statusCode >= 500 && isProd ? 'Internal server error' : message

@@ -3,3 +3,5 @@ dist/
 .env
 __tests__
 backend.integration.test.js
+scripts/
+test-doc.js

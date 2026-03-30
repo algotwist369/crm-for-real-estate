@@ -1,8 +1,9 @@
+const mongoose = require('mongoose');
 const Properties = require('../model/properties.model');
 const User = require('../model/user.model');
 const Agent = require('../model/agent.model');
 const { verifyToken } = require('../utils/generateToken');
-const { uploadImage } = require('../utils/uploadImage');
+const { uploadImage, deleteImage, deleteMultipleImages } = require('../utils/uploadImage');
 const { sendMail } = require('../utils/sendMail');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
@@ -15,6 +16,21 @@ const {
 function uniqueStrings(values) {
     const set = new Set(values.filter(Boolean).map(v => String(v).trim()).filter(Boolean));
     return Array.from(set);
+}
+
+function normalizeAgentIds(input) {
+    if (!input) return [];
+    let ids = [];
+    if (Array.isArray(input)) {
+        ids = input;
+    } else if (typeof input === 'string') {
+        ids = input.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+        ids = [input];
+    }
+    return ids
+        .filter(id => mongoose.Types.ObjectId.isValid(String(id)))
+        .map(id => new mongoose.Types.ObjectId(String(id)));
 }
 
 const { notifyUsersOnNewProperty } = require('../services/notification.service');
@@ -143,16 +159,21 @@ function isProbablyUrl(value) {
 
 async function resolvePhotoUrls(req, { folder, tags } = {}) {
     const uploadedUrls = [];
-
     const photoFiles = pickFiles(req, 'photos').concat(pickFiles(req, 'photo'));
+    
     for (const file of photoFiles) {
         if (!file) continue;
-        const uploaded = await uploadImage(
-            file.buffer ? { buffer: file.buffer } : { filePath: file.path },
-            { folder: folder || process.env.CLOUDINARY_PROPERTY_FOLDER || 'lead_real/properties', tags, resourceType: 'image' }
-        );
-        const url = uploaded.secureUrl || uploaded.url;
-        if (url) uploadedUrls.push(url);
+        try {
+            const uploaded = await uploadImage(
+                file.buffer ? { buffer: file.buffer } : { filePath: file.path },
+                { folder: folder || process.env.CLOUDINARY_PROPERTY_FOLDER || 'properties', tags, resourceType: 'image' }
+            );
+            const url = uploaded.secureUrl || uploaded.url;
+            if (url) uploadedUrls.push(url);
+        } catch (err) {
+            console.error(`❌ Upload failed for file ${file.originalname}:`, err.message);
+            throw err;
+        }
     }
 
     const photosBody = req.body?.photos;
@@ -162,7 +183,7 @@ async function resolvePhotoUrls(req, { folder, tags } = {}) {
             else if (isDataUri(p)) {
                 const uploaded = await uploadImage(
                     { dataUri: p },
-                    { folder: folder || process.env.CLOUDINARY_PROPERTY_FOLDER || 'lead_real/properties', tags, resourceType: 'image' }
+                    { folder: folder || process.env.CLOUDINARY_PROPERTY_FOLDER || 'properties', tags, resourceType: 'image' }
                 );
                 const url = uploaded.secureUrl || uploaded.url;
                 if (url) uploadedUrls.push(url);
@@ -189,9 +210,14 @@ async function resolvePhotoUrls(req, { folder, tags } = {}) {
         const mimeType = req.body?.photos_mimeType || req.body?.mimeType;
         for (const b64 of base64List) {
             if (!b64) continue;
+            const rawB64 = String(b64).trim();
+            const uploadPayload = rawB64.startsWith('data:') 
+                ? { dataUri: rawB64 } 
+                : { base64: rawB64, mimeType };
+
             const uploaded = await uploadImage(
-                { base64: String(b64).trim(), mimeType },
-                { folder: folder || process.env.CLOUDINARY_PROPERTY_FOLDER || 'lead_real/properties', tags, resourceType: 'image' }
+                uploadPayload,
+                { folder: folder || process.env.CLOUDINARY_PROPERTY_FOLDER || 'properties', tags, resourceType: 'image' }
             );
             const url = uploaded.secureUrl || uploaded.url;
             if (url) uploadedUrls.push(url);
@@ -240,7 +266,7 @@ async function resolveDocumentUrls(req, { folder, tags } = {}) {
 
             const uploaded = await uploadImage(
                 uploadPayload,
-                { folder: folder || process.env.CLOUDINARY_PROPERTY_FOLDER || 'lead_real/properties_docs', tags, resourceType: 'auto' }
+                { folder: folder || process.env.CLOUDINARY_DOCS_FOLDER || 'properties_docs', tags, resourceType: 'auto' }
             );
             const url = uploaded.secureUrl || uploaded.url;
             if (url) uploadedDocs.push({ name: String(docObj.name || '').trim(), value: url });
@@ -515,15 +541,41 @@ const update_property = wrapAsync(async (req, res) => {
     const oldAgents = (property.assign_agent || []).map(a => String(a._id || a));
     const newAgents = updates.assign_agent ? updates.assign_agent.map(a => String(a)) : oldAgents;
 
-    Object.assign(property, updates);
-    property.updated_by = user._id;
+    // Handle Slug Logic: Regenerate if title changes OR if slug is missing
+    const oldTitle = property.property_title;
+    const newTitle = updates.property_title;
+    const isTitleChanged = newTitle && newTitle !== oldTitle;
+    const isSlugMissing = !property.slug;
 
-    // Regenerate slug if title changed
-    if (updates.property_title && updates.property_title !== property.property_title) {
-        property.slug = await ensureUniqueSlug(updates.property_title, Properties, property._id);
+    if (isTitleChanged || isSlugMissing) {
+        updates.slug = await ensureUniqueSlug(newTitle || oldTitle, Properties, property._id);
     }
 
-    await property.save();
+    updates.updated_by = user._id;
+
+    // Deletion Logic for Removed Photos
+    if (updates.photos) {
+        const removedPhotos = (property.photos || []).filter(p => p && !updates.photos.includes(p));
+        if (removedPhotos.length) {
+            deleteMultipleImages(removedPhotos).catch(err => console.error('❌ Cloudinary photo cleanup failed:', err.message));
+        }
+    }
+
+    // Deletion Logic for Removed Documents
+    if (updates.documents) {
+        const oldDocUrls = (property.documents || []).map(d => d.value).filter(Boolean);
+        const newDocUrls = updates.documents.map(d => d.value).filter(Boolean);
+        const removedDocs = oldDocUrls.filter(d => !newDocUrls.includes(d));
+        if (removedDocs.length) {
+            deleteMultipleImages(removedDocs).catch(err => console.error('❌ Cloudinary doc cleanup failed:', err.message));
+        }
+    }
+
+    await Properties.findByIdAndUpdate(
+        property._id,
+        { $set: updates },
+        { runValidators: false }
+    );
 
     // Bidirectional assignment update
     if (updates.assign_agent) {
@@ -539,7 +591,7 @@ const update_property = wrapAsync(async (req, res) => {
     }
 
     const populated = await populatePropertyQuery(Properties.findById(property._id));
-    res.status(200).json({ success: true, message: 'Property updated successfully', data: populated, debug_documentUrls: documentUrls, debug_updates: updates });
+    res.status(200).json({ success: true, message: 'Property updated successfully', data: populated });
 });
 
 const update_property_status = wrapAsync(async (req, res) => {
@@ -606,10 +658,22 @@ const delete_property = wrapAsync(async (req, res) => {
         if (!assigned) throw httpError(403, 'Forbidden');
     }
 
+    // Deletion Logic for All Associated Resources
+    const allResources = [
+        ...(property.photos || []),
+        ...(property.documents || []).map(d => d.value)
+    ].filter(Boolean);
+    if (allResources.length) {
+        deleteMultipleImages(allResources).catch(err => console.error('❌ Cloudinary cleanup failed on property delete:', err.message));
+    }
+
     property.is_active = false;
     property.property_status = 'inactive';
     property.updated_by = user._id;
     await property.save();
+
+    // Clear photos and documents array from the record as well since they are deleted from Cloudinary
+    await Properties.updateOne({ _id: property._id }, { $set: { photos: [], documents: [] } });
 
     // Bidirectional assignment update
     if (property.assign_agent && property.assign_agent.length) {

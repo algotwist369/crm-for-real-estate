@@ -16,8 +16,8 @@ function createApp() {
     app.use(morgan('dev'))
     app.use(cookieParser());
 
-    app.use(express.json({ limit: '2mb' }));
-    app.use(express.urlencoded({ extended: true }));
+    app.use(express.json({ limit: '20mb' }));
+    app.use(express.urlencoded({ limit: '20mb', extended: true }));
 
     app.get('/health', (req, res) => res.status(200).json({ ok: true }));
     app.use('/api', apiRoutes);

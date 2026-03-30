@@ -3,7 +3,7 @@ const User = require('../model/user.model');
 const Agent = require('../model/agent.model');
 const TokenBlacklist = require('../model/tokenBlacklist.model');
 const { createAuthTokenFromUser, verifyToken } = require('../utils/generateToken');
-const { uploadImage } = require('../utils/uploadImage');
+const { uploadImage, deleteImage } = require('../utils/uploadImage');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
     httpError,
@@ -65,7 +65,7 @@ const register_admin = wrapAsync(async (req, res) => {
         try {
             const uploaded = await uploadImage(
                 buffer ? { buffer } : filePath ? { filePath } : isDataUri(nextProfilePic) ? { dataUri: nextProfilePic } : { base64: nextProfilePicBase64, mimeType: nextProfilePicMimeType },
-                { folder: process.env.CLOUDINARY_PROFILE_FOLDER || 'lead_real/profile_pics', tags: ['profile_pic', 'register'], resourceType: 'image' }
+                { folder: process.env.CLOUDINARY_PROFILE_FOLDER || 'profile_pics', tags: ['profile_pic', 'register'], resourceType: 'image' }
             );
             finalProfilePic = uploaded.secureUrl || uploaded.url || '';
         } catch (uploadErr) {
@@ -285,14 +285,22 @@ const update_admin_profile = wrapAsync(async (req, res) => {
 
         const uploaded = await uploadImage(
             buffer ? { buffer } : filePath ? { filePath } : isDataUri(nextProfilePic) ? { dataUri: nextProfilePic } : { base64: nextProfilePicBase64, mimeType: nextProfilePicMimeType },
-            { folder: process.env.CLOUDINARY_PROFILE_FOLDER || 'lead_real/profile_pics', tags: ['profile_pic', String(userId)], resourceType: 'image' }
+            { folder: process.env.CLOUDINARY_PROFILE_FOLDER || 'profile_pics', tags: ['profile_pic', String(userId)], resourceType: 'image' }
         );
+
+        if (user.profile_pic) {
+            deleteImage(user.profile_pic).catch(err => console.error('❌ Old profile pic cleanup failed:', err.message));
+        }
 
         updates.profile_pic = uploaded.secureUrl || uploaded.url || '';
     } else if (nextProfilePic !== undefined) {
         const pic = String(nextProfilePic || '').trim();
-        if (pic === '' || isProbablyUrl(pic)) updates.profile_pic = pic;
-        else details.push({ path: 'profile_pic', message: 'profile_pic must be a valid URL, data URI, base64 via profile_pic_base64, or a file upload' });
+        if (pic === '' || isProbablyUrl(pic)) {
+            if (user.profile_pic && user.profile_pic !== pic) {
+                 deleteImage(user.profile_pic).catch(err => console.error('❌ Old profile pic cleanup failed:', err.message));
+            }
+            updates.profile_pic = pic;
+        } else details.push({ path: 'profile_pic', message: 'profile_pic must be a valid URL, data URI, base64 via profile_pic_base64, or a file upload' });
     }
 
     if (nextEmailRaw !== undefined) {

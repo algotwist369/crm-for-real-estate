@@ -1,4 +1,5 @@
 const { v2: cloudinary } = require('cloudinary');
+require('dotenv').config();
 
 let isConfigured = false;
 
@@ -47,7 +48,13 @@ function uploadImageFromBuffer(buffer, options = {}) {
 
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
-            if (error) return reject(error);
+            if (error) {
+                // Cloudinary SDK returns a plain object, not an Error — normalize it
+                const err = new Error(error.message || `Cloudinary upload failed (HTTP ${error.http_code || 'unknown'})`);
+                err.statusCode = error.http_code || 500;
+                err.cloudinaryError = error;
+                return reject(err);
+            }
             resolve(result);
         });
         stream.end(buffer);
@@ -58,14 +65,26 @@ function uploadImageFromDataUri(dataUri, options = {}) {
     ensureConfigured();
     const str = String(dataUri || '').trim();
     if (!str) throw new Error('dataUri is required');
-    return cloudinary.uploader.upload(str, normalizeUploadOptions(options));
+    return cloudinary.uploader.upload(str, normalizeUploadOptions(options))
+        .catch(error => {
+            const err = new Error(error.message || `Cloudinary upload failed (HTTP ${error.http_code || 'unknown'})`);
+            err.statusCode = error.http_code || 500;
+            err.cloudinaryError = error;
+            throw err;
+        });
 }
 
 function uploadImageFromFilePath(filePath, options = {}) {
     ensureConfigured();
     const str = String(filePath || '').trim();
     if (!str) throw new Error('filePath is required');
-    return cloudinary.uploader.upload(str, normalizeUploadOptions(options));
+    return cloudinary.uploader.upload(str, normalizeUploadOptions(options))
+        .catch(error => {
+            const err = new Error(error.message || `Cloudinary upload failed (HTTP ${error.http_code || 'unknown'})`);
+            err.statusCode = error.http_code || 500;
+            err.cloudinaryError = error;
+            throw err;
+        });
 }
 
 async function uploadImage(input = {}, options = {}) {
@@ -81,13 +100,24 @@ async function uploadImage(input = {}, options = {}) {
     } else if (dataUri) {
         result = await uploadImageFromDataUri(dataUri, options);
     } else if (base64) {
-        const mime = String(mimeType || 'image/jpeg').trim() || 'image/jpeg';
-        const uri = `data:${mime};base64,${String(base64).trim()}`;
-        result = await uploadImageFromDataUri(uri, options);
+        const rawB64 = String(base64).trim();
+        if (rawB64.startsWith('data:')) {
+            result = await uploadImageFromDataUri(rawB64, options);
+        } else {
+            const mime = String(mimeType || 'image/jpeg').trim() || 'image/jpeg';
+            const uri = `data:${mime};base64,${rawB64}`;
+            result = await uploadImageFromDataUri(uri, options);
+        }
     } else if (filePath) {
         result = await uploadImageFromFilePath(filePath, options);
     } else {
+        console.error('❌ uploadImage: No valid input provided', { inputKeys: Object.keys(input || {}) });
         throw new Error('Provide one of: buffer, dataUri, base64, filePath');
+    }
+
+    if (!result) {
+        console.error('❌ uploadImage: Cloudinary returned empty result');
+        throw new Error('Cloudinary upload failed: Empty result');
     }
 
     return {
@@ -106,9 +136,57 @@ async function uploadImage(input = {}, options = {}) {
     };
 }
 
+function extractPublicId(url) {
+    if (!url || typeof url !== 'string') return null;
+    // Standard Cloudinary URL pattern: .../upload/(v12345/)?folder/public_id.ext
+    const parts = url.split('/upload/');
+    if (parts.length < 2) return null;
+
+    const postUpload = parts[1];
+    // Remove version prefix if present (e.g., v123456789/)
+    const withoutVersion = postUpload.replace(/^v\d+\//, '');
+    
+    // Remove file extension
+    const lastDotIndex = withoutVersion.lastIndexOf('.');
+    if (lastDotIndex === -1) return withoutVersion;
+    
+    return withoutVersion.substring(0, lastDotIndex);
+}
+
+async function deleteImage(urlOrId) {
+    if (!urlOrId) return null;
+    ensureConfigured();
+    
+    const publicId = urlOrId.includes('/') && urlOrId.includes('.') ? extractPublicId(urlOrId) : urlOrId;
+    if (!publicId) return null;
+
+    try {
+        const result = await cloudinary.uploader.destroy(publicId);
+        return result;
+    } catch (error) {
+        console.error(`❌ Cloudinary deletion failed for ${publicId}:`, error.message);
+        return { result: 'error', message: error.message };
+    }
+}
+
+async function deleteMultipleImages(urlsOrIds) {
+    if (!Array.isArray(urlsOrIds) || urlsOrIds.length === 0) return [];
+    
+    const results = [];
+    for (const item of urlsOrIds) {
+        if (item) {
+            results.push(await deleteImage(item));
+        }
+    }
+    return results;
+}
+
 module.exports = {
     uploadImage,
     uploadImageFromBuffer,
     uploadImageFromDataUri,
-    uploadImageFromFilePath
+    uploadImageFromFilePath,
+    extractPublicId,
+    deleteImage,
+    deleteMultipleImages
 };

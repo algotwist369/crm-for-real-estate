@@ -10,7 +10,8 @@ const propertiesSchema = new Schema({
     slug: {
         type: String,
         trim: true,
-        unique: true
+        unique: true,
+        sparse: true
     },
     property_type: {
         type: String,

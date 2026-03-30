@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('../model/user.model');
 const Agent = require('../model/agent.model');
-const { uploadImage } = require('../utils/uploadImage');
+const { uploadImage, deleteImage } = require('../utils/uploadImage');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
     httpError,
@@ -35,7 +35,7 @@ async function resolveProfilePicUrl(req, { folder, tags } = {}) {
     if (file?.buffer || file?.path) {
         const uploaded = await uploadImage(
             file.buffer ? { buffer: file.buffer } : { filePath: file.path },
-            { folder: folder || process.env.CLOUDINARY_PROFILE_FOLDER || 'lead_real/profile_pics', tags, resourceType: 'image' }
+            { folder: folder || process.env.CLOUDINARY_PROFILE_FOLDER || 'profile_pics', tags, resourceType: 'image' }
         );
         return uploaded.secureUrl || uploaded.url || '';
     }
@@ -43,7 +43,7 @@ async function resolveProfilePicUrl(req, { folder, tags } = {}) {
     if (profilePic && isDataUri(profilePic)) {
         const uploaded = await uploadImage(
             { dataUri: profilePic },
-            { folder: folder || process.env.CLOUDINARY_PROFILE_FOLDER || 'lead_real/profile_pics', tags, resourceType: 'image' }
+            { folder: folder || process.env.CLOUDINARY_PROFILE_FOLDER || 'profile_pics', tags, resourceType: 'image' }
         );
         return uploaded.secureUrl || uploaded.url || '';
     }
@@ -51,7 +51,7 @@ async function resolveProfilePicUrl(req, { folder, tags } = {}) {
     if (base64) {
         const uploaded = await uploadImage(
             { base64, mimeType },
-            { folder: folder || process.env.CLOUDINARY_PROFILE_FOLDER || 'lead_real/profile_pics', tags, resourceType: 'image' }
+            { folder: folder || process.env.CLOUDINARY_PROFILE_FOLDER || 'profile_pics', tags, resourceType: 'image' }
         );
         return uploaded.secureUrl || uploaded.url || '';
     }
@@ -259,7 +259,12 @@ const update_agent = wrapAsync(async (req, res) => {
     }
 
     const profilePicUrl = await resolveProfilePicUrl(req, { tags: ['agent_profile', String(user._id)] });
-    if (profilePicUrl !== undefined) userUpdates.profile_pic = profilePicUrl;
+    if (profilePicUrl !== undefined) {
+        if (user.profile_pic && user.profile_pic !== profilePicUrl) {
+            deleteImage(user.profile_pic).catch(err => console.error('❌ Old agent profile pic cleanup failed:', err.message));
+        }
+        userUpdates.profile_pic = profilePicUrl;
+    }
 
     if (details.length) throw httpError(400, 'Validation error', details);
     if (!Object.keys(userUpdates).length && !Object.keys(agentUpdates).length) throw httpError(400, 'No valid fields to update');
@@ -354,6 +359,10 @@ const delete_agent = wrapAsync(async (req, res) => {
 
     // If there's an associated user, delete it too
     if (userId) {
+        const user = await User.findById(userId);
+        if (user && user.profile_pic) {
+            deleteImage(user.profile_pic).catch(err => console.error('❌ Agent profile pic cleanup failed on delete:', err.message));
+        }
         await User.deleteOne({ _id: userId });
     }
 
