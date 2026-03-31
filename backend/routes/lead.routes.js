@@ -1,13 +1,15 @@
 const express = require('express');
 const leadController = require('../controller/lead.controller');
 const { requireRoles } = require('../middleware/auth');
+const validateRequest = require('../middleware/validateRequest');
+const { leadSchemas } = require('../utils/validation');
 
 const router = express.Router();
 
-router.get('/leads', requireRoles(['admin', 'super_admin', 'agent']), leadController.get_my_leads);
+router.get('/leads', requireRoles(['admin', 'super_admin', 'agent']), validateRequest(leadSchemas.query), leadController.get_my_leads);
 router.get('/leads/:id', requireRoles(['admin', 'super_admin', 'agent']), leadController.get_lead_by_id);
-router.post('/leads', requireRoles(['admin', 'super_admin', 'agent']), leadController.create_lead);
-router.patch('/leads/:id', requireRoles(['admin', 'super_admin', 'agent']), leadController.update_lead);
+router.post('/leads', requireRoles(['admin', 'super_admin', 'agent']), validateRequest(leadSchemas.create), leadController.create_lead);
+router.patch('/leads/:id', requireRoles(['admin', 'super_admin', 'agent']), validateRequest(leadSchemas.update), leadController.update_lead);
 router.post('/leads/:id/notes', requireRoles(['admin', 'super_admin', 'agent']), leadController.add_lead_note);
 router.post('/leads/:id/followup', requireRoles(['admin', 'super_admin', 'agent']), leadController.set_follow_up);
 router.post('/leads/:id/followup/complete', requireRoles(['admin', 'super_admin', 'agent']), leadController.complete_followup);

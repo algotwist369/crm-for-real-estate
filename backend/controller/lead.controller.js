@@ -362,7 +362,10 @@ const create_lead = wrapAsync(async (req, res) => {
     if (!doc.budget) details.push({ path: 'budget', message: 'Budget is required' });
     if (!doc.inquiry_for) details.push({ path: 'inquiry_for', message: 'Inquiry for is required' });
     if (!doc.email || !isEmail(doc.email)) details.push({ path: 'email', message: 'Valid email is required' });
-    if (details.length) throw httpError(400, 'Validation error', details);
+    if (details.length) {
+        const message = details[0].message || 'Validation error';
+        throw httpError(400, message, details);
+    }
 
     doc.email = normalizeEmail(doc.email);
     doc.phone = normalizePhone(doc.phone);

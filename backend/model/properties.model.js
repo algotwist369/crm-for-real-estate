@@ -5,7 +5,8 @@ const propertiesSchema = new Schema({
     property_title: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        index: true
     },
     slug: {
         type: String,
@@ -16,12 +17,14 @@ const propertiesSchema = new Schema({
     property_type: {
         type: String,
         trim: true,
-        default: 'Apartment'
+        default: 'Apartment',
+        index: true
     },
     listing_type: {
         type: String,
         required: true,
-        enum: ['rent', 'sale', 'investment']
+        enum: ['rent', 'sale', 'investment'],
+        index: true
     },
     asking_price: {
         type: Number,
@@ -46,7 +49,8 @@ const propertiesSchema = new Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Agent',
         }],
-        default: []
+        default: [],
+        index: true
     },
     property_status: {
         type: String,
@@ -96,7 +100,8 @@ const propertiesSchema = new Schema({
     },
     total_bedrooms: {
         type: Number,
-        min: 0
+        min: 0,
+        index: true
     },
     total_bathrooms: {
         type: Number,
@@ -130,10 +135,10 @@ const propertiesSchema = new Schema({
     documents: [
         {
             name: {
-                type: String, // document name or type (e.g., "Title Deed", "Floor Plan")
+                type: String,
             },
             value: {
-                type: String, // URL or file path to the document
+                type: String,
             },
         },
     ],
@@ -155,13 +160,16 @@ const propertiesSchema = new Schema({
     tenant_id: {
         type: mongoose.Schema.ObjectId,
         ref: 'User',
+        required: true,
         index: true
     },
 
 }, { timestamps: true });
 
-propertiesSchema.index({ listing_type: 1, property_type: 1, property_status: 1 });
-propertiesSchema.index({ assign_agent: 1, property_status: 1 });
+// Compound Indexes for Performance & Multi-tenancy
+propertiesSchema.index({ tenant_id: 1, property_status: 1, createdAt: -1 });
+propertiesSchema.index({ tenant_id: 1, listing_type: 1, property_type: 1 });
+propertiesSchema.index({ tenant_id: 1, assign_agent: 1 });
 propertiesSchema.index({ 'property_location.coordinates': '2dsphere' }, { sparse: true });
 
 module.exports = mongoose.model('Properties', propertiesSchema);

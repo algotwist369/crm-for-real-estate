@@ -9,7 +9,8 @@ const userSchema = new mongoose.Schema({
     user_name: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        index: true
     },
     email: {
         type: String,
@@ -17,19 +18,22 @@ const userSchema = new mongoose.Schema({
         unique: true,
         trim: true,
         lowercase: true,
-        match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        index: true
     },
     phone_number: {
         type: String,
         required: true,
         trim: true,
-        unique: true
+        unique: true,
+        index: true
     },
     role: {
         type: String,
         enum: ['admin', 'agent', 'super_admin'],
         default: 'agent',
-        required: true
+        required: true,
+        index: true
     },
     hash_password: {
         type: String,
@@ -49,7 +53,8 @@ const userSchema = new mongoose.Schema({
     },
     is_active: {
         type: Boolean,
-        default: true
+        default: true,
+        index: true
     },
     is_deleted: {
         type: Boolean,
@@ -66,6 +71,7 @@ const userSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
-userSchema.index({ role: 1, is_active: 1 });
+userSchema.index({ role: 1, is_active: 1, tenant_id: 1 });
+userSchema.index({ tenant_id: 1, is_deleted: 1 });
 
 module.exports = mongoose.model('User', userSchema);

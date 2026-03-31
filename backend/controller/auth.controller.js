@@ -77,7 +77,10 @@ const register_admin = wrapAsync(async (req, res) => {
         else details.push({ path: 'profile_pic', message: 'profile_pic must be a valid URL or data URI' });
     }
 
-    if (details.length) throw httpError(400, 'Validation error', details);
+    if (details.length) {
+        const message = details[0].message || 'Validation error';
+        throw httpError(400, message, details);
+    }
 
     const email = normalizeEmail(emailRaw);
 

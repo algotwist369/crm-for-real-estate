@@ -24,6 +24,7 @@ function formatINR(value) {
 
 async function createSystemNotification({ recipients, senderId, type, category, title, message, url, metadata, tenantId }) {
     try {
+        console.log('Creating system notification:', { recipients, senderId, type, category, title, message, url, metadata, tenantId });
         const userIds = uniqueObjectIds(Array.isArray(recipients) ? recipients : [recipients]);
         if (!userIds.length) return;
 
@@ -56,9 +57,6 @@ async function notifyUsersOnNewProperty(property, creatorId) {
     try {
         if (!property || !creatorId) return;
 
-        // 1. Fetch all active users under the same admin/tenant (including the admin)
-        // 2. Exclude the creator entirely
-        // 3. Must have an email address
         const recipients = await User.find({
             $or: [
                 { tenant_id: property.tenant_id },

@@ -165,7 +165,7 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
                             <input type="text" name="pin" value={formData.pin} onChange={handleChange} required className={inputClasses} placeholder="1234" />
                         </div>
 
-                        <div className="pt-2">
+                        {/* <div className="pt-2">
                             <div className="flex items-center justify-between mb-3">
                                 <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                                     <FiCheckSquare className="text-zinc-500" /> Assigned Properties
@@ -185,7 +185,7 @@ const EditAgentModal = ({ isOpen, onClose, agent }) => {
                                     </label>
                                 ))}
                             </div>
-                        </div>
+                        </div> */}
                     </div>
 
                     <div className="p-6 border-t border-zinc-800 bg-zinc-900 flex justify-end gap-3">

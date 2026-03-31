@@ -102,7 +102,10 @@ const update_agent_own_profile = wrapAsync(async (req, res) => {
     const profilePicUrl = await resolveProfilePicForUser(req, user._id);
     if (profilePicUrl !== undefined) updates.profile_pic = profilePicUrl;
 
-    if (details.length) throw httpError(400, 'Validation error', details);
+    if (details.length) {
+        const message = details[0].message || 'Validation error';
+        throw httpError(400, message, details);
+    }
     if (!Object.keys(updates).length) throw httpError(400, 'No valid fields to update');
 
     if (updates.email || updates.phone_number) {

@@ -12,7 +12,8 @@ function normalizeMongooseError(err) {
             path: e.path,
             message: e.message
         }));
-        return { statusCode: 400, message: 'Validation error', details };
+        const message = details.length > 0 ? details[0].message : 'Validation error';
+        return { statusCode: 400, message, details };
     }
 
     if (err.name === 'CastError') {
@@ -37,7 +38,13 @@ function errorHandler(err, req, res, next) {
     const statusCode = normalized?.statusCode || err?.statusCode || err?.status || 500;
 
     const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-    const message = normalized?.message || err?.message || 'Server error';
+    let message = normalized?.message || err?.message || 'Server error';
+
+    // Enhance validation error messages
+    const details = normalized?.details || err?.details;
+    if (message === 'Validation error' && Array.isArray(details) && details.length > 0) {
+        message = details[0].message;
+    }
 
     // Always log 500-level errors to the terminal so the real cause is visible
     if (statusCode >= 500) {
@@ -52,8 +59,7 @@ function errorHandler(err, req, res, next) {
         message: statusCode >= 500 && isProd ? 'Internal server error' : message
     };
 
-    if (normalized?.details) payload.details = normalized.details;
-    if (!payload.details && Array.isArray(err?.details)) payload.details = err.details;
+    if (details) payload.details = details;
     if (!isProd && err?.stack) payload.stack = err.stack;
 
     res.status(statusCode).json(payload);

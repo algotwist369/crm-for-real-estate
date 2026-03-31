@@ -124,22 +124,6 @@ function toNumberOrUndefined(value) {
     return Number.isFinite(n) ? n : undefined;
 }
 
-function normalizeAgentIds(input) {
-    if (!input) return [];
-    if (Array.isArray(input)) return input.filter(Boolean);
-    if (typeof input === 'string') {
-        const s = input.trim();
-        if (!s) return [];
-        try {
-            const parsed = JSON.parse(s);
-            if (Array.isArray(parsed)) return parsed.filter(Boolean);
-        } catch {
-            return s.split(',').map(x => x.trim()).filter(Boolean);
-        }
-    }
-    return [];
-}
-
 function pickFiles(req, field) {
     const files = req?.files;
     if (!files) return [];
@@ -464,7 +448,10 @@ const create_property = wrapAsync(async (req, res) => {
         assignAgentIds = [agent._id];
     }
 
-    if (details.length) throw httpError(400, 'Validation error', details);
+    if (details.length) {
+        const message = details[0].message || 'Validation error';
+        throw httpError(400, message, details);
+    }
 
     const photoUrls = await resolvePhotoUrls(req, { tags: ['property', String(user._id)] });
     if (photoUrls.length || req.body.photos || req.body.photos_base64) doc.photos = photoUrls;

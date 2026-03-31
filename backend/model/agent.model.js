@@ -5,6 +5,7 @@ const agentSchema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: 'User',
         required: true,
+        index: true
     },
     agent_role: {
         type: String,
@@ -21,6 +22,7 @@ const agentSchema = new mongoose.Schema({
     assigned_properties: [{
         type: mongoose.Schema.ObjectId,
         ref: 'Properties',
+        index: true
     }],
     total_leads: {
         type: Number,
@@ -70,6 +72,7 @@ const agentSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-agentSchema.index({ agent_details: 1 }, { unique: true });
+agentSchema.index({ agent_details: 1, tenant_id: 1 }, { unique: true });
+agentSchema.index({ tenant_id: 1, is_active: 1 });
 
 module.exports = mongoose.model('Agent', agentSchema);
