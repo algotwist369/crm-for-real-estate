@@ -8,6 +8,7 @@ const { connectToDatabase } = require('./config/db');
 const { startFollowUpReminderWorker } = require('./jobs/followUpReminderWorker');
 const { createApp } = require('./app');
 const socketService = require('./services/socket.service');
+const { setupPrimary } = require('@socket.io/cluster-adapter');
 
 const NUM_WORKERS = process.env.NODE_ENV === 'production' 
     ? Number(process.env.WEB_CONCURRENCY || os.cpus().length) 
@@ -16,6 +17,8 @@ const NUM_WORKERS = process.env.NODE_ENV === 'production'
 // ─── PRIMARY PROCESS ────────────────────────────────────────────────────────
 if (cluster.isPrimary) {
     process.stdout.write(`Primary ${process.pid} started — spawning ${NUM_WORKERS} workers\n`);
+
+    setupPrimary();
 
     for (let i = 0; i < NUM_WORKERS; i++) {
         cluster.fork();

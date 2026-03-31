@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
-const jwt = require('jsonwebtoken');
+const { verifyToken } = require('../utils/generateToken');
 const cookie = require('cookie');
+const { createAdapter } = require('@socket.io/cluster-adapter');
 
 class SocketService {
     constructor() {
@@ -16,27 +17,39 @@ class SocketService {
             }
         });
 
+        // Use the cluster adapter for multi-worker support
+        this.io.adapter(createAdapter());
+
         // Authentication Middleware
         this.io.use((socket, next) => {
             try {
                 const cookies = cookie.parse(socket.handshake.headers.cookie || '');
-                const token = cookies.accessToken || socket.handshake.auth?.token;
+                // The auth system sets 'token' cookie, not 'accessToken'
+                const token = cookies.token || socket.handshake.auth?.token;
 
                 if (!token) {
                     return next(new Error('Authentication error: Token missing'));
                 }
 
-                const decoded = jwt.verify(token, process.env.JWT_SECRET || process.env.TOKEN_SECRET);
+                // Use the custom verifyToken from our utils for consistency with the rest of the backend
+                const decoded = verifyToken(token);
                 socket.user = decoded;
                 next();
             } catch (err) {
+                console.error('Socket authentication failed:', err.message);
                 next(new Error('Authentication error: Invalid token'));
             }
         });
 
         this.io.on('connection', (socket) => {
-            const userId = String(socket.user.id || socket.user._id);
+            // Our JWT payload uses 'sub' for userId, not 'id' or '_id'
+            const userId = String(socket.user.sub);
             
+            if (!userId || userId === 'undefined') {
+                console.error('Socket connected with undefined sub in token');
+                return socket.disconnect();
+            }
+
             // Join a private room for this user
             socket.join(`user:${userId}`);
             
