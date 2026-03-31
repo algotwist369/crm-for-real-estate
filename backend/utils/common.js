@@ -63,7 +63,11 @@ function extractBearerToken(req) {
             ? authHeader.slice(7).trim()
             : authHeader;
     }
-    return String(req.cookies?.token || '').trim();
+    const token = String(req.cookies?.token || '').trim();
+    if (!token && process.env.NODE_ENV === 'production') {
+        console.warn(`[extractBearerToken] No token found. Cookies present: ${Object.keys(req.cookies || {}).join(', ')}`);
+    }
+    return token;
 }
 
 function getTokenHash(token) {

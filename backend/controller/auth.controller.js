@@ -26,10 +26,12 @@ const setTokenCookie = (res, token, remember = false) => {
         ? 30 * 24 * 60 * 60 * 1000 // 30 days
         : 24 * 60 * 60 * 1000;    // 1 day
 
+    const isProd = process.env.NODE_ENV === 'production';
+
     res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Lax',
+        secure: isProd,
+        sameSite: isProd ? 'None' : 'Lax',
         maxAge
     });
 };
@@ -384,7 +386,12 @@ const logout_admin = wrapAsync(async (req, res) => {
         { upsert: true }
     );
 
-    res.clearCookie('token');
+    const isProd = process.env.NODE_ENV === 'production';
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? 'None' : 'Lax'
+    });
     res.status(200).json({
         success: true,
         message: 'Logged out successfully'
