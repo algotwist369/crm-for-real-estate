@@ -7,6 +7,7 @@ const mongoSanitize = require('./middleware/sanitize');
 const xss = require('./middleware/xss');
 const compression = require('compression');
 const morgan = require('morgan');
+require('dotenv').config(); 
 
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const apiRoutes = require('./routes');
