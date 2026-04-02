@@ -3,8 +3,7 @@ const Properties = require('../model/properties.model');
 const User = require('../model/user.model');
 const Agent = require('../model/agent.model');
 const { verifyToken } = require('../utils/generateToken');
-const { uploadImage, deleteImage, deleteMultipleImages } = require('../utils/uploadImage');
-const { sendMail } = require('../utils/sendMail');
+const { uploadImage, deleteMultipleImages } = require('../utils/uploadImage');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
     httpError,
