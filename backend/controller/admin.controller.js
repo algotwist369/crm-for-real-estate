@@ -3,6 +3,7 @@ const User = require('../model/user.model');
 const Agent = require('../model/agent.model');
 const { uploadImage, deleteImage } = require('../utils/uploadImage');
 const { wrapAsync } = require('../middleware/errorHandler');
+const Lead = require('../model/lead.model');
 const {
     httpError,
     normalizeEmail,
@@ -14,6 +15,7 @@ const {
     isProbablyUrl,
     isDataUri,
 } = require('../utils/common');
+
 
 
 
@@ -79,7 +81,7 @@ function sanitizeAgent(agentDoc) {
 }
 
 const get_all_agents = wrapAsync(async (req, res) => {
-    const { user, tenant_id } = req.auth;
+    const { tenant_id } = req.auth;
     if (!tenant_id) throw httpError(401, 'Tenant isolation context missing');
 
     const { page, limit, skip } = parsePagination(req);
@@ -115,9 +117,45 @@ const get_all_agents = wrapAsync(async (req, res) => {
         Agent.countDocuments(match)
     ]);
 
+    // Calculate real-time statistics for each agent
+    const itemsWithStats = await Promise.all(items.map(async (agent) => {
+        const agentObj = agent.toObject();
+        const agentUserId = agent.agent_details?._id;
+
+        if (agentUserId) {
+            const [
+                totalLeads,
+                totalConverted,
+                totalLost,
+                totalQualified,
+                totalWasted,
+                totalFollowUps,
+                totalPending
+            ] = await Promise.all([
+                Lead.countDocuments({ assigned_to: agentUserId, is_active: true }),
+                Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'converted' }),
+                Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'lost' }),
+                Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'qualified' }),
+                Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'wasted' }),
+                Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'follow_up' }),
+                Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'new' })
+            ]);
+
+            agentObj.total_leads = totalLeads;
+            agentObj.total_converted_leads = totalConverted;
+            agentObj.total_lost_leads = totalLost;
+            agentObj.total_qualified_leads = totalQualified;
+            agentObj.total_wasted_leads = totalWasted;
+            agentObj.total_follow_ups = totalFollowUps;
+            agentObj.total_pending_leads = totalPending;
+        }
+
+        return agentObj;
+    }));
+
     res.status(200).json({
         success: true,
-        data: items.map(sanitizeAgent),
+        data: itemsWithStats,
         pagination: {
             page,
             limit,
@@ -134,12 +172,43 @@ const get_agent_by_id = wrapAsync(async (req, res) => {
     const agentMatch = { _id: id, tenant_id: req.auth.tenant_id };
 
     const agent = await Agent.findOne(agentMatch)
-        .populate('agent_details', 'user_name email phone_number profile_pic role is_active')
+        .populate('agent_details', 'user_name email phone_number profile_pic role is_active hash_password')
         .populate('assigned_properties', 'property_title listing_type property_status');
 
     if (!agent) throw httpError(404, 'Agent not found');
 
-    res.status(200).json({ success: true, data: sanitizeAgent(agent) });
+    const agentObj = agent.toObject();
+    const agentUserId = agent.agent_details?._id;
+
+    if (agentUserId) {
+        const [
+            totalLeads,
+            totalConverted,
+            totalLost,
+            totalQualified,
+            totalWasted,
+            totalFollowUps,
+            totalPending
+        ] = await Promise.all([
+            Lead.countDocuments({ assigned_to: agentUserId, is_active: true }),
+            Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'converted' }),
+            Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'lost' }),
+            Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'qualified' }),
+            Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'wasted' }),
+            Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'follow_up' }),
+            Lead.countDocuments({ assigned_to: agentUserId, is_active: true, status: 'new' })
+        ]);
+
+        agentObj.total_leads = totalLeads;
+        agentObj.total_converted_leads = totalConverted;
+        agentObj.total_lost_leads = totalLost;
+        agentObj.total_qualified_leads = totalQualified;
+        agentObj.total_wasted_leads = totalWasted;
+        agentObj.total_follow_ups = totalFollowUps;
+        agentObj.total_pending_leads = totalPending;
+    }
+
+    res.status(200).json({ success: true, data: agentObj });
 });
 
 // ... (Update other functions similarly)
@@ -299,7 +368,7 @@ const update_agent_status = wrapAsync(async (req, res) => {
     if (enabled === undefined) throw httpError(400, 'is_active is required');
 
     const isActive = String(enabled).toLowerCase() === 'true' || enabled === true || enabled === 1 || String(enabled) === '1';
-    
+
     const agent = await Agent.findOne({ _id: id, tenant_id: req.auth.tenant_id });
     if (!agent) throw httpError(404, 'Agent not found');
 
