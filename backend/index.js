@@ -16,7 +16,7 @@ const NUM_WORKERS = process.env.NODE_ENV === 'production'
 
 // ─── PRIMARY PROCESS ────────────────────────────────────────────────────────
 if (cluster.isPrimary) {
-    process.stdout.write(`Primary ${process.pid} started — spawning ${NUM_WORKERS} workers\n`);
+    process.stdout.write(`Primary ${process.pid} started - spawning ${NUM_WORKERS} workers\n`);
 
     setupPrimary();
 
@@ -26,7 +26,7 @@ if (cluster.isPrimary) {
 
     cluster.on('exit', (worker, code, signal) => {
         const reason = signal || code;
-        process.stderr.write(`Worker ${worker.process.pid} died (${reason}) — restarting...\n`);
+        process.stderr.write(`Worker ${worker.process.pid} died (${reason}) - restarting...\n`);
         cluster.fork();
     });
 
@@ -38,7 +38,7 @@ if (cluster.isPrimary) {
 } else {
     async function start() {
         if (!process.env.TOKEN_SECRET && !process.env.JWT_SECRET) {
-            process.stderr.write(`Worker ${process.pid} — WARNING: TOKEN_SECRET not found in environment!\n`);
+            process.stderr.write(`Worker ${process.pid} - WARNING: TOKEN_SECRET not found in environment!\n`);
         }
         await connectToDatabase();
         const app = createApp();
@@ -86,7 +86,7 @@ if (cluster.isPrimary) {
         let port = Number(process.env.PORT || 5001);
         if (port === 6000) port = 5001; // Force migrate from unsafe port
         const server = app.listen(port, () => {
-            process.stdout.write(`Worker ${process.pid} — API running on http://localhost:${port}\n`);
+            process.stdout.write(`Worker ${process.pid} - API running on http://localhost:${port}\n`);
         });
         
         socketService.init(server);

@@ -1,5 +1,5 @@
 import React from "react";
-import { FiX, FiUser, FiSmartphone, FiMail, FiTarget, FiDollarSign, FiShare2, FiHome, FiCalendar, FiClock, FiMessageSquare } from "react-icons/fi";
+import { FiX, FiUser, FiSmartphone, FiTarget, FiDollarSign, FiShare2, FiHome, FiCalendar, FiClock, FiMessageSquare } from "react-icons/fi";
 
 const ViewLeadModal = ({ isOpen, onClose, lead }) => {
     if (!isOpen || !lead) return null;
@@ -20,7 +20,10 @@ const ViewLeadModal = ({ isOpen, onClose, lead }) => {
             new: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
             contacted: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
             qualified: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-            follow_up: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+            follow_up: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+            site_visit: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+            negotiation: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+            booked: "bg-emerald-300/10 text-emerald-300 border-emerald-400/20",
             closed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
             converted: "bg-teal-500/10 text-teal-400 border-teal-500/20",
             lost: "bg-red-500/10 text-red-400 border-red-500/20",
@@ -59,7 +62,12 @@ const ViewLeadModal = ({ isOpen, onClose, lead }) => {
                             <FiUser size={20} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-medium text-white">{lead.name}</h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-lg font-medium text-white">{lead.name}</h2>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                                    {lead.lead_type || "Buyer"}
+                                </span>
+                            </div>
                             <p className="text-xs text-zinc-500">Lead Registry ID: {lead._id}</p>
                         </div>
                     </div>
@@ -82,8 +90,8 @@ const ViewLeadModal = ({ isOpen, onClose, lead }) => {
                             <PriorityBadge priority={lead.priority} />
                         </div>
                         <div className="space-y-1">
-                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Client Type</p>
-                            <span className="text-sm font-medium text-white capitalize">{lead.client_type || "Buying"}</span>
+                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Property Type</p>
+                            <span className="text-sm font-medium text-white capitalize">{lead.property_type || "N/A"}</span>
                         </div>
                         <div className="space-y-1">
                             <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Source</p>
@@ -102,31 +110,132 @@ const ViewLeadModal = ({ isOpen, onClose, lead }) => {
                                     <p className="text-[10px] text-zinc-500 mb-1">Phone Number</p>
                                     <p className="text-sm text-white font-medium">{lead.phone}</p>
                                 </div>
+                                {(lead.alternate_phone || lead.whatsapp_number) && (
+                                    <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded">
+                                        <p className="text-[10px] text-zinc-500 mb-1">Other Numbers</p>
+                                        <div className="text-sm text-zinc-300">
+                                            {lead.alternate_phone && <p>Alt: {lead.alternate_phone}</p>}
+                                            {lead.whatsapp_number && <p className="mt-1">WA: {lead.whatsapp_number}</p>}
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded">
                                     <p className="text-[10px] text-zinc-500 mb-1">Email Address</p>
                                     <p className="text-sm text-white font-medium truncate">{lead.email || "Not Provided"}</p>
                                 </div>
+                                {lead.address && (
+                                <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded">
+                                    <p className="text-[10px] text-zinc-500 mb-1">Location / Address</p>
+                                    <p className="text-sm text-zinc-300">{lead.address}</p>
+                                </div>
+                                )}
                             </div>
                         </div>
 
+                        {/* Budget & Pricing */}
                         <div className="space-y-4">
                             <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                                <FiTarget size={14} /> Requirement & Budget
+                                <FiDollarSign size={14} /> Pricing & Budget
                             </h3>
                             <div className="space-y-3">
                                 <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded">
-                                    <p className="text-[10px] text-zinc-500 mb-1">Budget</p>
+                                    <p className="text-[10px] text-zinc-500 mb-1">Estimated Budget</p>
                                     <p className="text-sm text-emerald-400 font-bold flex items-center gap-1">
-                                        <FiDollarSign size={14} /> {lead.budget || "Not Specified"}
+                                        {lead.currency || "AED"} {lead.budget || "Not Specified"}
                                     </p>
                                 </div>
-                                <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded">
-                                    <p className="text-[10px] text-zinc-500 mb-1">Property Requirements</p>
-                                    <p className="text-xs text-zinc-300 leading-relaxed font-medium">{lead.requirement || "General Inquiry"}</p>
+                                {lead.asking_price && (
+                                <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded flex justify-between items-center">
+                                    <div>
+                                        <p className="text-[10px] text-zinc-500 mb-1">Asking / Target Price</p>
+                                        <p className="text-sm text-emerald-400 font-bold">{lead.currency || "AED"} {lead.asking_price.toLocaleString()}</p>
+                                    </div>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded border ${lead.price_negotiable ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-zinc-800 text-zinc-400 border-zinc-700"}`}>
+                                        {lead.price_negotiable ? "Negotiable" : "Fixed"}
+                                    </span>
                                 </div>
+                                )}
                             </div>
                         </div>
                     </div>
+
+                    {/* Property Details */}
+                    <div className="space-y-4">
+                        <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                            <FiTarget size={14} /> Property Details & Requirement
+                        </h3>
+                        <div className="p-4 bg-zinc-900/30 border border-zinc-800 rounded grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                                <p className="text-[10px] text-zinc-500 mb-1">Bedrooms</p>
+                                <p className="text-sm text-white font-medium">{lead.bedrooms || "Any"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-zinc-500 mb-1">Bathrooms</p>
+                                <p className="text-sm text-white font-medium">{lead.bathrooms || "Any"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-zinc-500 mb-1">Maid Room</p>
+                                <p className="text-sm text-white font-medium">{lead.maid_room ? "Yes" : "No"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-zinc-500 mb-1">Furnishing</p>
+                                <p className="text-sm text-white font-medium capitalize">{lead.furnished_status?.replace('_', ' ') || "Any"}</p>
+                            </div>
+                            {lead.built_up_area?.value && (
+                                <div>
+                                    <p className="text-[10px] text-zinc-500 mb-1">Built-Up Area</p>
+                                    <p className="text-sm text-white font-medium">{lead.built_up_area.value} {lead.built_up_area.unit}</p>
+                                </div>
+                            )}
+                            {lead.plot_size?.value && (
+                                <div>
+                                    <p className="text-[10px] text-zinc-500 mb-1">Plot Size</p>
+                                    <p className="text-sm text-white font-medium">{lead.plot_size.value} {lead.plot_size.unit}</p>
+                                </div>
+                            )}
+                            <div className="col-span-2 md:col-span-4 mt-2 border-t border-zinc-800/50 pt-2">
+                                <p className="text-[10px] text-zinc-500 mb-1">Requirements / Remarks</p>
+                                <p className="text-sm text-zinc-300 leading-relaxed font-medium">{lead.requirement || "General Inquiry"}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Ownership & Stakeholders */}
+                    {(lead.owner_name || lead.broker_name) && (
+                        <div className="space-y-4">
+                            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                                <FiShare2 size={14} /> Stakeholder Information
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {lead.owner_name && (
+                                <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded">
+                                    <p className="text-[10px] text-zinc-500 mb-1">Owner Name</p>
+                                    <p className="text-sm text-zinc-300 font-medium">{lead.owner_name}</p>
+                                </div>
+                                )}
+                                {lead.broker_name && (
+                                <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded flex justify-between items-center">
+                                    <div>
+                                        <p className="text-[10px] text-zinc-500 mb-1">Broker Name</p>
+                                        <p className="text-sm text-zinc-300 font-medium">{lead.broker_name}</p>
+                                    </div>
+                                    {lead.broker_phone && (
+                                        <div className="text-right">
+                                            <p className="text-[10px] text-zinc-500 mb-1">Phone</p>
+                                            <p className="text-xs text-zinc-400">{lead.broker_phone}</p>
+                                        </div>
+                                    )}
+                                </div>
+                                )}
+                                {lead.shared_details && (
+                                <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded md:col-span-2">
+                                    <p className="text-[10px] text-zinc-500 mb-1">Shared Comments / Commission Info</p>
+                                    <p className="text-xs text-zinc-400 italic">{lead.shared_details}</p>
+                                </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Interested Properties */}
                     <div className="space-y-4">

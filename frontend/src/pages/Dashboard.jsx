@@ -31,7 +31,7 @@ const Dashboard = () => {
 
     const { data: summaryData, isLoading: isLoadingSummary, refetch: refetchSummary } = useAgentDashboardSummary();
     
-    const activityParams = useMemo(() => ({ limit: 5 }), []);
+    const activityParams = useMemo(() => ({ limit: 100, days: 1 }), []);
     const { data: activityData, refetch: refetchActivity } = useAgentActivityTimeline(activityParams);
     
     const followupParams = useMemo(() => ({ bucket: 'today', limit: 5 }), []);
@@ -123,11 +123,11 @@ const Dashboard = () => {
             <div className="grid lg:grid-cols-3 gap-6">
                 
                 {/* Recent Activities */}
-                <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6">
-                    <h2 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+                <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6 flex flex-col h-[400px]">
+                    <h2 className="text-sm font-medium text-white mb-4 flex items-center gap-2 shrink-0">
                         <FiActivity className="text-zinc-500" /> Recent Activity
                     </h2>
-                    <div className="space-y-4">
+                    <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
                         {activities.length === 0 ? (
                             <p className="text-xs text-zinc-600 italic">No recent activity detected.</p>
                         ) : (
@@ -158,11 +158,11 @@ const Dashboard = () => {
                 </div>
 
                 {/* Priority Followups */}
-                <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6">
-                    <h2 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+                <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6 flex flex-col h-[400px]">
+                    <h2 className="text-sm font-medium text-white mb-4 flex items-center gap-2 shrink-0">
                         <FiPhoneCall className="text-zinc-500" /> Today's Follow Ups
                     </h2>
-                    <div className="space-y-4">
+                    <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
                         {followups.length === 0 ? (
                             <p className="text-xs text-zinc-600 italic">No follow-ups scheduled for today.</p>
                         ) : (
@@ -175,7 +175,8 @@ const Dashboard = () => {
                                         </span>
                                         <span className={`text-[10px] uppercase font-bold ${
                                             item.priority === 'high' ? 'text-red-500' :
-                                            item.priority === 'medium' ? 'text-orange-500' : 'text-zinc-500'
+                                            item.priority === 'medium' ? 'text-orange-500' :
+                                            item.priority === 'lead' ? 'text-blue-500' : 'text-zinc-500'
                                         }`}>
                                             {item.priority}
                                         </span>
@@ -187,11 +188,11 @@ const Dashboard = () => {
                 </div>
 
                 {/* Property Stats Chart-like list */}
-                <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6">
-                    <h2 className="text-sm font-medium text-white mb-4">
+                <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6 flex flex-col h-[400px]">
+                    <h2 className="text-sm font-medium text-white mb-4 shrink-0">
                         Inventory Status
                     </h2>
-                    <div className="space-y-4">
+                    <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
                         {[
                             { label: "Available", key: "available", color: "bg-emerald-500" },
                             { label: "Under Negotiation", key: "under_offer", color: "bg-orange-500" },

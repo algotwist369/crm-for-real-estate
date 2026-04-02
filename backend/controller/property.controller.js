@@ -262,7 +262,6 @@ async function resolveDocumentUrls(req, { folder, tags } = {}) {
 
 function buildPropertyDocFromBody(body = {}) {
     const property_title = String(body.property_title ?? body.title ?? '').trim();
-    // Normalize property type to capitalized first letter if it doesn't match exactly
     let property_type = String(body.property_type ?? '').trim();
     if (property_type) {
         property_type = property_type.charAt(0).toUpperCase() + property_type.slice(1).toLowerCase();
@@ -290,6 +289,8 @@ function buildPropertyDocFromBody(body = {}) {
     const statusRaw = String(body.property_status ?? body.status ?? '').trim().toLowerCase();
     let mappedPropertyStatus = body.property_status;
     let mappedIsActive = body.is_active !== undefined ? Boolean(body.is_active) : undefined;
+    
+    // Existing mapping logic
     if (!mappedPropertyStatus && statusRaw) {
         if (statusRaw === 'active') mappedPropertyStatus = 'available';
         else if (statusRaw === 'inactive') mappedPropertyStatus = 'inactive';
@@ -316,7 +317,8 @@ function buildPropertyDocFromBody(body = {}) {
             state: String(location.state ?? '').trim() || undefined,
             country: String(location.country ?? '').trim() || undefined,
             postal_code: String(location.postal_code ?? location.postalCode ?? '').trim() || undefined,
-            landmark: String(location.landmark ?? '').trim() || undefined
+            landmark: String(location.landmark ?? '').trim() || undefined,
+            google_map_url: String(location.google_map_url ?? '').trim() || undefined
         },
         total_area,
         area_unit: body.area_unit || undefined,
@@ -329,7 +331,75 @@ function buildPropertyDocFromBody(body = {}) {
         amenities,
         property_status: mappedPropertyStatus || undefined,
         is_active: mappedIsActive,
-        documents: undefined // To be populated directly if needed, or stripped out until populated
+
+        // --- International / Project Fields ---
+        property_code: String(body.property_code ?? '').trim() || undefined,
+        reference_id: String(body.reference_id ?? '').trim() || undefined,
+        external_id: String(body.external_id ?? '').trim() || undefined,
+        property_category: body.property_category || undefined,
+        property_sub_type: String(body.property_sub_type ?? '').trim() || undefined,
+        project_name: String(body.project_name ?? '').trim() || undefined,
+        tower_name: String(body.tower_name ?? '').trim() || undefined,
+        building_name: String(body.building_name ?? '').trim() || undefined,
+        community_name: String(body.community_name ?? '').trim() || undefined,
+        sub_community: String(body.sub_community ?? '').trim() || undefined,
+        unit_number: String(body.unit_number ?? '').trim() || undefined,
+        floor_number: toNumberOrUndefined(body.floor_number),
+        total_floors: toNumberOrUndefined(body.total_floors),
+
+        // --- Room Configuration ---
+        bedroom_label: String(body.bedroom_label ?? '').trim() || undefined,
+        maid_room: body.maid_room !== undefined ? Boolean(body.maid_room) : undefined,
+        servant_room: body.servant_room !== undefined ? Boolean(body.servant_room) : undefined,
+        study_room: body.study_room !== undefined ? Boolean(body.study_room) : undefined,
+        store_room: body.store_room !== undefined ? Boolean(body.store_room) : undefined,
+        balcony_count: toNumberOrUndefined(body.balcony_count),
+        parking_count: toNumberOrUndefined(body.parking_count),
+
+        // --- Area Flexibility ---
+        plot_area: toNumberOrUndefined(body.plot_area),
+        plot_area_unit: body.plot_area_unit || undefined,
+        super_built_up_area: toNumberOrUndefined(body.super_built_up_area),
+        usable_area: toNumberOrUndefined(body.usable_area),
+
+        // --- Price / Market Intelligence ---
+        original_price: toNumberOrUndefined(body.original_price),
+        rental_yield: toNumberOrUndefined(body.rental_yield),
+        service_charges: toNumberOrUndefined(body.service_charges),
+        maintenance_fee: toNumberOrUndefined(body.maintenance_fee),
+        payment_plan: String(body.payment_plan ?? '').trim() || undefined,
+        down_payment: toNumberOrUndefined(body.down_payment),
+
+        // --- Workflow / Status ---
+        completion_status: body.completion_status || undefined,
+        handover_date: body.handover_date ? new Date(body.handover_date) : undefined,
+        handover_label: String(body.handover_label ?? '').trim() || undefined,
+        possession_date: body.possession_date ? new Date(body.possession_date) : undefined,
+        available_from: body.available_from ? new Date(body.available_from) : undefined,
+
+        // --- Occupancy / Tenancy ---
+        occupancy_status: body.occupancy_status || undefined,
+        tenant_name: String(body.tenant_name ?? '').trim() || undefined,
+        tenant_phone: String(body.tenant_phone ?? '').trim() || undefined,
+        lease_end_date: body.lease_end_date ? new Date(body.lease_end_date) : undefined,
+
+        // --- Legal / Compliance ---
+        permit_number: String(body.permit_number ?? '').trim() || undefined,
+        rera_number: String(body.rera_number ?? '').trim() || undefined,
+        dld_permit_number: String(body.dld_permit_number ?? '').trim() || undefined,
+        title_deed_number: String(body.title_deed_number ?? '').trim() || undefined,
+
+        // --- SEO / Media / Presentation ---
+        video_url: String(body.video_url ?? '').trim() || undefined,
+        virtual_tour_url: String(body.virtual_tour_url ?? '').trim() || undefined,
+        floor_plan_url: String(body.floor_plan_url ?? '').trim() || undefined,
+        brochure_url: String(body.brochure_url ?? '').trim() || undefined,
+        tags: Array.isArray(body.tags) ? body.tags.map(t => String(t).trim()).filter(Boolean) : undefined,
+        highlights: Array.isArray(body.highlights) ? body.highlights.map(h => String(h).trim()).filter(Boolean) : undefined,
+        view_type: String(body.view_type ?? '').trim() || undefined,
+        remarks: String(body.remarks ?? '').trim() || undefined,
+
+        documents: undefined
     };
 
     Object.keys(doc).forEach(k => doc[k] === undefined && delete doc[k]);

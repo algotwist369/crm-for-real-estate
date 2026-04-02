@@ -221,7 +221,7 @@ const Agents = () => {
                                     <td className="p-3">
                                         <div className="max-w-[150px] truncate" title={agent.remark}>
                                             <span className="text-xs text-zinc-500 italic">
-                                                {agent.remark || "—"}
+                                                {agent.remark || "-"}
                                             </span>
                                         </div>
                                     </td>

@@ -18,19 +18,22 @@ import AddLeadModal from "../component/modal/AddLeadModal";
 import EditLeadModal from "../component/modal/EditLeadModal";
 import FollowUpModal from "../component/modal/FollowUpModal";
 import MarkLostModal from "../component/modal/MarkLostModal";
-import { useLeads, useUpdateLead, useAgentDashboardSummary } from "../hooks/useLeadHooks";
+import { useLeads, useUpdateLead, useDeleteLead } from "../hooks/useLeadHooks";
+import { useAuth } from "../context/AuthContext";
 
 /* ─── Table Columns ─── */
-const tableColumns = ["#", "Lead Info", "Contact", "Requirement", "Budget", "Inquiry For", "Source", "Properties", "Priority", "Next Follow-up", "Status", "Actions"];
+const tableColumns = ["#", "Lead Info", "Lead / Prop Type", "Contact", "Requirement", "Budget", "Source", "Properties", "Priority", "Next Follow-up", "Status", "Actions"];
 
 /* ─── Filter Options ─── */
-const statusOptions = ["All", "New", "Contacted", "Qualified", "Follow_up", "Converted", "Closed", "Lost", "Wasted", "Archived"];
+const statusOptions = ["All", "New", "Contacted", "Qualified", "Follow_up", "Site_visit", "Negotiation", "Booked", "Converted", "Closed", "Lost", "Wasted", "Archived"];
 const priorityOptions = ["All", "High", "Medium", "Low"];
+const leadTypeOptions = ["All", "Buyer", "Seller", "Owner", "Tenant", "Investor", "Listing", "Broker", "Other"];
 
 const LeadsPage = () => {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [priorityFilter, setPriorityFilter] = useState("All");
+    const [leadTypeFilter, setLeadTypeFilter] = useState("All");
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     
@@ -43,28 +46,29 @@ const LeadsPage = () => {
     const [leadToMarkLost, setLeadToMarkLost] = useState(null);
     const navigate = useNavigate();
 
-    // React Query Hooks
-    const { data: dashboardData } = useAgentDashboardSummary();
-    const stats = dashboardData?.data || { total_leads: 0, total_converted_leads: 0, total_lost_leads: 0, followups_today: 0 };
-
     // Prepare filters for API with memoization to prevent object literal instability
     const filters = useMemo(() => ({
         page,
         limit: rowsPerPage,
         search,
         status: statusFilter === "All" ? "" : statusFilter.toLowerCase(),
-        priority: priorityFilter === "All" ? "" : priorityFilter.toLowerCase()
-    }), [page, rowsPerPage, search, statusFilter, priorityFilter]);
+        priority: priorityFilter === "All" ? "" : priorityFilter.toLowerCase(),
+        lead_type: leadTypeFilter === "All" ? "" : leadTypeFilter.toLowerCase()
+    }), [page, rowsPerPage, search, statusFilter, priorityFilter, leadTypeFilter]);
+
+    const { user } = useAuth();
+    const isAdmin = ['admin', 'super_admin'].includes(user?.role);
 
     const { data: leadsData, isLoading, refetch } = useLeads(filters);
 
     const updateLeadMutation = useUpdateLead();
+    const deleteLeadMutation = useDeleteLead();
 
     const leads = leadsData?.data || [];
     const totalPages = leadsData?.pagination?.pages || 1;
     const leadsStats = leadsData?.stats || { 
         total: 0, new: 0, contacted: 0, qualified: 0, 
-        follow_up: 0, converted: 0, lost: 0, wasted: 0 
+        follow_up: 0, site_visit: 0, negotiation: 0, booked: 0, converted: 0, lost: 0, wasted: 0 
     };
 
     /* ─── Refresh Handler ─── */
@@ -72,6 +76,8 @@ const LeadsPage = () => {
         setSearch("");
         setStatusFilter("All");
         setPriorityFilter("All");
+        setLeadTypeFilter("All");
+        setPropertyTypeFilter("All");
         setPage(1);
         refetch();
     };
@@ -105,6 +111,12 @@ const LeadsPage = () => {
     const handleSaveFollowUp = () => {
         setIsFollowUpModalOpen(false);
         setSelectedLead(null);
+    };
+
+    const handleDeleteLead = (id, name) => {
+        if (window.confirm(`Are you sure you want to delete lead "${name}"? This action cannot be undone.`)) {
+            deleteLeadMutation.mutate(id);
+        }
     };
 
     return (
@@ -146,18 +158,18 @@ const LeadsPage = () => {
                 </div>
 
                 <div className="flex-1 min-w-[180px] flex items-center gap-3 border-r border-zinc-800 h-12">
-                    <FiTrendingUp size={20} className="text-emerald-500" />
+                    <FiTrendingUp size={20} className="text-purple-500" />
                     <div>
-                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">Converted</p>
-                        <h3 className="text-lg font-bold text-white mt-1 leading-none">{leadsStats.converted}</h3>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">Negotiating</p>
+                        <h3 className="text-lg font-bold text-white mt-1 leading-none">{leadsStats.negotiation}</h3>
                     </div>
                 </div>
 
                 <div className="flex-1 min-w-[180px] flex items-center gap-3 h-12">
                     <FiMessageSquare size={20} className="text-orange-500" />
                     <div>
-                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">Pending Follow-ups</p>
-                        <h3 className="text-lg font-bold text-white mt-1 leading-none">{leadsStats.follow_up}</h3>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">Site Visits / Follow Up</p>
+                        <h3 className="text-lg font-bold text-white mt-1 leading-none">{leadsStats.site_visit + leadsStats.follow_up}</h3>
                     </div>
                 </div>
             </div>
@@ -200,20 +212,25 @@ const LeadsPage = () => {
                     />
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Priority</span>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider hidden xl:block">Type</span>
+                        <div className="flex bg-zinc-900 border border-zinc-800 rounded p-1">
+                            {leadTypeOptions.slice(0, 4).map(p => (
+                                <button key={p} onClick={() => { setLeadTypeFilter(p); setPage(1); }}
+                                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${leadTypeFilter === p ? "bg-zinc-800 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}>
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider hidden xl:block">Priority</span>
                         <div className="flex bg-zinc-900 border border-zinc-800 rounded p-1">
                             {priorityOptions.map(p => (
-                                <button
-                                    key={p}
-                                    onClick={() => { setPriorityFilter(p); setPage(1); }}
-                                    className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                                        priorityFilter === p 
-                                        ? "bg-zinc-800 text-white shadow-lg" 
-                                        : "text-zinc-500 hover:text-zinc-300"
-                                    }`}
-                                >
+                                <button key={p} onClick={() => { setPriorityFilter(p); setPage(1); }}
+                                    className={`px-3 py-1 text-xs font-medium rounded transition-colors ${priorityFilter === p ? "bg-zinc-800 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}>
                                     {p}
                                 </button>
                             ))}
@@ -264,6 +281,17 @@ const LeadsPage = () => {
                                     </td>
 
                                     <td className="p-3">
+                                        <div className="flex flex-col gap-1.5 align-start">
+                                            <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider w-fit inline-block bg-yellow-500/10 text-yellow-400 border-yellow-500/20`}>
+                                                {lead.lead_type || "Buyer"}
+                                            </span>
+                                            <span className="text-xs text-zinc-400 capitalize whitespace-nowrap">
+                                                {lead.property_type || "Villa"}
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <td className="p-3">
                                         <div className="flex flex-col gap-1.5">
                                             <div className="flex items-center gap-2">
                                                 <CopyButton text={lead.phone} />
@@ -284,16 +312,12 @@ const LeadsPage = () => {
 
                                     <td className="p-3 font-medium text-zinc-200">
                                         <span className={`${isWasted ? "line-through text-zinc-500" : ""}`}>
-                                            {lead.budget}
+                                            {lead.asking_price ? `${lead.currency || "AED"} ${lead.asking_price?.toLocaleString()}` : (lead.budget || "TBD")}
                                         </span>
                                     </td>
 
                                     <td className="p-3 capitalize">
-                                        {lead.client_type || "buying"}
-                                    </td>
-
-                                    <td className="p-3 capitalize">
-                                        {lead.source}
+                                        {lead.source.replace("_", " ")}
                                     </td>
 
                                     <td className="p-3">
@@ -351,7 +375,7 @@ const LeadsPage = () => {
                                             </div>
                                             {lead.remarks && (
                                                 <p className="text-xs text-zinc-400 italic truncate w-full" title={lead.remarks}>
-                                                    "{lead.remarks}"
+                                                    {lead.remarks}
                                                 </p>
                                             )}
                                         </div>
@@ -366,7 +390,10 @@ const LeadsPage = () => {
                                                     lead.status === 'new' ? 'text-yellow-400 border-yellow-500/30' :
                                                     lead.status === 'contacted' ? 'text-zinc-300 border-zinc-700/30' :
                                                     lead.status === 'qualified' ? 'text-violet-400 border-violet-500/30' :
-                                                    lead.status === 'follow_up' ? 'text-orange-400 border-orange-500/30' :
+                                                    lead.status === 'follow_up' ? 'text-blue-400 border-blue-500/30' :
+                                                    lead.status === 'site_visit' ? 'text-orange-400 border-orange-500/30' :
+                                                    lead.status === 'negotiation' ? 'text-purple-400 border-purple-500/30' :
+                                                    lead.status === 'booked' ? 'text-emerald-300 border-emerald-400/30' :
                                                     lead.status === 'converted' ? 'text-teal-400 border-teal-500/30' :
                                                     lead.status === 'closed' ? 'text-emerald-400 border-emerald-500/30' :
                                                     lead.status === 'lost' ? 'text-red-400 border-red-500/30' :
@@ -403,8 +430,14 @@ const LeadsPage = () => {
                                                 <FiEdit size={14} />
                                             </button>
                                             <button
-                                                className="text-zinc-600 bg-zinc-900 border border-zinc-800 p-1.5 rounded cursor-not-allowed"
-                                                title="Delete"
+                                                className={`p-1.5 rounded transition-colors border border-zinc-800 ${
+                                                    isAdmin 
+                                                    ? "text-red-400 bg-zinc-900 hover:text-red-300 hover:bg-red-500/10" 
+                                                    : "text-zinc-600 bg-zinc-900 cursor-not-allowed"
+                                                }`}
+                                                title={isAdmin ? "Delete Lead" : "Deletion Restricted to Admins"}
+                                                disabled={!isAdmin || deleteLeadMutation.isPending}
+                                                onClick={() => isAdmin && handleDeleteLead(lead._id, lead.name)}
                                             >
                                                 <FiTrash2 size={14} />
                                             </button>

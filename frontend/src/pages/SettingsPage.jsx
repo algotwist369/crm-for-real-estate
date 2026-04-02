@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import AppLayout from "../component/layout/AppLayout";
 import { useAuth } from "../context/AuthContext";
-import { useUpdateProfile } from "../hooks/useAuthHooks";
+import { useUpdateProfile, useChangeSecurity } from "../hooks/useAuthHooks";
 import { 
     FiUser, 
-    FiSettings, 
     FiBell, 
     FiShield, 
     FiBriefcase, 
@@ -13,7 +12,6 @@ import {
     FiCamera,
     FiGlobe,
     FiLock,
-    FiLogOut,
     FiCreditCard,
     FiTrendingUp,
     FiCalendar,
@@ -22,10 +20,9 @@ import {
     FiXCircle,
     FiLink,
     FiUpload,
-    FiCheck,
-    FiEye,
-    FiEyeOff
+    FiHash
 } from "react-icons/fi";
+import { toast } from "react-hot-toast";
 
 const SettingsInput = ({ label, type = "text", value, onChange, placeholder, icon, disabled, className = "" }) => (
     <div className={`space-y-1.5 ${className}`}>
@@ -63,6 +60,7 @@ const SettingsToggle = ({ enabled, onChange }) => (
 const SettingsPage = () => {
     const { user, isLoading: isUserLoading } = useAuth();
     const { mutateAsync: updateProfile, isPending: isUpdating } = useUpdateProfile();
+    const { mutateAsync: changeSecurity, isPending: isChangingSecurity } = useChangeSecurity();
     const [activeTab, setActiveTab] = useState("Profile");
     const [isSaving, setIsSaving] = useState(false);
     const [profilePicMode, setProfilePicMode] = useState("url"); // 'url' or 'upload'
@@ -108,7 +106,10 @@ const SettingsPage = () => {
     const [securityData, setSecurityData] = useState({
         currentPassword: "",
         newPassword: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        currentPin: "",
+        newPin: "",
+        confirmPin: ""
     });
 
     const handleFileChange = (e) => {
@@ -142,6 +143,52 @@ const SettingsPage = () => {
         }
     };
 
+    const handleUpdatePassword = async () => {
+        if (!securityData.currentPassword || !securityData.newPassword || !securityData.confirmPassword) {
+            toast.error("Please fill in all password fields");
+            return;
+        }
+
+        if (securityData.newPassword !== securityData.confirmPassword) {
+            toast.error("New passwords do not match");
+            return;
+        }
+
+        try {
+            await changeSecurity({
+                type: 'password',
+                current_password: securityData.currentPassword,
+                new_password: securityData.newPassword
+            });
+            setSecurityData({ ...securityData, currentPassword: "", newPassword: "", confirmPassword: "" });
+        } catch (err) {
+            console.error("Password update error:", err);
+        }
+    };
+
+    const handleUpdatePin = async () => {
+        if (!securityData.currentPin || !securityData.newPin || !securityData.confirmPin) {
+            toast.error("Please fill in all PIN fields");
+            return;
+        }
+
+        if (securityData.newPin !== securityData.confirmPin) {
+            toast.error("New PINs do not match");
+            return;
+        }
+
+        try {
+            await changeSecurity({
+                type: 'pin',
+                current_pin: securityData.currentPin,
+                new_pin: securityData.newPin
+            });
+            setSecurityData({ ...securityData, currentPin: "", newPin: "", confirmPin: "" });
+        } catch (err) {
+            console.error("PIN update error:", err);
+        }
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -153,9 +200,7 @@ const SettingsPage = () => {
         });
     };
 
-    const tabs = user?.role === "agent" 
-        ? ["Profile", "Agency"] 
-        : ["Profile", "Agency", "Notifications", "Security"];
+    const tabs = ["Profile", "Agency", "Notifications", "Security"];
 
     const renderProfile = () => (
         <div className="space-y-6 max-w-4xl">
@@ -384,14 +429,15 @@ const SettingsPage = () => {
 
     const renderSecurity = () => (
         <div className="space-y-6 max-w-xl">
+            {/* Password Section */}
             <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6">
                 <div className="flex items-center gap-4 mb-6 border-b border-zinc-800 pb-4">
                     <div className="w-10 h-10 border border-zinc-800 bg-zinc-900 text-zinc-400 rounded flex items-center justify-center">
-                        <FiShield size={18} />
+                        <FiLock size={18} />
                     </div>
                     <div>
-                        <h3 className="text-sm font-medium text-white mb-1">Security & Access</h3>
-                        <p className="text-xs text-zinc-500">Manage your credentials and API access</p>
+                        <h3 className="text-sm font-medium text-white mb-1">Password Management</h3>
+                        <p className="text-xs text-zinc-500">Update your account login password</p>
                     </div>
                 </div>
                 
@@ -404,30 +450,90 @@ const SettingsPage = () => {
                         value={securityData.currentPassword}
                         onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})}
                     />
-                    <SettingsInput 
-                        label="New Password" 
-                        type="password" 
-                        placeholder="Min 8 characters" 
-                        icon={<FiLock />} 
-                        value={securityData.newPassword}
-                        onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})}
-                    />
-                    <SettingsInput 
-                        label="Confirm New Password" 
-                        type="password" 
-                        placeholder="Confirm password" 
-                        icon={<FiLock />} 
-                        value={securityData.confirmPassword}
-                        onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <SettingsInput 
+                            label="New Password" 
+                            type="password" 
+                            placeholder="Min 8 characters" 
+                            icon={<FiLock />} 
+                            value={securityData.newPassword}
+                            onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})}
+                        />
+                        <SettingsInput 
+                            label="Confirm New Password" 
+                            type="password" 
+                            placeholder="Confirm password" 
+                            icon={<FiLock />} 
+                            value={securityData.confirmPassword}
+                            onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})}
+                        />
+                    </div>
                     
                     <div className="pt-4">
-                        <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white text-sm font-medium rounded transition-colors">
-                            Update Password
+                        <button 
+                            onClick={handleUpdatePassword}
+                            disabled={isChangingSecurity}
+                            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50"
+                        >
+                            {isChangingSecurity ? "Updating..." : "Update Password"}
                         </button>
                     </div>
                 </div>
             </div>
+
+            {/* PIN Section - Only for Agents */}
+            {user?.role === "agent" && (
+                <div className="bg-zinc-950/20 border border-zinc-800 rounded p-6">
+                    <div className="flex items-center gap-4 mb-6 border-b border-zinc-800 pb-4">
+                        <div className="w-10 h-10 border border-zinc-800 bg-zinc-900 text-zinc-400 rounded flex items-center justify-center">
+                            <FiHash size={18} />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-medium text-white mb-1">Agent Login PIN</h3>
+                            <p className="text-xs text-zinc-500">Update your 4-8 digit quick login PIN</p>
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                        <SettingsInput 
+                            label="Current PIN" 
+                            type="password" 
+                            placeholder="••••" 
+                            icon={<FiHash />} 
+                            value={securityData.currentPin}
+                            onChange={(e) => setSecurityData({...securityData, currentPin: e.target.value})}
+                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <SettingsInput 
+                                label="New PIN" 
+                                type="password" 
+                                placeholder="4-8 digits" 
+                                icon={<FiHash />} 
+                                value={securityData.newPin}
+                                onChange={(e) => setSecurityData({...securityData, newPin: e.target.value})}
+                            />
+                            <SettingsInput 
+                                label="Confirm New PIN" 
+                                type="password" 
+                                placeholder="Confirm PIN" 
+                                icon={<FiHash />} 
+                                value={securityData.confirmPin}
+                                onChange={(e) => setSecurityData({...securityData, confirmPin: e.target.value})}
+                            />
+                        </div>
+                        
+                        <div className="pt-4">
+                            <button 
+                                onClick={handleUpdatePin}
+                                disabled={isChangingSecurity}
+                                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50"
+                            >
+                                {isChangingSecurity ? "Updating..." : "Update PIN"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="bg-red-500/5 border border-red-500/20 rounded p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>

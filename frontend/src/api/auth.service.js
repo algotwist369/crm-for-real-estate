@@ -42,11 +42,11 @@ const authService = {
   },
 
   /**
-   * Update admin profile
+   * Update user profile
    * @param {Object} userData { user_name, email, phone_number, profile_pic }
    */
   updateProfile: async (userData) => {
-    const response = await axiosInstance.patch('/auth/admin/profile', userData);
+    const response = await axiosInstance.patch('/auth/profile', userData);
     return response.data;
   },
 
@@ -59,6 +59,15 @@ const authService = {
     // If the backend doesn't have a /me, we might need to adjust.
     // Let's assume /auth/me exists or backend returns user data on session check.
     const response = await axiosInstance.get('/auth/me');
+    return response.data;
+  },
+
+  /**
+   * Change password or PIN
+   * @param {Object} data { type: 'password'|'pin', current_password/pin, new_password/pin }
+   */
+  changeSecurity: async (data) => {
+    const response = await axiosInstance.post('/auth/change-password', data);
     return response.data;
   },
 };

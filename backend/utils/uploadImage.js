@@ -49,7 +49,7 @@ function uploadImageFromBuffer(buffer, options = {}) {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
             if (error) {
-                // Cloudinary SDK returns a plain object, not an Error — normalize it
+                // Cloudinary SDK returns a plain object, not an Error - normalize it
                 const err = new Error(error.message || `Cloudinary upload failed (HTTP ${error.http_code || 'unknown'})`);
                 err.statusCode = error.http_code || 500;
                 err.cloudinaryError = error;

@@ -247,7 +247,7 @@ const AgentPerformanceTab = () => {
                                         </div>
                                     </td>
                                     <td className="p-4 text-zinc-400 text-xs">
-                                        {a.avg_response_time != null ? `${a.avg_response_time} hrs` : "—"}
+                                        {a.avg_response_time != null ? `${a.avg_response_time} hrs` : "-"}
                                     </td>
                                     <td className="p-4">
                                         <span className={`text-xs capitalize px-2 py-1 rounded border ${

@@ -141,7 +141,7 @@ const report_export = wrapAsync(async (req, res) => {
     doc.pipe(res);
 
     // Title
-    doc.fontSize(20).font('Helvetica-Bold').text('AlgoTwist CRM — Analytics Report', { align: 'center' });
+    doc.fontSize(20).font('Helvetica-Bold').text('AlgoTwist CRM - Analytics Report', { align: 'center' });
     doc.fontSize(10).font('Helvetica').fillColor('#666666')
         .text(`Generated on ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}`, { align: 'center' });
     doc.moveDown(1.5);

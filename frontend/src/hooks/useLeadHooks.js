@@ -161,3 +161,18 @@ export const useAgentActivityTimeline = (filters = {}) => {
         refetchOnWindowFocus: false
     });
 };
+
+export const useDeleteLead = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id) => leadService.deleteLead(id),
+        onSuccess: (response) => {
+            queryClient.invalidateQueries(["leads"]);
+            queryClient.invalidateQueries(["dashboard", "agent-summary"]);
+            toast.success(response.message || "Lead deleted successfully");
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || "Failed to delete lead");
+        },
+    });
+};

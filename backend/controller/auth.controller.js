@@ -257,15 +257,15 @@ const update_admin_profile = wrapAsync(async (req, res) => {
 
     const userId = payload?.sub;
     if (!userId) throw httpError(401, 'Invalid token');
-    if (!['admin', 'super_admin'].includes(payload?.role)) throw httpError(403, 'Forbidden');
+    if (!['admin', 'super_admin', 'agent'].includes(payload?.role)) throw httpError(403, 'Forbidden');
 
     const user = await User.findOne({
         _id: userId,
-        role: { $in: ['admin', 'super_admin'] },
+        role: { $in: ['admin', 'super_admin', 'agent'] },
         is_active: true,
         is_deleted: false
     });
-    if (!user) throw httpError(404, 'Admin not found');
+    if (!user) throw httpError(404, 'User not found');
 
     const nextName = req.body?.user_name ?? req.body?.name;
     const nextEmailRaw = req.body?.email;
@@ -398,7 +398,7 @@ const logout_admin = wrapAsync(async (req, res) => {
     });
 });
 
-// change password
+// change password and pin
 const change_password = wrapAsync(async (req, res) => {
     const rawToken = extractBearerToken(req);
     if (!rawToken) throw httpError(401, 'Authorization token required');
@@ -415,17 +415,53 @@ const change_password = wrapAsync(async (req, res) => {
     if (!userId) throw httpError(401, 'Invalid token');
     if (!['admin', 'super_admin', 'agent'].includes(payload?.role)) throw httpError(403, 'Forbidden');
 
-    const currentPassword = req.body?.current_password ?? req.body?.old_password;
-    const newPassword = req.body?.new_password ?? req.body?.password;
+    const { type, current_password, new_password, current_pin, new_pin } = req.body;
+
+    if (type === 'pin') {
+        if (payload.role !== 'agent') {
+            throw httpError(403, 'Only agents have a PIN');
+        }
+
+        if (!current_pin || !new_pin) {
+            throw httpError(400, 'Current PIN and New PIN are required');
+        }
+
+        const agent = await Agent.findOne({ agent_details: userId });
+        if (!agent) throw httpError(404, 'Agent profile not found');
+
+        if (Number(agent.agent_pin) !== Number(current_pin)) {
+            throw httpError(401, 'Invalid current PIN');
+        }
+
+        if (Number(current_pin) === Number(new_pin)) {
+            throw httpError(400, 'New PIN must be different from current PIN');
+        }
+
+        if (new_pin < 1000 || new_pin > 99999999) {
+            throw httpError(400, 'PIN must be between 4 and 8 digits');
+        }
+
+        agent.agent_pin = new_pin;
+        await agent.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'PIN changed successfully'
+        });
+    }
+
+    // Default to password change if type is not 'pin'
+    const oldPassword = current_password ?? req.body?.old_password;
+    const password = new_password ?? req.body?.password;
 
     const details = [];
-    if (!currentPassword) details.push({ path: 'current_password', message: 'Current password is required' });
-    if (!newPassword) details.push({ path: 'new_password', message: 'New password is required' });
+    if (!oldPassword) details.push({ path: 'current_password', message: 'Current password is required' });
+    if (!password) details.push({ path: 'new_password', message: 'New password is required' });
     if (details.length) throw httpError(400, 'Validation error', details);
 
-    const pwdError = validatePassword(newPassword);
+    const pwdError = validatePassword(password);
     if (pwdError) throw httpError(400, 'Validation error', [{ path: 'new_password', message: pwdError }]);
-    if (String(currentPassword) === String(newPassword)) {
+    if (String(oldPassword) === String(password)) {
         throw httpError(400, 'Validation error', [{ path: 'new_password', message: 'New password must be different from current password' }]);
     }
 
@@ -435,13 +471,13 @@ const change_password = wrapAsync(async (req, res) => {
         is_active: true,
         is_deleted: false
     }).select('+hash_password');
-    if (!user) throw httpError(404, 'Admin not found');
+    if (!user) throw httpError(404, 'User not found');
 
-    if (!verifyPassword(currentPassword, user.hash_password)) {
+    if (!verifyPassword(oldPassword, user.hash_password)) {
         throw httpError(401, 'Invalid current password');
     }
 
-    user.hash_password = hashPassword(newPassword);
+    user.hash_password = hashPassword(password);
     await user.save();
 
     const expiresAt = typeof payload.exp === 'number'

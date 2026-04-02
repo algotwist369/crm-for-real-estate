@@ -109,3 +109,19 @@ export const useUpdateProfile = () => {
         },
     });
 };
+
+/**
+ * Hook for changing security credentials (password/PIN)
+ */
+export const useChangeSecurity = () => {
+  return useMutation({
+    mutationFn: (data) => authService.changeSecurity(data),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Updated successfully!');
+    },
+    onError: (error) => {
+      const message = error.response?.data?.message || 'Update failed';
+      toast.error(message);
+    },
+  });
+};

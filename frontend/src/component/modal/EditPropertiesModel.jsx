@@ -6,11 +6,33 @@ import {
 import { useUpdateProperty } from "../../hooks/usePropertyHooks";
 import { useAgents } from "../../hooks/useAgentHooks";
 
-const PROPERTY_TYPES = ["Apartment", "Villa", "Office", "Plot", "Warehouse", "Studio", "Penthouse"];
-const LISTING_TYPES = ["sale", "rent", "investment"];
+const PROPERTY_TYPES = ["Apartment", "Villa", "Office", "Plot", "Warehouse", "Studio", "Penthouse", "Townhouse", "Shop", "Industrial"];
+const LISTING_TYPES = [
+    "rent", "sale", "investment", "off_plan", "resale", "lease", 
+    "short_term", "holiday_home", "commercial_rent", "commercial_sale", 
+    "pre_launch", "auction", "joint_venture", "land_sale", "other"
+];
 const CURRENCIES = ["INR", "AED", "USD", "EUR", "GBP", "JPY"];
 const FURNISHED_STATUS = ["fully furnished", "semi furnished", "unfurnished", "furnished", "NA"];
-const AMENITY_OPTIONS = ["Infinity Pool", "Gym", "24/7 Security", "Covered Parking", "Concierge Service", "Balcony", "Central AC", "Elevator", "Power Backup", "Clubhouse"];
+const AMENITY_OPTIONS = [
+    "Infinity Pool", "Gym", "24/7 Security", "Covered Parking", "Concierge Service", "Balcony", "Central AC", 
+    "Elevator", "Power Backup", "Clubhouse", "Maid Service", "Private Pool", "Garden", "Sauna", "Steam Room",
+    "Jacuzzi", "Built-in Wardrobes", "Kitchen Appliances", "Walk-in Closet", "Study Room", "Maid's Room", 
+    "Laundry Room", "Storage Room", "Balcony/Terrace", "Private Garden", "Shared Pool", "Shared Gym", 
+    "Children's Play Area", "BBQ Area", "Tennis Court", "Basketball Court", "Squash Court", "Yoga Studio", 
+    "Spa", "Business Center", "Conference Room", "Lobby in Building", "Valet Parking", "Pet Friendly", 
+    "Smart Home System", "View of Water", "View of Landmark", "Beach Access", "Marina Access", "Golf Course", 
+    "Park Access", "Supermarket Nearby", "Pharmacy Nearby", "School Nearby", "Metro Nearby", "Waste Disposal", 
+    "Cleaning Services", "Maintenance Staff"
+];
+const PROPERTY_STATUSES = [
+    "available", "under_offer", "reserved", "booked", "sold", "rented", 
+    "leased", "blocked", "under_negotiation", "hold", "unavailable", 
+    "withdrawn", "expired", "inactive", "other"
+];
+const COMPLETION_STATUSES = ["ready", "off_plan", "under_construction", "new_launch", "resale", "secondary_market", "unknown"];
+const OCCUPANCY_STATUSES = ["vacant", "owner_occupied", "tenant_occupied", "leased", "unknown"];
+const PROPERTY_CATEGORIES = ["residential", "commercial", "land", "hospitality", "industrial", "mixed_use", "other"];
 
 const EditPropertiesModel = ({ isOpen, onClose, property }) => {
     const [formData, setFormData] = useState({
@@ -32,10 +54,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
             country: "India",
             postal_code: "",
             landmark: "",
-            coordinates: {
-                type: "Point",
-                coordinates: [0, 0]
-            }
+            google_map_url: ""
         },
         total_area: "",
         area_unit: "sqft",
@@ -43,7 +62,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
         built_up_area: "",
         total_bedrooms: "",
         total_bathrooms: "",
-        furnished_status: "unfurnished",
+        furnished_status: "NA",
         amenities: [],
         assign_agent: [],
         possession_date: "",
@@ -52,12 +71,79 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
         photos_base64: [],
         documents: [],
         documents_base64: [],
-        is_active: true
+        is_active: true,
+
+        // International / Project details
+        property_code: "",
+        reference_id: "",
+        external_id: "",
+        property_category: "residential",
+        property_sub_type: "",
+        project_name: "",
+        tower_name: "",
+        building_name: "",
+        community_name: "",
+        sub_community: "",
+        unit_number: "",
+        floor_number: "",
+        total_floors: "",
+
+        // Room configuration
+        bedroom_label: "",
+        maid_room: false,
+        servant_room: false,
+        study_room: false,
+        store_room: false,
+        balcony_count: 0,
+        parking_count: 0,
+
+        // Area flexibility
+        plot_area: "",
+        plot_area_unit: "sqft",
+        super_built_up_area: "",
+        usable_area: "",
+
+        // Price intelligence
+        original_price: "",
+        rental_yield: "",
+        service_charges: "",
+        maintenance_fee: "",
+        payment_plan: "",
+        down_payment: "",
+
+        // Workflow
+        completion_status: "unknown",
+        handover_date: "",
+        handover_label: "",
+
+        // Occupancy
+        occupancy_status: "unknown",
+        tenant_name: "",
+        tenant_phone: "",
+        lease_end_date: "",
+
+        // Legal
+        permit_number: "",
+        rera_number: "",
+        dld_permit_number: "",
+        title_deed_number: "",
+
+        // SEO / Presentation
+        video_url: "",
+        virtual_tour_url: "",
+        floor_plan_url: "",
+        brochure_url: "",
+        tags: [],
+        highlights: [],
+        view_type: "",
+        remarks: ""
     });
 
     const [previewImages, setPreviewImages] = useState([]);
     const [activeSection, setActiveSection] = useState("basic");
     const [newPhotoUrl, setNewPhotoUrl] = useState("");
+    const [newTag, setNewTag] = useState("");
+    const [newHighlight, setNewHighlight] = useState("");
 
     const { data: agentsData, isLoading: isLoadingAgents } = useAgents();
     const updateMutation = useUpdateProperty();
@@ -84,10 +170,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                     country: property.property_location?.country || "India",
                     postal_code: property.property_location?.postal_code || "",
                     landmark: property.property_location?.landmark || "",
-                    coordinates: {
-                        type: "Point",
-                        coordinates: property.property_location?.coordinates?.coordinates || [0, 0]
-                    }
+                    google_map_url: property.property_location?.google_map_url || ""
                 },
                 total_area: property.total_area || "",
                 area_unit: property.area_unit || "sqft",
@@ -95,7 +178,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                 built_up_area: property.built_up_area || "",
                 total_bedrooms: property.total_bedrooms || "",
                 total_bathrooms: property.total_bathrooms || "",
-                furnished_status: property.furnished_status === "NA" ? "NA" : (property.furnished_status || "unfurnished").toLowerCase(),
+                furnished_status: property.furnished_status === "NA" ? "NA" : (property.furnished_status || "NA").toLowerCase(),
                 amenities: property.amenities || [],
                 assign_agent: Array.isArray(property.assign_agent) ? property.assign_agent.map(a => a._id || a) : [],
                 possession_date: property.possession_date ? new Date(property.possession_date).toISOString().split('T')[0] : "",
@@ -104,7 +187,72 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                 photos_base64: [],
                 documents: property.documents || [],
                 documents_base64: [],
-                is_active: property.is_active ?? true
+                is_active: property.is_active ?? true,
+
+                // International / Project details
+                property_code: property.property_code || "",
+                reference_id: property.reference_id || "",
+                external_id: property.external_id || "",
+                property_category: property.property_category || "residential",
+                property_sub_type: property.property_sub_type || "",
+                project_name: property.project_name || "",
+                tower_name: property.tower_name || "",
+                building_name: property.building_name || "",
+                community_name: property.community_name || "",
+                sub_community: property.sub_community || "",
+                unit_number: property.unit_number || "",
+                floor_number: property.floor_number || "",
+                total_floors: property.total_floors || "",
+
+                // Room configuration
+                bedroom_label: property.bedroom_label || "",
+                maid_room: property.maid_room ?? false,
+                servant_room: property.servant_room ?? false,
+                study_room: property.study_room ?? false,
+                store_room: property.store_room ?? false,
+                balcony_count: property.balcony_count || 0,
+                parking_count: property.parking_count || 0,
+
+                // Area flexibility
+                plot_area: property.plot_area || "",
+                plot_area_unit: property.plot_area_unit || "sqft",
+                super_built_up_area: property.super_built_up_area || "",
+                usable_area: property.usable_area || "",
+
+                // Price intelligence
+                original_price: property.original_price || "",
+                rental_yield: property.rental_yield || "",
+                service_charges: property.service_charges || "",
+                maintenance_fee: property.maintenance_fee || "",
+                payment_plan: property.payment_plan || "",
+                down_payment: property.down_payment || "",
+
+                // Workflow
+                completion_status: property.completion_status || "unknown",
+                handover_date: property.handover_date ? new Date(property.handover_date).toISOString().split('T')[0] : "",
+                handover_label: property.handover_label || "",
+
+                // Occupancy
+                occupancy_status: property.occupancy_status || "unknown",
+                tenant_name: property.tenant_name || "",
+                tenant_phone: property.tenant_phone || "",
+                lease_end_date: property.lease_end_date ? new Date(property.lease_end_date).toISOString().split('T')[0] : "",
+
+                // Legal
+                permit_number: property.permit_number || "",
+                rera_number: property.rera_number || "",
+                dld_permit_number: property.dld_permit_number || "",
+                title_deed_number: property.title_deed_number || "",
+
+                // SEO / Presentation
+                video_url: property.video_url || "",
+                virtual_tour_url: property.virtual_tour_url || "",
+                floor_plan_url: property.floor_plan_url || "",
+                brochure_url: property.brochure_url || "",
+                tags: property.tags || [],
+                highlights: property.highlights || [],
+                view_type: property.view_type || "",
+                remarks: property.remarks || ""
             });
             setPreviewImages(property.photos || []);
         }
@@ -130,20 +278,6 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
             setFormData(prev => ({ ...prev, [name]: val }));
         }
     }, []);
-
-    const handleCoordinateChange = (index, value) => {
-        setFormData(prev => {
-            const newCoords = [...prev.property_location.coordinates.coordinates];
-            newCoords[index] = parseFloat(value) || 0;
-            return {
-                ...prev,
-                property_location: {
-                    ...prev.property_location,
-                    coordinates: { ...prev.property_location.coordinates, coordinates: newCoords }
-                }
-            };
-        });
-    };
 
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
@@ -258,6 +392,38 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
         }));
     };
 
+    const handleAddTag = () => {
+        if (!newTag.trim()) return;
+        setFormData(prev => ({
+            ...prev,
+            tags: [...prev.tags, newTag.trim()]
+        }));
+        setNewTag("");
+    };
+
+    const removeTag = (tag) => {
+        setFormData(prev => ({
+            ...prev,
+            tags: prev.tags.filter(t => t !== tag)
+        }));
+    };
+
+    const handleAddHighlight = () => {
+        if (!newHighlight.trim()) return;
+        setFormData(prev => ({
+            ...prev,
+            highlights: [...prev.highlights, newHighlight.trim()]
+        }));
+        setNewHighlight("");
+    };
+
+    const removeHighlight = (highlight) => {
+        setFormData(prev => ({
+            ...prev,
+            highlights: prev.highlights.filter(h => h !== highlight)
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -285,7 +451,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
 
     return (
         <div className="fixed inset-0 bg-zinc-950/80 z-[60] flex items-center justify-center p-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded w-full max-w-2xl overflow-hidden shadow-lg flex flex-col max-h-[95vh]">
+            <div className="bg-zinc-900 border border-zinc-800 rounded w-full max-w-4xl overflow-hidden shadow-lg flex flex-col max-h-[95vh]">
                 
                 <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
                     <div>
@@ -302,6 +468,8 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                     <SectionTab id="specs" label="Specs" icon={FiLayers} />
                     <SectionTab id="location" label="Location" icon={FiMapPin} />
                     <SectionTab id="media" label="Media" icon={FiUpload} />
+                    <SectionTab id="crm" label="CRM" icon={FiTrendingUp} />
+                    <SectionTab id="occupancy" label="Occupancy" icon={FiUser} />
                     <SectionTab id="docs" label="Docs" icon={FiCheckSquare} />
                 </div>
 
@@ -313,20 +481,32 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                                 <div><label className={labelClasses}>Property Title</label><input type="text" name="property_title" value={formData.property_title} onChange={handleChange} required className={inputClasses}/></div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className={labelClasses}>Type</label>
+                                        <label className={labelClasses}>Listing Type</label>
+                                        <select name="listing_type" value={formData.listing_type} onChange={handleChange} required className={inputClasses}>
+                                            {LISTING_TYPES.map(t => <option key={t} value={t}>{t.toUpperCase().replace('_', ' ')}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className={labelClasses}>Property Category</label>
+                                        <select name="property_category" value={formData.property_category} onChange={handleChange} className={inputClasses}>
+                                            {PROPERTY_CATEGORIES.map(c => <option key={c} value={c}>{c.toUpperCase().replace('_', ' ')}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={labelClasses}>Property Type</label>
                                         <select name="property_type" value={formData.property_type} onChange={handleChange} className={inputClasses}>
                                             {PROPERTY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                         </select>
                                     </div>
                                     <div>
-                                        <label className={labelClasses}>Status</label>
-                                        <select name="property_status" value={formData.property_status} onChange={handleChange} className={inputClasses}>
-                                            {["available", "under_offer", "sold", "rented", "inactive"].map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
-                                        </select>
+                                        <label className={labelClasses}>Property Sub-Type</label>
+                                        <input type="text" name="property_sub_type" value={formData.property_sub_type} onChange={handleChange} placeholder="e.g. Garden Villa" className={inputClasses} />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><label className={labelClasses}>Asking Price</label><input type="number" name="asking_price" value={formData.asking_price} onChange={handleChange} required className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Asking Price</label><input type="number" name="asking_price" value={formData.asking_price} onChange={handleChange} className={inputClasses} /></div>
                                     <div>
                                         <label className={labelClasses}>Currency</label>
                                         <select name="currency" value={formData.currency} onChange={handleChange} className={inputClasses}>
@@ -351,40 +531,60 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                         {activeSection === 'specs' && (
                             <div className="space-y-4">
                                 <div className="grid grid-cols-3 gap-4">
-                                    <div><label className={labelClasses}>Total Area</label><input type="number" name="total_area" value={formData.total_area} onChange={handleChange} className={inputClasses} /></div>
-                                    <div><label className={labelClasses}>Carpet Area</label><input type="number" name="carpet_area" value={formData.carpet_area} onChange={handleChange} className={inputClasses} /></div>
-                                    <div><label className={labelClasses}>Built-up</label><input type="number" name="built_up_area" value={formData.built_up_area} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Total Area</label><input type="number" name="total_area" value={formData.total_area} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Unit</label>
+                                        <select name="area_unit" value={formData.area_unit} onChange={handleChange} className={inputClasses}>
+                                            {["sqft", "sqm", "sqyd", "acre", "bigha", "hectare"].map(u => <option key={u} value={u}>{u}</option>)}
+                                        </select>
+                                    </div>
+                                    <div><label className={labelClasses}>Carpet Area</label><input type="number" name="carpet_area" value={formData.carpet_area} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <div><label className={labelClasses}>Bedrooms</label><input type="number" name="total_bedrooms" value={formData.total_bedrooms} onChange={handleChange} className={inputClasses} /></div>
-                                    <div><label className={labelClasses}>Bathrooms</label><input type="number" name="total_bathrooms" value={formData.total_bathrooms} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Bedrooms</label><input type="number" name="total_bedrooms" value={formData.total_bedrooms} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Bathrooms</label><input type="number" name="total_bathrooms" value={formData.total_bathrooms} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Bedroom Label</label><input type="text" name="bedroom_label" value={formData.bedroom_label} onChange={handleChange} placeholder="e.g. 3 BR + Maid" className={inputClasses} /></div>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="maid_room" checked={formData.maid_room} onChange={handleChange} /> Maid's Room</label>
+                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="servant_room" checked={formData.servant_room} onChange={handleChange} /> Servant's Room</label>
+                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="study_room" checked={formData.study_room} onChange={handleChange} /> Study Room</label>
+                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="store_room" checked={formData.store_room} onChange={handleChange} /> Store Room</label>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="balcony_count" checked={formData.balcony_count > 0} onChange={(e) => setFormData(p => ({...p, balcony_count: e.target.checked ? 1 : 0}))} /> Has Balcony</label>
+                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="parking_count" checked={formData.parking_count > 0} onChange={(e) => setFormData(p => ({...p, parking_count: e.target.checked ? 1 : 0}))} /> Has Parking</label>
+                                </div>
+                                <div className="pt-4 border-t border-zinc-800">
+                                    <label className={labelClasses}>Area Flexibility</label>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div><label className={labelClasses}>Plot Area</label><input type="number" name="plot_area" value={formData.plot_area} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Plot Unit</label>
+                                            <select name="plot_area_unit" value={formData.plot_area_unit} onChange={handleChange} className={inputClasses}>
+                                                {["sqft", "sqm", "sqyd", "acre", "bigha", "hectare"].map(u => <option key={u} value={u}>{u}</option>)}
+                                            </select>
+                                        </div>
+                                        <div><label className={labelClasses}>Super Built-up</label><input type="number" name="super_built_up_area" value={formData.super_built_up_area} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4 mt-4">
+                                        <div><label className={labelClasses}>Usable Area</label><input type="number" name="usable_area" value={formData.usable_area} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
                                     <div>
                                         <label className={labelClasses}>Furnishing</label>
                                         <select name="furnished_status" value={formData.furnished_status} onChange={handleChange} className={inputClasses}>
                                             {FURNISHED_STATUS.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
                                         </select>
                                     </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div><label className={labelClasses}>Possession</label><input type="date" name="possession_date" value={formData.possession_date} onChange={handleChange} className={inputClasses} /></div>
-                                    <div><label className={labelClasses}>Available From</label><input type="date" name="available_from" value={formData.available_from} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Floor No.</label><input type="number" name="floor_number" value={formData.floor_number} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Total Floors</label><input type="number" name="total_floors" value={formData.total_floors} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
                                 </div>
                                 <div>
                                     <label className={labelClasses}>Amenities</label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         {AMENITY_OPTIONS.map(a => (
-                                            <button key={a} type="button" onClick={() => toggleAmenity(a)} className={`text-left px-3 py-2 text-xs rounded border ${formData.amenities.includes(a) ? "bg-zinc-800 border-zinc-600 text-white" : "bg-zinc-950 border-zinc-800 text-zinc-400"}`}>
+                                            <button key={a} type="button" onClick={() => toggleAmenity(a)} className={`px-3 py-2 text-[10px] rounded border transition-all ${formData.amenities.includes(a) ? "bg-zinc-800 border-zinc-600 text-white" : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700"}`}>
                                                 {a}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="pt-2 border-t border-zinc-800">
-                                    <label className={labelClasses}>Assigned Agents</label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {agents.map(a => (
-                                            <button key={a._id} type="button" onClick={() => toggleAgent(a._id)} className={`text-left px-3 py-2 text-xs rounded border ${formData.assign_agent.includes(a._id) ? "bg-zinc-800 border-zinc-600 text-white" : "bg-zinc-950 border-zinc-800 text-zinc-400"}`}>
-                                                {a.agent_details?.user_name}
                                             </button>
                                         ))}
                                     </div>
@@ -394,27 +594,22 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
 
                         {activeSection === 'location' && (
                             <div className="space-y-4">
-                                <div><label className={labelClasses}>Full Address</label><input type="text" name="property_address" value={formData.property_address} onChange={handleChange} className={inputClasses} /></div>
+                                <div><label className={labelClasses}>Full Address</label><input type="text" name="property_address" value={formData.property_address} onChange={handleChange} placeholder="Full address" className={inputClasses} /></div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div><label className={labelClasses}>Building</label><input type="text" name="building_name" value={formData.building_name} onChange={handleChange} placeholder="e.g. Burj Khalifa" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Tower</label><input type="text" name="tower_name" value={formData.tower_name} onChange={handleChange} placeholder="e.g. Tower A" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Unit Number</label><input type="text" name="unit_number" value={formData.unit_number} onChange={handleChange} placeholder="e.g. 101" className={inputClasses} /></div>
+                                </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><label className={labelClasses}>Line 1</label><input type="text" name="property_location.line1" value={formData.property_location.line1} onChange={handleChange} className={inputClasses} /></div>
-                                    <div><label className={labelClasses}>Line 2</label><input type="text" name="property_location.line2" value={formData.property_location.line2} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Community</label><input type="text" name="community_name" value={formData.community_name} onChange={handleChange} placeholder="e.g. Downtown Dubai" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Sub Community</label><input type="text" name="sub_community" value={formData.sub_community} onChange={handleChange} placeholder="e.g. Old Town" className={inputClasses} /></div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <div><label className={labelClasses}>City</label><input type="text" name="property_location.city" value={formData.property_location.city} onChange={handleChange} className={inputClasses} /></div>
-                                    <div><label className={labelClasses}>State</label><input type="text" name="property_location.state" value={formData.property_location.state} onChange={handleChange} className={inputClasses} /></div>
-                                    <div><label className={labelClasses}>Postal Code</label><input type="text" name="property_location.postal_code" value={formData.property_location.postal_code} onChange={handleChange} className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>City</label><input type="text" name="property_location.city" value={formData.property_location.city} onChange={handleChange} placeholder="City Name" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>State</label><input type="text" name="property_location.state" value={formData.property_location.state} onChange={handleChange} placeholder="State" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Country</label><input type="text" name="property_location.country" value={formData.property_location.country} onChange={handleChange} placeholder="Country Name" className={inputClasses} /></div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div><label className={labelClasses}>Landmark</label><input type="text" name="property_location.landmark" value={formData.property_location.landmark} onChange={handleChange} className={inputClasses} /></div>
-                                    <div><label className={labelClasses}>Country</label><input type="text" name="property_location.country" value={formData.property_location.country} onChange={handleChange} className={inputClasses} /></div>
-                                </div>
-                                <div className="pt-2 border-t border-zinc-800">
-                                    <label className={labelClasses}>Coordinates</label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div><label className="text-[10px] text-zinc-500 mb-1 block">Longitude</label><input type="number" step="any" value={formData.property_location.coordinates.coordinates[0]} onChange={(e) => handleCoordinateChange(0, e.target.value)} className={inputClasses} /></div>
-                                        <div><label className="text-[10px] text-zinc-500 mb-1 block">Latitude</label><input type="number" step="any" value={formData.property_location.coordinates.coordinates[1]} onChange={(e) => handleCoordinateChange(1, e.target.value)} className={inputClasses} /></div>
-                                    </div>
-                                </div>
+                                <div><label className={labelClasses}>Google Maps URL</label><input type="text" name="property_location.google_map_url" value={formData.property_location.google_map_url} onChange={handleChange} placeholder="https://goo.gl/maps/..." className={inputClasses} /></div>
                             </div>
                         )}
 
@@ -431,68 +626,153 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                                     ))}
                                     <label className="aspect-square rounded border border-dashed border-zinc-700 flex flex-col items-center justify-center gap-2 hover:border-zinc-500 cursor-pointer transition-all bg-zinc-950">
                                         <FiPlus size={20} className="text-zinc-500" />
-                                        <span className="text-xs text-zinc-500 text-center px-1">Upload File</span>
+                                        <span className="text-[10px] text-zinc-500 text-center px-1">Upload File</span>
                                         <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
                                     </label>
                                 </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label className={labelClasses}>Video URL</label><input type="text" name="video_url" value={formData.video_url} onChange={handleChange} placeholder="YouTube/Vimeo link" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Virtual Tour URL</label><input type="text" name="virtual_tour_url" value={formData.virtual_tour_url} onChange={handleChange} placeholder="https://..." className={inputClasses} /></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label className={labelClasses}>Floor Plan URL</label><input type="text" name="floor_plan_url" value={formData.floor_plan_url} onChange={handleChange} placeholder="https://..." className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Brochure URL</label><input type="text" name="brochure_url" value={formData.brochure_url} onChange={handleChange} placeholder="https://..." className={inputClasses} /></div>
+                                </div>
+                            </div>
+                        )}
 
-                                <div className="pt-4 border-t border-zinc-800">
-                                    <label className={labelClasses}>Add Photo via URL</label>
-                                    <div className="flex gap-2">
-                                        <input 
-                                            type="text" 
-                                            value={newPhotoUrl} 
-                                            onChange={(e) => setNewPhotoUrl(e.target.value)} 
-                                            placeholder="https://example.com/image.jpg" 
-                                            className={inputClasses} 
-                                        />
-                                        <button 
-                                            type="button" 
-                                            onClick={handleAddPhotoUrl}
-                                            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold rounded whitespace-nowrap"
-                                        >
-                                            Add URL
-                                        </button>
+                        {activeSection === 'crm' && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div><label className={labelClasses}>Property Code</label><input type="text" name="property_code" value={formData.property_code} onChange={handleChange} placeholder="REF-001" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Reference ID</label><input type="text" name="reference_id" value={formData.reference_id} onChange={handleChange} placeholder="REF-ID" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>External ID</label><input type="text" name="external_id" value={formData.external_id} onChange={handleChange} placeholder="EXT-ID" className={inputClasses} /></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={labelClasses}>Property Status</label>
+                                        <select name="property_status" value={formData.property_status} onChange={handleChange} className={inputClasses}>
+                                            {PROPERTY_STATUSES.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className={labelClasses}>Completion Status</label>
+                                        <select name="completion_status" value={formData.completion_status} onChange={handleChange} className={inputClasses}>
+                                            {COMPLETION_STATUSES.map(s => <option key={s} value={s}>{s.toUpperCase().replace('_', ' ')}</option>)}
+                                        </select>
                                     </div>
                                 </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={labelClasses}>Occupancy</label>
+                                        <select name="occupancy_status" value={formData.occupancy_status} onChange={handleChange} className={inputClasses}>
+                                            {OCCUPANCY_STATUSES.map(s => <option key={s} value={s}>{s.toUpperCase().replace('_', ' ')}</option>)}
+                                        </select>
+                                    </div>
+                                    <div><label className={labelClasses}>View Type</label><input type="text" name="view_type" value={formData.view_type} onChange={handleChange} placeholder="e.g. Marina View" className={inputClasses} /></div>
+                                </div>
+                                <div className="pt-4 border-t border-zinc-800">
+                                    <label className={labelClasses}>Market Intelligence</label>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div><label className={labelClasses}>Original Price</label><input type="number" name="original_price" value={formData.original_price} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Rental Yield %</label><input type="number" name="rental_yield" value={formData.rental_yield} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Service Charges</label><input type="number" name="service_charges" value={formData.service_charges} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4 mt-4">
+                                        <div><label className={labelClasses}>Maintenance Fee</label><input type="number" name="maintenance_fee" value={formData.maintenance_fee} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Down Payment</label><input type="number" name="down_payment" value={formData.down_payment} onChange={handleChange} placeholder="0" className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Payment Plan</label><input type="text" name="payment_plan" value={formData.payment_plan} onChange={handleChange} placeholder="e.g. 20/80" className={inputClasses} /></div>
+                                    </div>
+                                </div>
+                                <div className="pt-4 border-t border-zinc-800">
+                                    <label className={labelClasses}>Off-Plan Workflow</label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div><label className={labelClasses}>Handover Date</label><input type="date" name="handover_date" value={formData.handover_date} onChange={handleChange} className={inputClasses} /></div>
+                                        <div><label className={labelClasses}>Handover Label</label><input type="text" name="handover_label" value={formData.handover_label} onChange={handleChange} placeholder="e.g. Q4 2026" className={inputClasses} /></div>
+                                    </div>
+                                </div>
+                                <div className="pt-2 border-t border-zinc-800">
+                                    <label className={labelClasses}>Assigned Agents</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {agents.map(a => (
+                                            <button key={a._id} type="button" onClick={() => toggleAgent(a._id)} className={`px-3 py-2 text-[10px] rounded border transition-all ${formData.assign_agent.includes(a._id) ? "bg-zinc-800 border-zinc-600 text-white" : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700"}`}>
+                                                {a.agent_details?.user_name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className={labelClasses}>Tags</label>
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {formData.tags.map(t => (
+                                            <span key={t} className="px-2 py-1 bg-zinc-800 text-zinc-300 text-[10px] rounded flex items-center gap-1">
+                                                {t} <FiX size={10} className="cursor-pointer" onClick={() => removeTag(t)} />
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="Add tag..." className={inputClasses} onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())} />
+                                        <button type="button" onClick={handleAddTag} className="px-3 py-2 bg-zinc-800 rounded text-white text-xs"><FiPlus /></button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className={labelClasses}>Highlights</label>
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {formData.highlights.map(h => (
+                                            <span key={h} className="px-2 py-1 bg-zinc-800 text-zinc-300 text-[10px] rounded flex items-center gap-1">
+                                                {h} <FiX size={10} className="cursor-pointer" onClick={() => removeHighlight(h)} />
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input type="text" value={newHighlight} onChange={(e) => setNewHighlight(e.target.value)} placeholder="Add highlight..." className={inputClasses} onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddHighlight())} />
+                                        <button type="button" onClick={handleAddHighlight} className="px-3 py-2 bg-zinc-800 rounded text-white text-xs"><FiPlus /></button>
+                                    </div>
+                                </div>
+                                <div><label className={labelClasses}>Remarks</label><textarea name="remarks" value={formData.remarks} onChange={handleChange} placeholder="Internal remarks..." className={`${inputClasses} h-20 resize-none`} /></div>
+                            </div>
+                        )}
+
+                        {activeSection === 'occupancy' && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label className={labelClasses}>Tenant Name</label><input type="text" name="tenant_name" value={formData.tenant_name} onChange={handleChange} placeholder="Tenant Name" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Tenant Phone</label><input type="text" name="tenant_phone" value={formData.tenant_phone} onChange={handleChange} placeholder="Tenant Phone" className={inputClasses} /></div>
+                                </div>
+                                <div><label className={labelClasses}>Lease End Date</label><input type="date" name="lease_end_date" value={formData.lease_end_date} onChange={handleChange} className={inputClasses} /></div>
                             </div>
                         )}
 
                         {activeSection === 'docs' && (
                             <div className="space-y-4">
-                                {formData.documents.map((doc, idx) => (
-                                    <div key={`doc-${idx}`} className="flex gap-4 items-center bg-zinc-950 p-3 rounded border border-zinc-800">
-                                        <div className="flex-1 space-y-2">
-                                            <input type="text" value={doc.name} onChange={(e) => updateDocUrl(idx, 'name', e.target.value)} placeholder="Doc Name" className={inputClasses} />
-                                            <input type="text" value={doc.value} onChange={(e) => updateDocUrl(idx, 'value', e.target.value)} placeholder="URL" className={inputClasses} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label className={labelClasses}>RERA Number</label><input type="text" name="rera_number" value={formData.rera_number} onChange={handleChange} placeholder="RERA-12345" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Permit Number</label><input type="text" name="permit_number" value={formData.permit_number} onChange={handleChange} placeholder="PERMIT-67890" className={inputClasses} /></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label className={labelClasses}>DLD Permit</label><input type="text" name="dld_permit_number" value={formData.dld_permit_number} onChange={handleChange} placeholder="DLD-XXXXX" className={inputClasses} /></div>
+                                    <div><label className={labelClasses}>Title Deed</label><input type="text" name="title_deed_number" value={formData.title_deed_number} onChange={handleChange} placeholder="DEED-XXXXX" className={inputClasses} /></div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className={labelClasses}>Attached Documents</label>
+                                    {formData.documents.map((doc, idx) => (
+                                        <div key={`doc-${idx}`} className="flex gap-4 items-center bg-zinc-950 p-2 rounded border border-zinc-800">
+                                            <input type="text" value={doc.name} onChange={(e) => updateDocUrl(idx, 'name', e.target.value)} placeholder="Doc Name" className="flex-1 bg-transparent text-xs text-white outline-none" />
+                                            <input type="text" value={doc.value} onChange={(e) => updateDocUrl(idx, 'value', e.target.value)} placeholder="URL" className="flex-1 bg-transparent text-xs text-zinc-500 outline-none" />
+                                            <FiTrash2 size={12} className="text-red-500 cursor-pointer" onClick={() => removeDoc(idx, false)} />
                                         </div>
-                                        <button type="button" onClick={() => removeDoc(idx, false)} className="w-8 h-8 rounded bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
-                                            <FiTrash2 size={14} />
-                                        </button>
-                                    </div>
-                                ))}
-                                {formData.documents_base64.map((doc, idx) => (
-                                    <div key={`doc-new-${idx}`} className="flex gap-4 items-center bg-zinc-950 p-3 rounded border border-zinc-800">
-                                        <div className="flex-1 space-y-2">
-                                            <input type="text" value={doc.name} onChange={(e) => updateBase64DocName(idx, e.target.value)} placeholder="Doc Name" className={inputClasses} />
-                                            <div className="px-3 py-2 bg-zinc-900 rounded text-xs text-zinc-500 border border-zinc-800 truncate">
-                                                [Attached] {doc.mimeType}
-                                            </div>
+                                    ))}
+                                    {formData.documents_base64.map((doc, idx) => (
+                                        <div key={`doc-new-${idx}`} className="flex gap-4 items-center bg-zinc-950 p-2 rounded border border-zinc-800">
+                                            <input type="text" value={doc.name} onChange={(e) => updateBase64DocName(idx, e.target.value)} placeholder="Doc Name" className="flex-1 bg-transparent text-xs text-white outline-none" />
+                                            <span className="text-[10px] text-zinc-500 italic">[File Attached]</span>
+                                            <FiTrash2 size={12} className="text-red-500 cursor-pointer" onClick={() => removeDoc(idx, true)} />
                                         </div>
-                                        <button type="button" onClick={() => removeDoc(idx, true)} className="w-8 h-8 rounded bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
-                                            <FiTrash2 size={14} />
-                                        </button>
-                                    </div>
-                                ))}
-
-                                <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={handleDocUrlAdd} className="px-4 py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded text-xs font-semibold text-white transition-all flex items-center justify-center gap-2">
-                                        <FiPlus size={14} /> Add URL
-                                    </button>
-                                    <label className="px-4 py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded text-xs font-semibold text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
-                                        <FiUpload size={14} /> Upload File
-                                        <input type="file" multiple className="hidden" onChange={handleDocFileChange} />
-                                    </label>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={handleDocUrlAdd} className="flex-1 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-zinc-400 hover:text-white flex items-center justify-center gap-1"><FiPlus /> Add URL</button>
+                                    <label className="flex-1 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-zinc-400 hover:text-white flex items-center justify-center gap-1 cursor-pointer"><FiUpload /> Upload File<input type="file" multiple className="hidden" onChange={handleDocFileChange} /></label>
                                 </div>
                             </div>
                         )}

@@ -64,5 +64,10 @@ export const leadService = {
     getAgentActivityTimeline: async (params) => {
         const response = await axiosInstance.get("/dashboard/activity", { params });
         return response.data;
+    },
+
+    deleteLead: async (id) => {
+        const response = await axiosInstance.delete(`/leads/${id}`);
+        return response.data;
     }
 };

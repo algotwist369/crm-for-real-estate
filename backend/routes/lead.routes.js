@@ -16,6 +16,7 @@ router.post('/leads/:id/followup/complete', requireRoles(['admin', 'super_admin'
 router.post('/leads/:id/followup/reschedule', requireRoles(['admin', 'super_admin', 'agent']), leadController.reschedule_followup);
 router.post('/leads/:id/convert', requireRoles(['admin', 'super_admin', 'agent']), leadController.mark_lead_converted);
 router.post('/leads/:id/lost', requireRoles(['admin', 'super_admin', 'agent']), leadController.mark_lead_lost);
+router.delete('/leads/:id', requireRoles(['admin', 'super_admin']), leadController.delete_lead);
 
 router.get('/followups', requireRoles(['admin', 'super_admin', 'agent']), leadController.get_my_followups);
 router.get('/dashboard/agent-summary', requireRoles(['admin', 'super_admin', 'agent']), leadController.agent_dashboard_summary);

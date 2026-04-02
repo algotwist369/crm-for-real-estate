@@ -89,20 +89,31 @@ async function getAgentIdFromUserId(userId) {
     return agent ? agent._id : null;
 }
 
+function getStrId(val) {
+    if (!val) return '';
+    return String(val._id || val);
+}
+
 async function ensureLeadAccess({ lead, payload, user }) {
     if (!lead) throw httpError(404, 'Lead not found');
-    if (['admin', 'super_admin'].includes(payload.role)) return;
+    if (payload.role === 'super_admin') return;
+
+    // Admin can see all leads in their tenant
+    const userTenantId = String(user.tenant_id || user._id);
+    if (payload.role === 'admin' && getStrId(lead.tenant_id) === userTenantId) return;
 
     // Check if directly assigned or creator
-    const isAssignedDirectly = Array.isArray(lead.assigned_to) && lead.assigned_to.some(id => String(id) === String(user._id));
+    const userId = String(user._id);
+    const isAssignedDirectly = Array.isArray(lead.assigned_to) && lead.assigned_to.some(id => getStrId(id) === userId);
     if (isAssignedDirectly) return;
 
-    if (lead.created_by && String(lead.created_by) === String(user._id)) return;
+    if (lead.created_by && getStrId(lead.created_by) === userId) return;
+    if (lead.followed_by && getStrId(lead.followed_by) === userId) return;
 
     // Check if assigned via properties
     const agentId = await getAgentIdFromUserId(user._id);
     if (agentId && Array.isArray(lead.properties) && lead.properties.length > 0) {
-        const propertyIds = lead.properties.map(p => String(p._id || p));
+        const propertyIds = lead.properties.map(p => getStrId(p));
         const assignedProperties = await Properties.find({
             _id: { $in: propertyIds },
             assign_agent: agentId
@@ -114,56 +125,152 @@ async function ensureLeadAccess({ lead, payload, user }) {
     throw httpError(403, 'Forbidden');
 }
 
+function getLeadMatch(req) {
+    const { tenant_id, payload } = req.auth;
+    const match = { _id: req.params.id };
+    if (payload.role !== 'super_admin') match.tenant_id = tenant_id;
+    return match;
+}
+
+function buildAreaObject(val) {
+    if (!val || typeof val !== 'object') return undefined;
+    const value = toNumberOrUndefined(val.value);
+    const unit = val.unit !== undefined ? String(val.unit || '').trim() : undefined;
+    if (value === undefined && unit === undefined) return undefined;
+    const obj = {};
+    if (value !== undefined) obj.value = value;
+    if (unit) obj.unit = unit;
+    return obj;
+}
+
+function buildUtmObject(val) {
+    if (!val || typeof val !== 'object') return undefined;
+    const fields = ['source', 'medium', 'campaign', 'term', 'content'];
+    const obj = {};
+    let hasAny = false;
+    for (const f of fields) {
+        if (val[f] !== undefined) { obj[f] = String(val[f] || '').trim(); hasAny = true; }
+    }
+    return hasAny ? obj : undefined;
+}
+
 function buildLeadDocFromBody(body = {}) {
+    // ── Basic contact ────────────────────────────────────────────────
     const name = body.name !== undefined ? String(body.name || '').trim() : undefined;
     const emailRaw = body.email !== undefined ? String(body.email || '').trim() : undefined;
     const phoneRaw = body.phone !== undefined ? String(body.phone || '').trim() : undefined;
+    const alternate_phone = body.alternate_phone !== undefined ? String(body.alternate_phone || '').trim() : undefined;
+    const whatsapp_number = body.whatsapp_number !== undefined ? String(body.whatsapp_number || '').trim() : undefined;
+
+    // ── Lead category ────────────────────────────────────────────────
+    const lead_type = body.lead_type !== undefined ? String(body.lead_type || '').trim().toLowerCase() : undefined;
+    const client_type = body.client_type !== undefined ? String(body.client_type || '').trim().toLowerCase() : undefined;
+    const inquiry_for = body.inquiry_for !== undefined ? String(body.inquiry_for || '').trim() : undefined;
     const requirement = body.requirement !== undefined ? String(body.requirement || '').trim() : undefined;
+
+    // ── Budget / Pricing ─────────────────────────────────────────────
     const budget = body.budget !== undefined ? String(body.budget || '').trim() : undefined;
     const currency = body.currency !== undefined ? String(body.currency || '').trim() : undefined;
-    const inquiry_for = body.inquiry_for !== undefined ? String(body.inquiry_for || '').trim() : undefined;
-    const source = body.source !== undefined ? String(body.source || '').trim().toLowerCase() : undefined;
-    const priority = body.priority !== undefined ? String(body.priority || '').trim().toLowerCase() : undefined;
-    const status = body.status !== undefined ? String(body.status || '').trim().toLowerCase() : undefined;
-    const client_type = body.client_type !== undefined ? String(body.client_type || '').trim().toLowerCase() : undefined;
-
     const budget_min = toNumberOrUndefined(body.budget_min);
     const budget_max = toNumberOrUndefined(body.budget_max);
+    const asking_price = toNumberOrUndefined(body.asking_price);
+    const price_label = body.price_label !== undefined ? String(body.price_label || '').trim() : undefined;
+    const price_negotiable = body.price_negotiable !== undefined ? Boolean(body.price_negotiable) : undefined;
 
+    // ── Property details ─────────────────────────────────────────────
+    const property_type = body.property_type !== undefined ? String(body.property_type || '').trim().toLowerCase() : undefined;
+    const unit_count = toNumberOrUndefined(body.unit_count);
+    const bedrooms = body.bedrooms !== undefined ? String(body.bedrooms || '').trim() : undefined;
+    const bathrooms = toNumberOrUndefined(body.bathrooms);
+    const maid_room = body.maid_room !== undefined ? Boolean(body.maid_room) : undefined;
+    const furnished_status = body.furnished_status !== undefined ? String(body.furnished_status || '').trim().toLowerCase() : undefined;
+
+    // ── Area details ─────────────────────────────────────────────────
+    const plot_size = buildAreaObject(body.plot_size);
+    const built_up_area = buildAreaObject(body.built_up_area);
+
+    // ── Broker / Owner ──────────────────────────────────────────────
+    const owner_name = body.owner_name !== undefined ? String(body.owner_name || '').trim() : undefined;
+    const broker_name = body.broker_name !== undefined ? String(body.broker_name || '').trim() : undefined;
+    const broker_phone = body.broker_phone !== undefined ? String(body.broker_phone || '').trim() : undefined;
+    const shared_details = body.shared_details !== undefined ? String(body.shared_details || '').trim() : undefined;
+    const address = body.address !== undefined ? String(body.address || '').trim() : undefined;
+
+    // ── Source / UTM ─────────────────────────────────────────────────
+    const source = body.source !== undefined ? String(body.source || '').trim().toLowerCase() : undefined;
+    const utm = buildUtmObject(body.utm);
+
+    // ── CRM status ───────────────────────────────────────────────────
+    const priority = body.priority !== undefined ? String(body.priority || '').trim().toLowerCase() : undefined;
+    const status = body.status !== undefined ? String(body.status || '').trim().toLowerCase() : undefined;
     const next_follow_up_date = toDateOrUndefined(body.next_follow_up_date ?? body.followUpDate);
     const follow_up_status = body.follow_up_status !== undefined ? String(body.follow_up_status || '').trim().toLowerCase() : undefined;
     const followed_by = body.followed_by && mongoose.Types.ObjectId.isValid(body.followed_by) ? body.followed_by : undefined;
-
     const lost_reason = body.lost_reason !== undefined ? String(body.lost_reason || '').trim() : undefined;
+
+    // ── Notes ────────────────────────────────────────────────────────
     const remarks = body.remarks !== undefined ? String(body.remarks || '').trim() : undefined;
     const notes = body.notes !== undefined ? String(body.notes || '').trim() : undefined;
+    const comments = body.comments !== undefined ? String(body.comments || '').trim() : undefined;
     const tags = body.tags !== undefined ? normalizeStringArray(body.tags) : undefined;
 
+    // ── Relations ────────────────────────────────────────────────────
     const properties = body.properties !== undefined ? normalizeObjectIdArray(body.properties) : undefined;
     const assigned_to = body.assigned_to !== undefined ? normalizeObjectIdArray(body.assigned_to) : undefined;
 
     const doc = {
+        // Basic contact
         name,
         email: emailRaw ? (isEmail(emailRaw) ? normalizeEmail(emailRaw) : emailRaw) : emailRaw,
         phone: phoneRaw ? normalizePhone(phoneRaw) : phoneRaw,
+        alternate_phone,
+        whatsapp_number,
+        // Lead category
+        lead_type,
+        client_type,
+        inquiry_for,
         requirement,
+        // Budget / Pricing
         budget,
         currency,
         budget_min,
         budget_max,
-        inquiry_for,
-        client_type,
+        asking_price,
+        price_label,
+        price_negotiable,
+        // Property
+        property_type,
+        unit_count,
+        bedrooms,
+        bathrooms,
+        maid_room,
+        furnished_status,
+        // Area
+        plot_size,
+        built_up_area,
+        // Broker / Owner
+        owner_name,
+        broker_name,
+        broker_phone,
+        shared_details,
+        address,
+        // Relations
+        properties,
+        // Source
         source,
+        utm,
+        // CRM
         priority,
         status,
-        properties,
         assigned_to,
         next_follow_up_date,
         follow_up_status,
         followed_by,
         lost_reason,
+        // Notes
         remarks,
         notes,
+        comments,
         tags
     };
 
@@ -234,11 +341,15 @@ const get_my_leads = wrapAsync(async (req, res) => {
 
     const status = String(req.query?.status ?? '').trim().toLowerCase();
     const priority = String(req.query?.priority ?? '').trim().toLowerCase();
+    const lead_type = String(req.query?.lead_type ?? '').trim().toLowerCase();
+    const property_type = String(req.query?.property_type ?? '').trim().toLowerCase();
     const search = String(req.query?.search ?? '').trim();
     const followUpDue = String(req.query?.follow_up_due ?? req.query?.followUpDue ?? '').trim().toLowerCase();
 
     if (status) match.status = status;
     if (priority) match.priority = priority;
+    if (lead_type) match.lead_type = lead_type;
+    if (property_type) match.property_type = property_type;
 
     if (payload.role === 'agent') {
         const agentId = await getAgentIdFromUserId(user._id);
@@ -247,6 +358,7 @@ const get_my_leads = wrapAsync(async (req, res) => {
         match.$or = [
             { assigned_to: user._id },
             { created_by: user._id },
+            { followed_by: user._id },
             { properties: { $in: assignedPropIds } }
         ];
     } else if (req.query?.assigned_to) {
@@ -279,9 +391,16 @@ const get_my_leads = wrapAsync(async (req, res) => {
             { name: regex },
             { email: regex },
             { phone: regex },
+            { alternate_phone: regex },
+            { whatsapp_number: regex },
             { requirement: regex },
             { budget: regex },
-            { notes: regex }
+            { notes: regex },
+            { owner_name: regex },
+            { broker_name: regex },
+            { broker_phone: regex },
+            { inquiry_for: regex },
+            { address: regex }
         ];
     }
 
@@ -311,6 +430,9 @@ const get_my_leads = wrapAsync(async (req, res) => {
         contacted: 0,
         qualified: 0,
         follow_up: 0,
+        site_visit: 0,
+        negotiation: 0,
+        booked: 0,
         converted: 0,
         lost: 0,
         wasted: 0,
@@ -338,7 +460,7 @@ const get_lead_by_id = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const leadMatch = { _id: id, tenant_id };
+    const leadMatch = getLeadMatch(req);
     const lead = await Lead.findOne(leadMatch)
         .populate('assigned_to', 'user_name profile_pic')
         .populate('followed_by', 'user_name profile_pic')
@@ -356,20 +478,19 @@ const create_lead = wrapAsync(async (req, res) => {
     const doc = buildLeadDocFromBody(req.body);
     const details = [];
 
+    // Only name, phone, source are required - matching the Mongoose schema
     if (!doc.name) details.push({ path: 'name', message: 'Name is required' });
     if (!doc.phone) details.push({ path: 'phone', message: 'Phone is required' });
-    if (!doc.requirement) details.push({ path: 'requirement', message: 'Requirement is required' });
-    if (!doc.budget) details.push({ path: 'budget', message: 'Budget is required' });
-    if (!doc.inquiry_for) details.push({ path: 'inquiry_for', message: 'Inquiry for is required' });
-    if (!doc.email || !isEmail(doc.email)) details.push({ path: 'email', message: 'Valid email is required' });
+    if (!doc.source) details.push({ path: 'source', message: 'Source is required' });
     if (details.length) {
         const message = details[0].message || 'Validation error';
         throw httpError(400, message, details);
     }
 
-    doc.email = normalizeEmail(doc.email);
+    // Normalize contact fields
+    if (doc.email && isEmail(doc.email)) doc.email = normalizeEmail(doc.email);
     doc.phone = normalizePhone(doc.phone);
-    doc.currency = doc.currency || '₹';
+    doc.currency = doc.currency || 'AED';
 
     if (payload.role === 'agent') {
         const agentId = await getAgentIdFromUserId(user._id);
@@ -420,8 +541,7 @@ const update_lead = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const leadMatch = { _id: id, tenant_id };
-
+    const leadMatch = getLeadMatch(req);
     const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
@@ -475,7 +595,7 @@ const add_lead_note = wrapAsync(async (req, res) => {
     const note = String(req.body?.note ?? req.body?.notes ?? '').trim();
     if (!note) throw httpError(400, 'note is required');
 
-    const leadMatch = { _id: id, tenant_id };
+    const leadMatch = getLeadMatch(req);
     const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
@@ -495,7 +615,7 @@ const set_follow_up = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const leadMatch = { _id: id, tenant_id };
+    const leadMatch = getLeadMatch(req);
     const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
@@ -542,7 +662,7 @@ const mark_lead_converted = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const leadMatch = { _id: id, tenant_id };
+    const leadMatch = getLeadMatch(req);
     const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
@@ -567,7 +687,7 @@ const mark_lead_lost = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const leadMatch = { _id: id, tenant_id };
+    const leadMatch = getLeadMatch(req);
     const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
@@ -600,11 +720,12 @@ const get_my_followups = wrapAsync(async (req, res) => {
     const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
     const match = {
-        tenant_id,
         next_follow_up_date: { $exists: true, $ne: null },
         follow_up_status: { $in: ['pending', 'rescheduled'] },
         is_active: true
     };
+
+    if (payload.role !== 'super_admin') match.tenant_id = tenant_id;
 
     if (payload.role === 'agent') match.assigned_to = user._id;
 
@@ -634,8 +755,7 @@ const complete_followup = wrapAsync(async (req, res) => {
     const id = req.params?.id;
     if (!id) throw httpError(400, 'Lead id is required');
 
-    const leadMatch = { _id: id, tenant_id };
-
+    const leadMatch = getLeadMatch(req);
     const lead = await Lead.findOne(leadMatch);
     await ensureLeadAccess({ lead, payload, user });
 
@@ -669,19 +789,24 @@ const agent_dashboard_summary = wrapAsync(async (req, res) => {
     const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
     // Lead Match Configuration
-    const leadMatch = { is_active: true, tenant_id };
+    const leadMatch = { is_active: true };
+    if (payload.role !== 'super_admin') leadMatch.tenant_id = tenant_id;
+
     if (!isAdmin) {
         const agentId = await getAgentIdFromUserId(user._id);
         const assignedPropIds = agentId ? await getAgentAssignedPropertyIds(agentId) : [];
         leadMatch.$or = [
             { assigned_to: user._id },
             { created_by: user._id },
+            { followed_by: user._id },
             { properties: { $in: assignedPropIds } }
         ];
     }
 
     // Property Match Configuration
-    const propMatch = { is_active: true, tenant_id };
+    const propMatch = { is_active: true };
+    if (payload.role !== 'super_admin') propMatch.tenant_id = tenant_id;
+
     if (!isAdmin) {
         const agentId = await getAgentIdFromUserId(user._id);
         if (agentId) propMatch.assign_agent = agentId;
@@ -709,7 +834,7 @@ const agent_dashboard_summary = wrapAsync(async (req, res) => {
         Lead.countDocuments({ ...leadMatch, status: 'converted' }),
         Lead.countDocuments({ ...leadMatch, status: 'lost' }),
         Lead.countDocuments({ ...leadMatch, status: 'wasted' }),
-        Lead.countDocuments({ ...leadMatch, status: { $in: ['new', 'contacted', 'qualified', 'follow_up'] } }),
+        Lead.countDocuments({ ...leadMatch, status: { $in: ['new', 'contacted', 'qualified', 'follow_up', 'site_visit', 'negotiation', 'booked'] } }),
         Lead.countDocuments({
             ...leadMatch,
             follow_up_status: { $in: ['pending', 'rescheduled'] },
@@ -816,7 +941,15 @@ const agent_activity_timeline = wrapAsync(async (req, res) => {
     const limitRaw = Number(req.query?.limit ?? 20);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(100, Math.floor(limitRaw)) : 20;
 
+    const days = Number(req.query?.days ?? 0);
     const match = { is_active: true, tenant_id };
+    
+    if (days > 0) {
+        const dateLimit = new Date();
+        dateLimit.setDate(dateLimit.getDate() - days);
+        match.updatedAt = { $gte: dateLimit };
+    }
+
     if (payload.role === 'agent') {
         match.assigned_to = user._id;
     }
@@ -829,6 +962,31 @@ const agent_activity_timeline = wrapAsync(async (req, res) => {
         .lean();
 
     res.status(200).json({ success: true, data: items });
+});
+
+const delete_lead = wrapAsync(async (req, res) => {
+    const { user, payload, tenant_id } = req.auth;
+    const id = req.params?.id;
+    if (!id) throw httpError(400, 'Lead id is required');
+
+    // Only admin and super_admin can delete
+    if (!['admin', 'super_admin'].includes(payload.role)) {
+        throw httpError(403, 'Only administrators can delete leads');
+    }
+
+    const leadMatch = getLeadMatch(req);
+    const lead = await Lead.findOne(leadMatch);
+    if (!lead) throw httpError(404, 'Lead not found');
+
+    // We can do a soft delete or hard delete. Given the 'is_active' field, a soft delete is safer.
+    lead.is_active = false;
+    lead.updated_by = user._id;
+    await lead.save();
+
+    // Also cancel reminders
+    await cancelPendingReminders(lead._id);
+
+    res.status(200).json({ success: true, message: 'Lead deleted successfully' });
 });
 
 module.exports = {
@@ -844,5 +1002,6 @@ module.exports = {
     complete_followup,
     reschedule_followup,
     agent_dashboard_summary,
-    agent_activity_timeline
+    agent_activity_timeline,
+    delete_lead
 };

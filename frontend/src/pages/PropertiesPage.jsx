@@ -24,8 +24,12 @@ import { useProperties, useUpdatePropertyStatus, useDeleteProperty } from "../ho
 const tableColumns = ["#", "Property Info", "Type", "Price", "Location", "Specifications", "Agent", "Status", "Actions"];
 
 /* ─── Filter Options ─── */
-const statusOptions = ["All", "available", "under_offer", "sold", "rented", "inactive"];
-const typeOptions = ["All", "Apartment", "Villa", "Office", "Plot", "Warehouse", "Studio", "Penthouse"];
+const statusOptions = [
+    "All", "available", "under_offer", "reserved", "booked", "sold", "rented", 
+    "leased", "blocked", "under_negotiation", "hold", "unavailable", 
+    "withdrawn", "expired", "inactive", "other"
+];
+const typeOptions = ["All", "Apartment", "Villa", "Office", "Plot", "Warehouse", "Studio", "Penthouse", "Townhouse", "Shop", "Industrial"];
 
 const PropertiesPage = () => {
     const navigate = useNavigate();
@@ -226,10 +230,10 @@ const PropertiesPage = () => {
                                     <td className="p-3">
                                         <div className="flex flex-col gap-0.5 text-xs">
                                             <div className="text-zinc-400">
-                                                {prop.total_bedrooms || "0"} Beds / {prop.total_bathrooms || "0"} Baths
+                                                {prop.bedroom_label || `${prop.total_bedrooms || "0"} Beds`} / {prop.total_bathrooms || "0"} Baths
                                             </div>
                                             <div className="text-zinc-500">
-                                                {prop.total_area} {prop.area_unit || "sqft"}
+                                                {prop.total_area || prop.plot_area || "0"} {prop.area_unit || "sqft"}
                                             </div>
                                         </div>
                                     </td>

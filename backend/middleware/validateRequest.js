@@ -17,10 +17,31 @@ const validateRequest = (schema) => {
         );
 
         if (error) {
-            const details = error.details.map((detail) => ({
-                path: detail.path.join('.'),
-                message: detail.message.replace(/['"]/g, ''),
-            }));
+            const details = error.details.map((detail) => {
+                let message = detail.message.replace(/['"]/g, '');
+                
+                // Remove 'body.' prefix if present
+                if (message.startsWith('body.')) {
+                    message = message.substring(5);
+                }
+
+                // Make the message more user-friendly
+                // Example: "name is required" instead of "name is not allowed to be empty"
+                message = message.charAt(0).toUpperCase() + message.slice(1);
+                
+                // Specific replacements for common Joi errors
+                message = message.replace(/is not allowed to be empty/g, 'is required');
+                message = message.replace(/must be a valid email/g, 'must be a valid email address');
+                message = message.replace(/length must be at least (\d+) characters long/g, 'must be at least $1 characters');
+                message = message.replace(/length must be less than or equal to (\d+) characters long/g, 'must be at most $1 characters');
+                message = message.replace(/must be a number/g, 'must be a numeric value');
+                message = message.replace(/is required/g, 'is a required field');
+
+                return {
+                    path: detail.path.join('.'),
+                    message: message,
+                };
+            });
             // Show the first specific error message instead of generic "Validation error"
             const message = details.length > 0 ? details[0].message : 'Validation error';
             return next(httpError(400, message, details));
