@@ -106,7 +106,7 @@ const initWhatsAppSession = async (userId, tenantId) => {
                     '--disable-hang-monitor',
                     '--disable-ipc-flooding-protection',
                     '--disable-notifications',
-                    '--disable-offer-store-unmasked-wallet-cfixards',
+                    '--disable-offer-store-unmasked-wallet-cards',
                     '--disable-popup-blocking',
                     '--disable-print-preview',
                     '--disable-prompt-on-repost',
@@ -126,8 +126,7 @@ const initWhatsAppSession = async (userId, tenantId) => {
                     '--disable-web-security'
                 ],
                 headless: true,
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-                userDataDir: path.resolve(process.cwd(), '.wwebjs_auth', 'userData'), // Explicitly set user data directory
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
             }
         });
 
