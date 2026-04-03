@@ -5,7 +5,7 @@ import { useAuth } from './AuthContext';
 const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const socketRef = useRef(null);
     const [isConnected, setIsConnected] = useState(false);
 
@@ -33,10 +33,13 @@ export const SocketProvider = ({ children }) => {
             if (!socketRef.current) {
                 socketRef.current = io(SOCKET_URL, {
                     withCredentials: true,
-                    transports: ['websocket', 'polling'],
+                    auth: { token }, // Pass token for backend authentication fallback
+                    transports: ['websocket', 'polling'], // Allow both, but try websocket first
                     reconnection: true,
                     reconnectionAttempts: 10,
                     reconnectionDelay: 1000,
+                    timeout: 20000,
+                    autoConnect: true
                 });
             }
 

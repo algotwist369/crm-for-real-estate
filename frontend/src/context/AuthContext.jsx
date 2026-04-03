@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const { data: authResponse, isLoading, isError, refetch } = useAuthUser();
   const user = authResponse?.user; // Correctly extract the user object from the response
+  const token = authResponse?.token; // Store token for socket/auth fallbacks
   
   const loginMutation = useLogin();
   const agentLoginMutation = useAgentLogin();
@@ -23,6 +24,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    token, // Pass token through context
     isAuthenticated: !!user,
     isLoading,
     isError,

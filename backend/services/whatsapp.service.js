@@ -106,7 +106,7 @@ const initWhatsAppSession = async (userId, tenantId) => {
                     '--disable-hang-monitor',
                     '--disable-ipc-flooding-protection',
                     '--disable-notifications',
-                    '--disable-offer-store-unmasked-wallet-cards',
+                    '--disable-offer-store-unmasked-wallet-cfixards',
                     '--disable-popup-blocking',
                     '--disable-print-preview',
                     '--disable-prompt-on-repost',

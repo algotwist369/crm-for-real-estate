@@ -10,11 +10,26 @@ class SocketService {
     }
 
     init(server) {
+        const allowedOrigins = process.env.CORS_ORIGIN 
+            ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()) 
+            : ['https://real-crm-two.vercel.app', 'http://localhost:5173'];
+
         this.io = new Server(server, {
             cors: {
-                origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()) : true,
+                origin: (origin, callback) => {
+                    if (!origin) return callback(null, true);
+                    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+                        callback(null, true);
+                    } else {
+                        callback(new Error('CORS not allowed for origin: ' + origin));
+                    }
+                },
+                methods: ['GET', 'POST'],
                 credentials: true
-            }
+            },
+            transports: ['websocket', 'polling'], // Explicitly allow both
+            pingTimeout: 60000,
+            pingInterval: 25000
         });
 
         // Use the cluster adapter for multi-worker support
@@ -25,6 +40,7 @@ class SocketService {
             try {
                 const cookies = cookie.parse(socket.handshake.headers.cookie || '');
                 // The auth system sets 'token' cookie, not 'accessToken'
+                // Fallback to handshake.auth.token if cookie is missing (e.g. cross-domain issues)
                 const token = cookies.token || socket.handshake.auth?.token;
 
                 if (!token) {

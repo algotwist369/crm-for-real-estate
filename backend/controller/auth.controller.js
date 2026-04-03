@@ -119,7 +119,8 @@ const register_admin = wrapAsync(async (req, res) => {
     res.status(201).json({
         success: true,
         message: 'Admin registered successfully',
-        user: safeUser
+        user: safeUser,
+        token: token
     });
 });
 
@@ -173,7 +174,8 @@ const login_admin = wrapAsync(async (req, res) => {
     res.status(200).json({
         success: true,
         message: 'Login successful',
-        user: safeUser
+        user: safeUser,
+        token: token // Also return token in body for mobile/socket fallbacks
     });
 });
 
@@ -238,7 +240,8 @@ const login_agent = wrapAsync(async (req, res) => {
     res.status(200).json({
         success: true,
         message: 'Login successful',
-        user: safeUser
+        user: safeUser,
+        token: token
     });
 });
 
