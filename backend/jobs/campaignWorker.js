@@ -1,5 +1,5 @@
 const { Worker } = require('bullmq');
-const { connection } = require('../services/queue.service');
+const { redisConfig } = require('../services/queue.service');
 const Campaign = require('../model/campaign.model');
 const CampaignMessage = require('../model/campaignMessage.model');
 const Lead = require('../model/lead.model');
@@ -104,7 +104,9 @@ const campaignWorker = new Worker('campaign-outreach', async (job) => {
         throw error; // Rethrow to let BullMQ handle retries
     }
 }, { 
-    connection,
+    // Passing the config object instead of a connection instance 
+    // allows BullMQ to manage its own connection lifecycle
+    connection: redisConfig,
     concurrency: 5 // Process multiple messages in parallel for better performance
 });
 

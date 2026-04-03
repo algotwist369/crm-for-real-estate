@@ -2,7 +2,7 @@ const Campaign = require('../model/campaign.model');
 const CampaignMessage = require('../model/campaignMessage.model');
 const Lead = require('../model/lead.model');
 const User = require('../model/user.model');
-const { campaignQueue } = require('./queue.service');
+const { getCampaignQueue } = require('./queue.service');
 const logger = require('../utils/logger');
 
 const renderTemplate = (template, lead) => {
@@ -28,6 +28,7 @@ const renderTemplate = (template, lead) => {
 
 const createCampaign = async (campaignData, userId, tenantId) => {
     const { name, channel, template, leadIds, delayConfig, aiRewriteEnabled } = campaignData;
+    const campaignQueue = getCampaignQueue();
 
     const user = await User.findById(userId);
     if (!user) throw new Error('User not found');

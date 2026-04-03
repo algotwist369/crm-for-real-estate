@@ -9,6 +9,7 @@ const { startFollowUpReminderWorker } = require('./jobs/followUpReminderWorker')
 const { createApp } = require('./app');
 const socketService = require('./services/socket.service');
 const { setupPrimary } = require('@socket.io/cluster-adapter');
+const { getRedisConnection, closeAllConnections } = require('./services/queue.service');
 
 const NUM_WORKERS = process.env.NODE_ENV === 'production' 
     ? Number(process.env.WEB_CONCURRENCY || os.cpus().length) 
@@ -139,6 +140,25 @@ if (cluster.isPrimary) {
             process.stdout.write(`Worker ${process.pid} shutting down...\n`);
 
             if (worker) worker.stop();
+
+            // Close Redis and BullMQ connections
+            try {
+                await closeAllConnections();
+                process.stdout.write(`Worker ${process.pid} - Redis and Queues closed\n`);
+            } catch (err) {
+                process.stderr.write(`Worker ${process.pid} - Error closing Redis: ${err.message}\n`);
+            }
+
+            // Close BullMQ worker if it exists
+            if (process.env.OUTREACH_WORKER === 'true') {
+                try {
+                    const campaignWorker = require('./jobs/campaignWorker');
+                    await campaignWorker.close();
+                    process.stdout.write(`Worker ${process.pid} - Campaign worker closed\n`);
+                } catch (err) {
+                    process.stderr.write(`Worker ${process.pid} - Error closing campaign worker: ${err.message}\n`);
+                }
+            }
 
             await new Promise((resolve) => server.close(resolve));
             await mongoose.disconnect();

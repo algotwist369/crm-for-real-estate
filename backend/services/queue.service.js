@@ -18,56 +18,102 @@ const redisConfig = {
     maxRetriesPerRequest: null, // mandatory for BullMQ
 };
 
-const connection = new Redis(redisConfig);
+let connection = null;
+let campaignQueue = null;
+let campaignEvents = null;
 
-// Check and attempt to set Redis eviction policy
-// Note: Some managed Redis services (like Redis Cloud) don't support CONFIG commands.
-// We'll try it once but keep it silent to avoid log noise.
-connection.config('GET', 'maxmemory-policy').then(async (res) => {
-    // ioredis might return ['maxmemory-policy', 'value'] or just ['value'] depending on version/environment
-    let policy = 'unknown';
-    if (Array.isArray(res)) {
-        // Find the index of maxmemory-policy or just take the second element
-        const valIndex = res.indexOf('maxmemory-policy');
-        policy = valIndex !== -1 ? res[valIndex + 1] : res[1] || res[0];
-    } else if (typeof res === 'string') {
-        policy = res;
+const getRedisConnection = () => {
+    if (!connection) {
+        connection = new Redis(redisConfig);
+        
+        // Check and attempt to set Redis eviction policy (only on the shared connection)
+        connection.config('GET', 'maxmemory-policy').then(async (res) => {
+            let policy = 'unknown';
+            if (Array.isArray(res)) {
+                const valIndex = res.indexOf('maxmemory-policy');
+                policy = valIndex !== -1 ? res[valIndex + 1] : res[1] || res[0];
+            } else if (typeof res === 'string') {
+                policy = res;
+            }
+
+            if (policy && policy !== 'noeviction' && policy !== 'unknown') {
+                logger.warn(`Redis policy is "${policy}". Recommended: "noeviction" to prevent data loss.`);
+                try {
+                    await connection.config('SET', 'maxmemory-policy', 'noeviction');
+                    logger.info('Successfully set Redis policy to "noeviction".');
+                } catch (setErr) {
+                    logger.debug(`Automatic policy change not allowed: ${setErr.message}`);
+                }
+            } else if (policy === 'noeviction') {
+                logger.info('Redis policy verified: noeviction');
+            }
+        }).catch(err => {
+            logger.debug(`Redis CONFIG command not supported: ${err.message}`);
+        });
+
+        connection.on('error', (err) => {
+            if (err.message.includes('max number of clients reached')) {
+                logger.error('CRITICAL: Redis max number of clients reached. Check connections.');
+            } else {
+                logger.error(`Redis connection error: ${err.message}`);
+            }
+        });
     }
+    return connection;
+};
 
-    if (policy && policy !== 'noeviction' && policy !== 'unknown') {
-        logger.warn(`Redis policy is "${policy}". Recommended: "noeviction" to prevent data loss.`);
-        try {
-            await connection.config('SET', 'maxmemory-policy', 'noeviction');
-            logger.info('Successfully set Redis policy to "noeviction".');
-        } catch (setErr) {
-            // Silently fail as it's likely a restricted environment
-            logger.debug(`Automatic policy change not allowed: ${setErr.message}`);
-        }
-    } else if (policy === 'noeviction') {
-        logger.info('Redis policy verified: noeviction');
+// BullMQ Workers need their own connection because they use blocking commands
+const createWorkerConnection = () => {
+    const workerConn = new Redis(redisConfig);
+    workerConn.on('error', (err) => {
+        logger.error(`Redis worker connection error: ${err.message}`);
+    });
+    return workerConn;
+};
+
+const getCampaignQueue = () => {
+    if (!campaignQueue) {
+        campaignQueue = new Queue('campaign-outreach', { 
+            connection: getRedisConnection(),
+            defaultJobOptions: {
+                attempts: 3,
+                backoff: {
+                    type: 'exponential',
+                    delay: 1000,
+                },
+                removeOnComplete: true,
+                removeOnFail: false,
+            }
+        });
     }
-}).catch(err => {
-    // If CONFIG command is not supported at all, we log it once at debug level
-    logger.debug(`Redis CONFIG command not supported: ${err.message}`);
-});
+    return campaignQueue;
+};
 
-const campaignQueue = new Queue('campaign-outreach', { 
-    connection,
-    defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-            type: 'exponential',
-            delay: 1000,
-        },
-        removeOnComplete: true,
-        removeOnFail: false,
+const getCampaignEvents = () => {
+    if (!campaignEvents) {
+        campaignEvents = new QueueEvents('campaign-outreach', { connection: getRedisConnection() });
     }
-});
+    return campaignEvents;
+};
 
-const campaignEvents = new QueueEvents('campaign-outreach', { connection });
+const closeAllConnections = async () => {
+    const promises = [];
+    if (campaignQueue) promises.push(campaignQueue.close());
+    if (campaignEvents) promises.push(campaignEvents.close());
+    if (connection) promises.push(connection.quit());
+    
+    await Promise.allSettled(promises);
+    
+    connection = null;
+    campaignQueue = null;
+    campaignEvents = null;
+};
 
 module.exports = {
-    campaignQueue,
-    campaignEvents,
-    connection
+    getRedisConnection,
+    createWorkerConnection,
+    getCampaignQueue,
+    getCampaignEvents,
+    closeAllConnections,
+    redisConfig
 };
