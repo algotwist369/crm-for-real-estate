@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "cross-env NODE_ENV=test MAIL_DISABLED=true jest --runInBand"
+    "test": "cross-env NODE_ENV=test MAIL_DISABLED=true jest --runInBand",
+    "postinstall": "puppeteer browsers install chrome"
   },
   "keywords": [],
   "author": "",

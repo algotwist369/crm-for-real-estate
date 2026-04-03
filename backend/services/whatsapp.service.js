@@ -124,7 +124,9 @@ const initWhatsAppSession = async (userId, tenantId) => {
                     '--disable-web-security'
                 ],
                 headless: true,
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+                // On some systems, the default cache path is not writable.
+                // We handle this via .puppeteerrc.cjs, but we can also log the path for debugging.
             }
         });
 
