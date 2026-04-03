@@ -52,6 +52,13 @@ const campaignMessageSchema = new mongoose.Schema({
     metadata: {
         type: mongoose.Schema.Types.Mixed
     },
+    mediaUrl: {
+        type: String
+    },
+    mediaType: {
+        type: String,
+        enum: ['image', 'video', null]
+    },
     tenantId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

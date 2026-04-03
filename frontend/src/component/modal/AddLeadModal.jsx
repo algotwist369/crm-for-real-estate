@@ -259,25 +259,33 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
                     </div>
                 </div>
                 <div className="space-y-4">
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Plot Size</label>
-                        <div className="flex gap-1.5">
-                            <input type="number" name="plot_size_value" value={formData.plot_size_value} onChange={handleChange} placeholder="0" className={`${inputCls} flex-1`} />
-                            <select name="plot_size_unit" value={formData.plot_size_unit} onChange={handleChange} className={`${selectCls} w-28`}>
-                                {AREA_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                            </select>
+                        <div className="grid grid-cols-2 gap-3">
+                            <InputField label="Plot Size">
+                                <div className="flex w-full items-center bg-zinc-950 border border-zinc-800 rounded focus-within:border-zinc-600 transition-colors">
+                                    <input type="number" name="plot_size_value" value={formData.plot_size_value} onChange={handleChange} placeholder="0" className="bg-transparent border-none text-white text-sm px-3 py-2.5 focus:outline-none flex-1 min-w-0" />
+                                    <div className="w-[1px] h-4 bg-zinc-800 flex-shrink-0" />
+                                    <select name="plot_size_unit" value={formData.plot_size_unit} onChange={handleChange} className="bg-transparent border-none text-zinc-400 text-xs px-2 py-2.5 focus:outline-none cursor-pointer flex-shrink-0 appearance-none text-right">
+                                        {AREA_UNITS.map(u => <option key={u} value={u} className="bg-zinc-950">{u}</option>)}
+                                    </select>
+                                    <div className="pr-2 pointer-events-none text-zinc-600">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                    </div>
+                                </div>
+                            </InputField>
+                            <InputField label="Built-Up Area">
+                                <div className="flex w-full items-center bg-zinc-950 border border-zinc-800 rounded focus-within:border-zinc-600 transition-colors">
+                                    <input type="number" name="built_up_area_value" value={formData.built_up_area_value} onChange={handleChange} placeholder="0" className="bg-transparent border-none text-white text-sm px-3 py-2.5 focus:outline-none flex-1 min-w-0" />
+                                    <div className="w-[1px] h-4 bg-zinc-800 flex-shrink-0" />
+                                    <select name="built_up_area_unit" value={formData.built_up_area_unit} onChange={handleChange} className="bg-transparent border-none text-zinc-400 text-xs px-2 py-2.5 focus:outline-none cursor-pointer flex-shrink-0 appearance-none text-right">
+                                        {AREA_UNITS.map(u => <option key={u} value={u} className="bg-zinc-950">{u}</option>)}
+                                    </select>
+                                    <div className="pr-2 pointer-events-none text-zinc-600">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                    </div>
+                                </div>
+                            </InputField>
                         </div>
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Built-Up Area</label>
-                        <div className="flex gap-1.5">
-                            <input type="number" name="built_up_area_value" value={formData.built_up_area_value} onChange={handleChange} placeholder="0" className={`${inputCls} flex-1`} />
-                            <select name="built_up_area_unit" value={formData.built_up_area_unit} onChange={handleChange} className={`${selectCls} w-28`}>
-                                {AREA_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                    <InputField label="Property Address" icon={FiMapPin}>
+                        <InputField label="Property Address" icon={FiMapPin}>
                         <input name="address" value={formData.address} onChange={handleChange} placeholder="e.g. Downtown Dubai" className={inputCls} />
                     </InputField>
                 </div>
@@ -455,7 +463,7 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
                         const isActive = activeTab === tab.id;
                         return (
                             <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 whitespace-nowrap transition-all ${isActive ? "text-yellow-400 border-yellow-500 bg-yellow-500/5" : "text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/5"
+                                className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 whitespace-nowrap transition-all ${isActive ? "text-yellow-400 border-yellow-500 bg-yellow-500/5" : "text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/5"
                                     }`}>
                                 <Icon size={13} /> {tab.label}
                                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 ml-0.5" />}

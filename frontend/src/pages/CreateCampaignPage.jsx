@@ -1,24 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCreateCampaign } from '../hooks/useCampaignHooks';
-import { useLeads } from '../hooks/useLeadHooks';
+import { useCreateCampaign, useUploadCampaignMedia } from '../hooks/useCampaignHooks';
+import { useLeadsMinimal } from '../hooks/useLeadHooks';
 import { PremiumInput } from '../component/common/PremiumInput';
 import { PremiumTextarea } from '../component/common/PremiumTextarea';
 import { PremiumToggle } from '../component/common/PremiumToggle';
 import AppLayout from '../component/layout/AppLayout';
-import { FiMessageSquare, FiMail, FiChevronLeft, FiZap, FiCheck } from 'react-icons/fi';
+import { FiMessageSquare, FiMail, FiChevronLeft, FiZap, FiCheck, FiImage, FiVideo, FiX, FiUploadCloud } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 const CreateCampaignPage = () => {
     const navigate = useNavigate();
     const createCampaignMutation = useCreateCampaign();
-    const { data: leadsData, isLoading: leadsLoading } = useLeads();
+    const uploadMediaMutation = useUploadCampaignMedia();
+    const { data: leadsData, isLoading: leadsLoading } = useLeadsMinimal();
+    const textareaRef = useRef(null);
+    const fileInputRef = useRef(null);
     
     const [formData, setFormData] = useState({
         name: '',
         channel: 'whatsapp',
         template: {
             subject: '',
-            body: ''
+            body: '',
+            mediaUrl: '',
+            mediaType: null
         },
         leadIds: [],
         delayConfig: {
@@ -45,6 +51,69 @@ const CreateCampaignPage = () => {
             setSelectedLeads([]);
         } else {
             setSelectedLeads(leads.map(l => l._id.toString()) || []);
+        }
+    };
+
+    const insertVariable = (variable) => {
+        const textarea = textareaRef.current?.querySelector('textarea');
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = formData.template.body;
+        const before = text.substring(0, start);
+        const after = text.substring(end);
+        const variableText = `{{${variable}}}`;
+        
+        const newBody = before + variableText + after;
+        
+        setFormData({
+            ...formData,
+            template: { ...formData.template, body: newBody }
+        });
+
+        // Set focus back and move cursor after the variable
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start + variableText.length, start + variableText.length);
+        }, 0);
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validation
+        const isImage = file.mimetype ? file.mimetype.startsWith('image/') : file.type.startsWith('image/');
+        const isVideo = file.mimetype ? file.mimetype.startsWith('video/') : file.type.startsWith('video/');
+
+        if (!isImage && !isVideo) {
+            toast.error('Please upload an image or video file');
+            return;
+        }
+
+        const formDataMedia = new FormData();
+        formDataMedia.append('media', file);
+
+        try {
+            const res = await uploadMediaMutation.mutateAsync(formDataMedia);
+            console.log('Upload response:', res);
+            
+            if (res.url) {
+                setFormData(prev => ({
+                    ...prev,
+                    template: { 
+                        ...prev.template, 
+                        mediaUrl: res.url, 
+                        mediaType: res.mediaType 
+                    }
+                }));
+                toast.success('Media uploaded successfully');
+            } else {
+                toast.error('Upload failed: No URL returned');
+            }
+        } catch (err) {
+            // Error handled by hook
         }
     };
 
@@ -168,6 +237,7 @@ const CreateCampaignPage = () => {
                                         label="AI Optimization"
                                         description="Paraphrase messages with AI"
                                         checked={formData.aiRewriteEnabled}
+                                        enabled={formData.aiRewriteEnabled}
                                         onChange={(checked) => setFormData({ ...formData, aiRewriteEnabled: checked })}
                                         icon={<FiZap className="text-yellow-500" />}
                                     />
@@ -181,6 +251,39 @@ const CreateCampaignPage = () => {
                         <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
                             <h2 className="text-sm font-semibold mb-6 text-zinc-300 uppercase tracking-wider">Message Content</h2>
                             
+                            {formData.channel === 'whatsapp' && formData.template.mediaUrl && (
+                                <div className="mb-6 rounded-lg overflow-hidden border border-zinc-800 bg-zinc-950/50 aspect-video flex items-center justify-center relative group">
+                                    {formData.template.mediaType === 'image' ? (
+                                        <img 
+                                            src={formData.template.mediaUrl} 
+                                            alt="Campaign Media" 
+                                            className="w-full h-full object-contain"
+                                        />
+                                    ) : (
+                                        <video 
+                                            src={formData.template.mediaUrl} 
+                                            controls 
+                                            className="w-full h-full"
+                                        />
+                                    )}
+                                    <div className="absolute top-2 left-2 px-2 py-1 rounded bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
+                                        {formData.template.mediaType === 'image' ? <FiImage size={10} /> : <FiVideo size={10} />}
+                                        {formData.template.mediaType} Preview
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFormData({ ...formData, template: { ...formData.template, mediaUrl: '', mediaType: null } });
+                                            if (fileInputRef.current) fileInputRef.current.value = '';
+                                        }}
+                                        className="absolute top-2 right-2 p-1.5 rounded bg-red-500/20 hover:bg-red-500/40 border border-red-500/30 text-red-500 backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
+                                        title="Remove Media"
+                                    >
+                                        <FiX size={14} />
+                                    </button>
+                                </div>
+                            )}
+
                             {formData.channel === 'email' && (
                                 <div className="mb-5">
                                     <PremiumInput 
@@ -196,25 +299,116 @@ const CreateCampaignPage = () => {
                                 </div>
                             )}
 
-                            <PremiumTextarea 
-                                label="Message Template"
-                                placeholder="Hi {{name}}, I wanted to follow up regarding your interest in {{project_name}}..."
-                                rows={6}
-                                value={formData.template.body}
-                                onChange={(e) => setFormData({ 
-                                    ...formData, 
-                                    template: { ...formData.template, body: e.target.value } 
-                                })}
-                                required
-                            />
+                            <div ref={textareaRef}>
+                                <PremiumTextarea 
+                                    label="Message Template"
+                                    placeholder="Hi {{name}}, I wanted to follow up regarding your interest in {{inquiry_for}}..."
+                                    rows={6}
+                                    value={formData.template.body}
+                                    onChange={(e) => setFormData({ 
+                                        ...formData, 
+                                        template: { ...formData.template, body: e.target.value } 
+                                    })}
+                                    required
+                                />
+                            </div>
 
                             <div className="mt-3 flex flex-wrap gap-2">
-                                {['name', 'project_name', 'city', 'agent_name'].map(v => (
-                                    <span key={v} className="px-2 py-1 bg-zinc-950 border border-zinc-800 rounded text-[10px] font-mono text-yellow-500">
-                                        {`{{${v}}}`}
-                                    </span>
+                                {[
+                                    { label: 'Name', key: 'name' },
+                                    { label: 'Phone', key: 'phone' },
+                                    { label: 'Address', key: 'address' },
+                                    { label: 'Project Name', key: 'inquiry_for' },
+                                    { label: 'Agent Name', key: 'agent_name' }
+                                ].map(v => (
+                                    <button
+                                        key={v.key}
+                                        type="button"
+                                        onClick={() => insertVariable(v.key)}
+                                        className="px-2 py-1 bg-zinc-950 border border-zinc-800 rounded text-[10px] font-mono text-yellow-500 hover:border-yellow-500/50 transition-colors"
+                                    >
+                                        {`{{${v.key}}}`}
+                                    </button>
                                 ))}
                             </div>
+
+                            {formData.channel === 'whatsapp' && (
+                                 <div className="mt-8 pt-8 border-t border-zinc-800">
+                                     <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Media Attachment (Optional)</h3>
+                                     
+                                     {!formData.template.mediaUrl ? (
+                                         <div className="flex flex-col gap-4">
+                                             <input 
+                                                 type="file" 
+                                                 ref={fileInputRef}
+                                                 className="hidden" 
+                                                 accept="image/*,video/*"
+                                                 onChange={handleFileChange}
+                                             />
+                                             <button
+                                                 type="button"
+                                                 disabled={uploadMediaMutation.isPending}
+                                                 onClick={() => fileInputRef.current?.click()}
+                                                 className={`flex flex-col items-center justify-center gap-4 p-10 rounded-xl border-2 border-dashed transition-all group ${
+                                                     uploadMediaMutation.isPending 
+                                                     ? 'border-zinc-800 bg-zinc-900/50 cursor-not-allowed' 
+                                                     : 'border-zinc-800 bg-zinc-950 hover:border-yellow-600/50 hover:bg-yellow-600/5'
+                                                 }`}
+                                             >
+                                                 {uploadMediaMutation.isPending ? (
+                                                     <div className="flex flex-col items-center gap-3">
+                                                         <div className="w-8 h-8 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div>
+                                                         <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Uploading Media...</span>
+                                                     </div>
+                                                 ) : (
+                                                     <>
+                                                         <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                             <FiUploadCloud className="text-zinc-500 group-hover:text-yellow-500" size={24} />
+                                                         </div>
+                                                         <div className="text-center">
+                                                             <p className="text-sm font-bold text-zinc-300 mb-1">Click to upload media</p>
+                                                             <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Support Image (JPG, PNG) or Video (MP4)</p>
+                                                         </div>
+                                                     </>
+                                                 )}
+                                             </button>
+                                         </div>
+                                     ) : (
+                                         <div className="relative p-5 rounded-xl border border-zinc-800 bg-zinc-950 flex items-center gap-5 group">
+                                             <div className="w-16 h-16 rounded-lg bg-zinc-900 flex items-center justify-center border border-zinc-800 overflow-hidden">
+                                                 {formData.template.mediaType === 'image' ? (
+                                                     <img src={formData.template.mediaUrl} alt="Preview" className="w-full h-full object-cover" />
+                                                 ) : (
+                                                     <div className="flex flex-col items-center gap-1">
+                                                         <FiVideo className="text-yellow-500" size={20} />
+                                                         <span className="text-[8px] font-bold text-zinc-500">VIDEO</span>
+                                                     </div>
+                                                 )}
+                                             </div>
+                                             <div className="flex-1 min-w-0">
+                                                 <div className="flex items-center gap-2 mb-1">
+                                                     <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                                                     <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
+                                                         {formData.template.mediaType === 'image' ? 'Image Ready' : 'Video Ready'}
+                                                     </p>
+                                                 </div>
+                                                 <p className="text-[10px] text-zinc-500 truncate max-w-[200px]">{formData.template.mediaUrl}</p>
+                                             </div>
+                                             <button
+                                                 type="button"
+                                                 onClick={() => {
+                                                     setFormData({ ...formData, template: { ...formData.template, mediaUrl: '', mediaType: null } });
+                                                     if (fileInputRef.current) fileInputRef.current.value = '';
+                                                 }}
+                                                 className="p-2.5 bg-zinc-900 rounded-lg text-zinc-500 hover:text-white hover:bg-red-500/20 hover:border-red-500/50 border border-zinc-800 transition-all active:scale-95"
+                                                 title="Remove Media"
+                                             >
+                                                 <FiX size={18} />
+                                             </button>
+                                         </div>
+                                     )}
+                                 </div>
+                             )}
                         </div>
 
                         <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
@@ -261,7 +455,7 @@ const CreateCampaignPage = () => {
                                                         </div>
                                                     </td>
                                                     <td className="p-3 text-zinc-200 font-medium">{lead.name}</td>
-                                                    <td className="p-3 text-zinc-400">{formData.channel === 'whatsapp' ? lead.phone : lead.email}</td>
+                                                    <td className="p-3 text-zinc-400">{lead.phone}</td>
                                                     <td className="p-3 text-zinc-500">{lead.address || '—'}</td>
                                                 </tr>
                                             ))

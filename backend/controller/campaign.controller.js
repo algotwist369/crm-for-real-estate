@@ -5,7 +5,7 @@ const Campaign = require('../model/campaign.model');
 const WhatsAppSession = require('../model/whatsappSession.model');
 const logger = require('../utils/logger');
 
-const cluster = require('cluster');
+const { uploadImage } = require('../utils/uploadImage');
 
 const createCampaign = async (req, res, next) => {
     try {
@@ -142,7 +142,7 @@ const updateEmailConfig = async (req, res, next) => {
                 dailyLimit,
                 isActive: true 
             },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         res.status(200).json({ success: true, config });
@@ -161,6 +161,34 @@ const getEmailConfig = async (req, res, next) => {
     }
 };
 
+const uploadMedia = async (req, res, next) => {
+    try {
+        if (!req.files || !req.files.media || !req.files.media[0]) {
+            return res.status(400).json({ success: false, message: 'No media file uploaded' });
+        }
+
+        const file = req.files.media[0];
+        const resourceType = file.mimetype.startsWith('video/') ? 'video' : 'image';
+        
+        const result = await uploadImage({
+            buffer: file.buffer,
+            mimeType: file.mimetype
+        }, {
+            folder: 'campaign_media',
+            resourceType: 'auto' // Use 'auto' for both image and video
+        });
+
+        res.status(200).json({ 
+            success: true, 
+            url: result.secure_url || result.url,
+            mediaType: result.resource_type || resourceType
+        });
+    } catch (error) {
+        logger.error(`Media upload failed: ${error.message}`);
+        next(error);
+    }
+};
+
 module.exports = {
     createCampaign,
     getCampaigns,
@@ -170,5 +198,6 @@ module.exports = {
     logoutWhatsApp,
     getWhatsAppStatus,
     updateEmailConfig,
-    getEmailConfig
+    getEmailConfig,
+    uploadMedia
 };

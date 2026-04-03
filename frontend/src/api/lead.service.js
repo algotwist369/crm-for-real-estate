@@ -1,11 +1,14 @@
 import axiosInstance from "./axiosInstance";
 
 export const leadService = {
-    getAllLeads: async (params) => {
-        const response = await axiosInstance.get("/leads", { params });
+    getLeads: async (params) => {
+        const response = await axiosInstance.get('/leads', { params });
         return response.data;
     },
-
+    getLeadsMinimal: async () => {
+        const response = await axiosInstance.get('/leads/minimal');
+        return response.data;
+    },
     getLeadById: async (id) => {
         const response = await axiosInstance.get(`/leads/${id}`);
         return response.data;

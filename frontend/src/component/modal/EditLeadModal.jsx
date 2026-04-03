@@ -54,7 +54,7 @@ const InputField = ({ label, icon: Icon, required, children, className = "" }) =
     </div>
 );
 
-const inputCls = "w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600";
+const inputCls = "w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-700";
 const selectCls = "w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 focus:outline-none focus:border-zinc-600 cursor-pointer transition-colors";
 
 const EditLeadModal = ({ isOpen, onClose, onUpdate, lead }) => {
@@ -144,42 +144,42 @@ const EditLeadModal = ({ isOpen, onClose, onUpdate, lead }) => {
             // Client
             name: formData.name,
             phone: formData.phone,
-            email: formData.email || "",
-            alternate_phone: formData.alternate_phone || "",
-            whatsapp_number: formData.whatsapp_number || "",
+            email: formData.email || undefined,
+            alternate_phone: formData.alternate_phone || undefined,
+            whatsapp_number: formData.whatsapp_number || undefined,
             // Category
             lead_type: formData.lead_type,
             client_type: formData.client_type,
-            inquiry_for: formData.inquiry_for || "",
-            requirement: formData.requirement || "",
+            inquiry_for: formData.inquiry_for || undefined,
+            requirement: formData.requirement || undefined,
             // Property
             property_type: formData.property_type,
-            bedrooms: formData.bedrooms || "",
-            bathrooms: formData.bathrooms ? Number(formData.bathrooms) : "",
+            bedrooms: formData.bedrooms || undefined,
+            bathrooms: formData.bathrooms ? Number(formData.bathrooms) : undefined,
             furnished_status: formData.furnished_status,
             maid_room: formData.maid_room,
-            address: formData.address || "",
-            plot_size: formData.plot_size_value ? { value: Number(formData.plot_size_value), unit: formData.plot_size_unit } : "",
-            built_up_area: formData.built_up_area_value ? { value: Number(formData.built_up_area_value), unit: formData.built_up_area_unit } : "",
+            address: formData.address || undefined,
+            plot_size: formData.plot_size_value ? { value: Number(formData.plot_size_value), unit: formData.plot_size_unit } : undefined,
+            built_up_area: formData.built_up_area_value ? { value: Number(formData.built_up_area_value), unit: formData.built_up_area_unit } : undefined,
             // Pricing
             currency: formData.currency,
-            budget: formData.budget || "",
-            asking_price: formData.asking_price ? Number(formData.asking_price) : "",
-            price_label: formData.price_label || "",
+            budget: formData.budget || undefined,
+            asking_price: formData.asking_price ? Number(formData.asking_price) : undefined,
+            price_label: formData.price_label || undefined,
             price_negotiable: formData.price_negotiable,
-            budget_min: formData.budget_min ? Number(formData.budget_min) : "",
-            budget_max: formData.budget_max ? Number(formData.budget_max) : "",
+            budget_min: formData.budget_min ? Number(formData.budget_min) : undefined,
+            budget_max: formData.budget_max ? Number(formData.budget_max) : undefined,
             // Ownership
-            owner_name: formData.owner_name || "",
-            broker_name: formData.broker_name || "",
-            broker_phone: formData.broker_phone || "",
-            shared_details: formData.shared_details || "",
+            owner_name: formData.owner_name || undefined,
+            broker_name: formData.broker_name || undefined,
+            broker_phone: formData.broker_phone || undefined,
+            shared_details: formData.shared_details || undefined,
             // CRM
             source: formData.source,
             priority: formData.priority,
             properties: formData.properties,
-            comments: formData.comments || "",
-            tags: formData.tags ? formData.tags.split(",").map(t => t.trim()).filter(Boolean) : [],
+            comments: formData.comments || undefined,
+            tags: formData.tags ? formData.tags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
         };
 
         updateLeadMutation.mutate({ id: lead._id, data: payload }, {
@@ -264,23 +264,31 @@ const EditLeadModal = ({ isOpen, onClose, onUpdate, lead }) => {
                     </div>
                 </div>
                 <div className="space-y-4">
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Plot Size</label>
-                        <div className="flex gap-1.5">
-                            <input type="number" name="plot_size_value" value={formData.plot_size_value} onChange={handleChange} placeholder="0" className={`${inputCls} flex-1`} />
-                            <select name="plot_size_unit" value={formData.plot_size_unit} onChange={handleChange} className={`${selectCls} w-28`}>
-                                {AREA_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Built-Up Area</label>
-                        <div className="flex gap-1.5">
-                            <input type="number" name="built_up_area_value" value={formData.built_up_area_value} onChange={handleChange} placeholder="0" className={`${inputCls} flex-1`} />
-                            <select name="built_up_area_unit" value={formData.built_up_area_unit} onChange={handleChange} className={`${selectCls} w-28`}>
-                                {AREA_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                            </select>
-                        </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <InputField label="Plot Size">
+                            <div className="flex w-full items-center bg-zinc-950 border border-zinc-800 rounded focus-within:border-zinc-600 transition-colors">
+                                <input type="number" name="plot_size_value" value={formData.plot_size_value} onChange={handleChange} placeholder="0" className="bg-transparent border-none text-white text-sm px-3 py-2.5 focus:outline-none flex-1 min-w-0" />
+                                <div className="w-[1px] h-4 bg-zinc-800 flex-shrink-0" />
+                                <select name="plot_size_unit" value={formData.plot_size_unit} onChange={handleChange} className="bg-transparent border-none text-zinc-400 text-xs px-2 py-2.5 focus:outline-none cursor-pointer flex-shrink-0 appearance-none text-right">
+                                    {AREA_UNITS.map(u => <option key={u} value={u} className="bg-zinc-950">{u}</option>)}
+                                </select>
+                                <div className="pr-2 pointer-events-none text-zinc-600">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                            </div>
+                        </InputField>
+                        <InputField label="Built-Up Area">
+                            <div className="flex w-full items-center bg-zinc-950 border border-zinc-800 rounded focus-within:border-zinc-600 transition-colors">
+                                <input type="number" name="built_up_area_value" value={formData.built_up_area_value} onChange={handleChange} placeholder="0" className="bg-transparent border-none text-white text-sm px-3 py-2.5 focus:outline-none flex-1 min-w-0" />
+                                <div className="w-[1px] h-4 bg-zinc-800 flex-shrink-0" />
+                                <select name="built_up_area_unit" value={formData.built_up_area_unit} onChange={handleChange} className="bg-transparent border-none text-zinc-400 text-xs px-2 py-2.5 focus:outline-none cursor-pointer flex-shrink-0 appearance-none text-right">
+                                    {AREA_UNITS.map(u => <option key={u} value={u} className="bg-zinc-950">{u}</option>)}
+                                </select>
+                                <div className="pr-2 pointer-events-none text-zinc-600">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                            </div>
+                        </InputField>
                     </div>
                     <InputField label="Property Address" icon={FiMapPin}>
                         <input name="address" value={formData.address} onChange={handleChange} placeholder="e.g. Downtown Dubai" className={inputCls} />
@@ -460,7 +468,7 @@ const EditLeadModal = ({ isOpen, onClose, onUpdate, lead }) => {
                         const isActive = activeTab === tab.id;
                         return (
                             <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 whitespace-nowrap transition-all ${
+                                className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 whitespace-nowrap transition-all ${
                                     isActive ? "text-yellow-400 border-yellow-500 bg-yellow-500/5" : "text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/5"
                                 }`}>
                                 <Icon size={13} /> {tab.label}

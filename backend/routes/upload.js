@@ -17,8 +17,13 @@ const uploadPropertyPhotos = upload.fields([
     { name: 'document', maxCount: 10 }
 ]);
 
+const uploadCampaignMedia = upload.fields([
+    { name: 'media', maxCount: 1 }
+]);
+
 module.exports = {
     upload,
     uploadProfilePic,
-    uploadPropertyPhotos
+    uploadPropertyPhotos,
+    uploadCampaignMedia
 };

@@ -22,6 +22,7 @@ const CampaignsPage = lazy(() => import("./pages/CampaignsPage"));
 const CreateCampaignPage = lazy(() => import("./pages/CreateCampaignPage"));
 const CampaignSettingsPage = lazy(() => import("./pages/CampaignSettingsPage"));
 const CampaignDetailsPage = lazy(() => import("./pages/CampaignDetailsPage"));
+const DocumentationPage = lazy(() => import("./pages/DocumentationPage"));
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -146,6 +147,14 @@ const App = () => {
                     element={
                       <ProtectedRoute>
                         <CampaignDetailsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/documentation"
+                    element={
+                      <ProtectedRoute>
+                        <DocumentationPage />
                       </ProtectedRoute>
                     }
                   />

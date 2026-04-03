@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const campaignController = require('../controller/campaign.controller');
+const { uploadCampaignMedia } = require('./upload');
 const { authenticate } = require('../middleware/auth');
 const validateRequest = require('../middleware/validateRequest');
 const Joi = require('joi');
@@ -11,7 +12,9 @@ const campaignSchema = Joi.object({
         channel: Joi.string().valid('whatsapp', 'email').required(),
         template: Joi.object({
             subject: Joi.string().allow('').optional().when('channel', { is: 'email', then: Joi.required() }),
-            body: Joi.string().required()
+            body: Joi.string().required(),
+            mediaUrl: Joi.string().uri().allow('', null).optional(),
+            mediaType: Joi.string().valid('image', 'video').allow(null).optional()
         }).required(),
         leadIds: Joi.array().items(Joi.string()).min(1).required(),
         delayConfig: Joi.object({
@@ -54,6 +57,8 @@ router.get('/whatsapp/status', campaignController.getWhatsAppStatus);
 router.post('/whatsapp/init', campaignController.initWhatsApp);
 router.post('/whatsapp/regenerate', campaignController.regenerateWhatsAppQR);
 router.post('/whatsapp/logout', campaignController.logoutWhatsApp);
+
+router.post('/upload-media', uploadCampaignMedia, campaignController.uploadMedia);
 
 router.get('/email/config', campaignController.getEmailConfig);
 router.post('/email/config', validateRequest(emailConfigSchema), campaignController.updateEmailConfig);

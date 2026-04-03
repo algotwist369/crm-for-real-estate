@@ -5,20 +5,21 @@ const User = require('../model/user.model');
 const { campaignQueue } = require('./queue.service');
 const logger = require('../utils/logger');
 
-const renderTemplate = (template, lead, user) => {
+const renderTemplate = (template, lead) => {
     const variables = {
         name: lead.name || 'Lead',
         phone: lead.phone || '',
-        email: lead.email || '',
-        project_name: lead.inquiry_for || '',
-        city: lead.address || '',
-        agent_name: user.user_name || '',
-        company_name: 'Our Company' // You can get this from user settings
+        address: lead.address || '',
+        city: lead.address || '', // Alias for address
+        inquiry_for: lead.inquiry_for || '',
+        project_name: lead.inquiry_for || '', // Alias for inquiry_for
+        agent_name: lead.agent_name || (lead.assigned_to && lead.assigned_to.length > 0 ? lead.assigned_to[0].user_name : 'Unassigned')
     };
 
     let body = template;
     Object.keys(variables).forEach(key => {
-        const regex = new RegExp(`{{${key}}}`, 'g');
+        // More robust regex to handle spaces like {{ name }} or {{name}}
+        const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'gi'); // Case-insensitive and global
         body = body.replace(regex, variables[key]);
     });
 
@@ -46,16 +47,30 @@ const createCampaign = async (campaignData, userId, tenantId) => {
 
     await campaign.save();
 
+    // Fetch minimal lead data for rendering
+    const leadsMinimal = await Lead.find({ _id: { $in: leadIds } })
+        .select('name phone address inquiry_for assigned_to')
+        .populate('assigned_to', 'user_name')
+        .lean();
+
+    const leadMap = leadsMinimal.reduce((acc, lead) => {
+        acc[lead._id.toString()] = {
+            ...lead,
+            agent_name: lead.assigned_to && lead.assigned_to.length > 0 ? lead.assigned_to[0].user_name : 'Unassigned'
+        };
+        return acc;
+    }, {});
+
     // Generate individual messages
     const messages = [];
     for (const leadId of leadIds) {
-        const lead = await Lead.findById(leadId);
+        const lead = leadMap[leadId.toString()];
         if (!lead) continue;
 
         const recipient = channel === 'whatsapp' ? lead.phone : lead.email;
         if (!recipient) continue;
 
-        const renderedMessage = renderTemplate(template.body, lead, user);
+        const renderedMessage = renderTemplate(template.body, lead);
 
         const message = new CampaignMessage({
             campaignId: campaign._id,
@@ -64,7 +79,9 @@ const createCampaign = async (campaignData, userId, tenantId) => {
             originalTemplate: template.body,
             renderedMessage,
             status: 'queued',
-            tenantId
+            tenantId,
+            mediaUrl: template.mediaUrl || null,
+            mediaType: template.mediaType || null
         });
 
         await message.save();

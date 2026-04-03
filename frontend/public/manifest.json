@@ -1,0 +1,20 @@
+{
+  "short_name": "Algotwist",
+  "name": "Algotwist CRM - AI Outreach",
+  "icons": [
+    {
+      "src": "https://res.cloudinary.com/dwsv275kv/image/upload/v1774691836/555666_m75jkf.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://res.cloudinary.com/dwsv275kv/image/upload/v1774691836/555666_m75jkf.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#ca8a04",
+  "background_color": "#000000"
+}

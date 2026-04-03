@@ -1,5 +1,12 @@
 import axios from 'axios';
 
+const pendingRequests = new Map();
+
+const getRequestKey = (config) => {
+  const { method, url, params, data } = config;
+  return [method, url, JSON.stringify(params), JSON.stringify(data)].join('&');
+};
+
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
   withCredentials: true,
@@ -8,12 +15,42 @@ const axiosInstance = axios.create({
   },
 });
 
-// Add a response interceptor to handle global errors (like 401)
+// Request Interceptor to prevent duplicate calls
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const requestKey = getRequestKey(config);
+    
+    if (pendingRequests.has(requestKey)) {
+      const source = axios.CancelToken.source();
+      config.cancelToken = source.token;
+      source.cancel(`Duplicate request detected: ${requestKey}`);
+    } else {
+      pendingRequests.set(requestKey, true);
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response Interceptor
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const requestKey = getRequestKey(response.config);
+    pendingRequests.delete(requestKey);
+    return response;
+  },
   (error) => {
-    // If the error is 401 (Unauthorized), we might want to trigger a logout
-    // this will be handled in conjunction with AuthContext/React Query
+    if (error.config) {
+      const requestKey = getRequestKey(error.config);
+      pendingRequests.delete(requestKey);
+    }
+
+    if (axios.isCancel(error)) {
+      console.warn(error.message);
+      return new Promise(() => {}); // Return a pending promise to stop further execution
+    }
+
     if (error.response?.status === 401) {
       console.warn('Unauthorized access detected, redirecting or logging out...');
     }

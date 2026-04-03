@@ -8,6 +8,7 @@ import {
     FiSettings,
     FiBell,
     FiSend,
+    FiBook,
 } from "react-icons/fi";
 import { MdOutlineRealEstateAgent } from "react-icons/md";
 import { useAuth } from "../../context/AuthContext";
@@ -21,6 +22,7 @@ const menuItems = [
     { name: "Reports", icon: <FiBarChart2 />, path: "/reports" },
     { name: "Notifications", icon: <FiBell />, path: "/notifications" },
     { name: "Settings", icon: <FiSettings />, path: "/settings" },
+    { name: "Help & Docs", icon: <FiBook />, path: "/documentation" },
 ];
 
 const Sidebar = ({ collapsed, mobileOpen }) => {
@@ -73,7 +75,7 @@ const Sidebar = ({ collapsed, mobileOpen }) => {
                             {!collapsed && (
                                 <span className="text-sm">{item.name}</span>
                             )}
-                            
+
                             {/* Active Indicator on right */}
                             {!collapsed && (
                                 <div className={`ml-auto w-1 h-1 rounded-full bg-yellow-500 opacity-0 group-[.active]:opacity-100 transition-opacity`}></div>
@@ -87,11 +89,15 @@ const Sidebar = ({ collapsed, mobileOpen }) => {
                     {!collapsed ? (
                         <div className="space-y-1">
                             <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
-                                Version 1.2.4-stable
+                                Version 1.0.0-stable
+                            </p>
+                            <p className="text-[9px] text-zinc-700 font-medium">
+                                Support - info.algotwist@gmail.com
                             </p>
                             <p className="text-[9px] text-zinc-700 font-medium">
                                 © {new Date().getFullYear()} AlgoTwist CRM
                             </p>
+
                         </div>
                     ) : (
                         <div className="flex justify-center">

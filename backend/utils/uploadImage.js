@@ -29,7 +29,7 @@ function normalizeUploadOptions(options = {}) {
     return {
         folder: options.folder || process.env.CLOUDINARY_FOLDER || undefined,
         public_id: options.publicId || undefined,
-        resource_type: resourceType,
+        resource_type: 'auto', // Force 'auto' to handle images and videos correctly
         overwrite: options.overwrite ?? true,
         unique_filename: options.uniqueFilename ?? true,
         use_filename: options.useFilename ?? false,

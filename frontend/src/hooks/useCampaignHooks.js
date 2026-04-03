@@ -90,3 +90,12 @@ export const useUpdateEmailConfig = () => {
         }
     });
 };
+
+export const useUploadCampaignMedia = () => {
+    return useMutation({
+        mutationFn: campaignService.uploadMedia,
+        onError: (error) => {
+            toast.error(error.response?.data?.message || 'Failed to upload media');
+        }
+    });
+};

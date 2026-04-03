@@ -989,8 +989,38 @@ const delete_lead = wrapAsync(async (req, res) => {
     res.status(200).json({ success: true, message: 'Lead deleted successfully' });
 });
 
+const get_leads_minimal = wrapAsync(async (req, res) => {
+    const { user, payload, tenant_id } = req.auth;
+    const isAdmin = ['admin', 'super_admin'].includes(payload.role);
+
+    const match = { is_active: true };
+    if (payload.role !== 'super_admin') match.tenant_id = tenant_id;
+
+    if (!isAdmin) {
+        match.assigned_to = user._id;
+    }
+
+    const leads = await Lead.find(match)
+        .select('name phone address inquiry_for assigned_to')
+        .populate('assigned_to', 'user_name')
+        .sort({ name: 1 })
+        .lean();
+
+    const formattedLeads = leads.map(lead => ({
+        _id: lead._id,
+        name: lead.name,
+        phone: lead.phone,
+        address: lead.address || '',
+        inquiry_for: lead.inquiry_for || '',
+        agent_name: lead.assigned_to && lead.assigned_to.length > 0 ? lead.assigned_to[0].user_name : 'Unassigned'
+    }));
+
+    res.status(200).json({ success: true, data: formattedLeads });
+});
+
 module.exports = {
     get_my_leads,
+    get_leads_minimal,
     get_lead_by_id,
     create_lead,
     update_lead,

@@ -57,7 +57,7 @@ const CampaignDetailsPage = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                     {statCards.map((card, idx) => (
-                        <div key={idx} className={`${card.bg} p-6 rounded-xl border transition-all hover:scale-[1.02] duration-300`}>
+                        <div key={idx} className={`${card.bg} p-6 rounded-xl border`}>
                             <div className="flex justify-between items-start mb-4">
                                 <div className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800">
                                     {card.icon}
@@ -78,25 +78,48 @@ const CampaignDetailsPage = () => {
                             <div className="space-y-10">
                                 <div>
                                     <div className="flex justify-between text-xs font-medium mb-3">
-                                        <span className="text-zinc-400">Campaign Completion</span>
-                                        <span className="text-yellow-500">{progress}%</span>
+                                        <span className="text-zinc-400">Campaign Delivery Progress</span>
+                                        <span className="text-zinc-500">{processed} / {total} Leads</span>
                                     </div>
-                                    <div className="w-full bg-zinc-950 rounded-full h-3 border border-zinc-800 p-0.5">
+                                    <div className="w-full bg-zinc-950 rounded-full h-4 border border-zinc-800 p-0.5 overflow-hidden flex">
+                                        {/* Success Bar */}
                                         <div 
-                                            className="bg-yellow-500 h-full rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(234,179,8,0.3)]" 
-                                            style={{ width: `${progress}%` }}
+                                            className="bg-green-500 h-full rounded-l-full" 
+                                            style={{ width: `${total > 0 ? (stats.sent / total) * 100 : 0}%` }}
                                         ></div>
+                                        {/* Failure Bar */}
+                                        <div 
+                                            className="bg-red-500 h-full" 
+                                            style={{ width: `${total > 0 ? (stats.failed / total) * 100 : 0}%` }}
+                                        ></div>
+                                        {/* Queue/Remaining portion */}
+                                        {total > processed && (
+                                            <div className="flex-1 h-full bg-zinc-900"></div>
+                                        )}
+                                    </div>
+                                    <div className="flex justify-between mt-3">
+                                        <div className="flex gap-4">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tight">Sent: {stats.sent}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                                <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tight">Failed: {stats.failed}</span>
+                                            </div>
+                                        </div>
+                                        <span className="text-yellow-500 text-xs font-bold">{progress}% Total</span>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-6">
-                                    <div className="p-5 rounded-xl border border-zinc-800 bg-zinc-950/50 group hover:border-green-500/30 transition-colors">
+                                    <div className="p-5 rounded-xl border border-zinc-800 bg-zinc-950/50">
                                         <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Success Rate</p>
-                                        <p className="text-3xl font-bold text-green-500 group-hover:scale-110 transition-transform origin-left">{successRate}%</p>
+                                        <p className="text-3xl font-bold text-green-500">{successRate}%</p>
                                     </div>
-                                    <div className="p-5 rounded-xl border border-zinc-800 bg-zinc-950/50 group hover:border-red-500/30 transition-colors">
+                                    <div className="p-5 rounded-xl border border-zinc-800 bg-zinc-950/50">
                                         <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Failure Rate</p>
-                                        <p className="text-3xl font-bold text-red-500 group-hover:scale-110 transition-transform origin-left">{failureRate}%</p>
+                                        <p className="text-3xl font-bold text-red-500">{failureRate}%</p>
                                     </div>
                                 </div>
                             </div>

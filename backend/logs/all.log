@@ -451,3 +451,21 @@
 2026-04-03 16:11:47:1147 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
 2026-04-03 16:11:47:1147 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
 2026-04-03 16:13:27:1327 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:52:48:5248 [31merror[39m: [31mError sending WhatsApp message to 9696717305@c.us: No LID for user[39m
+[31mnew Error (<anonymous>:6:31)[39m
+2026-04-03 16:52:48:5248 [31merror[39m: [31mFailed to process message 69cfa305dc8f74c3f4eb5150: No LID for user[39m
+[31mnew Error (<anonymous>:6:31)[39m
+2026-04-03 16:52:49:5249 [31merror[39m: [31mJob msg_69cfa305dc8f74c3f4eb5150 failed: No LID for user[39m
+[31mnew Error (<anonymous>:6:31)[39m
+2026-04-03 16:52:53:5253 [31merror[39m: [31mError sending WhatsApp message to 9696717305@c.us: No LID for user[39m
+[31mnew Error (<anonymous>:6:31)[39m
+2026-04-03 16:52:53:5253 [31merror[39m: [31mFailed to process message 69cfa305dc8f74c3f4eb5150: No LID for user[39m
+[31mnew Error (<anonymous>:6:31)[39m
+2026-04-03 16:52:53:5253 [31merror[39m: [31mJob msg_69cfa305dc8f74c3f4eb5150 failed: No LID for user[39m
+[31mnew Error (<anonymous>:6:31)[39m
+2026-04-03 16:52:56:5256 [31merror[39m: [31mError sending WhatsApp message to 9696717305@c.us: No LID for user[39m
+[31mnew Error (<anonymous>:6:31)[39m
+2026-04-03 16:52:56:5256 [31merror[39m: [31mFailed to process message 69cfa305dc8f74c3f4eb5150: No LID for user[39m
+[31mnew Error (<anonymous>:6:31)[39m
+2026-04-03 16:52:56:5256 [31merror[39m: [31mJob msg_69cfa305dc8f74c3f4eb5150 failed: No LID for user[39m
+[31mnew Error (<anonymous>:6:31)[39m

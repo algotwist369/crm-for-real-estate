@@ -1,5 +1,4 @@
 const Notification = require('../model/notification.model');
-const mongoose = require('mongoose');
 
 const getMyNotifications = async (req, res) => {
     try {
@@ -44,7 +43,7 @@ const markAsRead = async (req, res) => {
         const notification = await Notification.findOneAndUpdate(
             { _id: id, recipient: userId },
             { is_read: true },
-            { new: true }
+            { returnDocument: 'after' }
         );
 
         if (!notification) {

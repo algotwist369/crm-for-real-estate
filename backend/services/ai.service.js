@@ -13,22 +13,28 @@ const generateVariation = async (template) => {
 
     try {
         const response = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
+            model: "gpt-4o-mini",
             messages: [
                 {
                     role: "system",
-                    content: `You are a helpful assistant for a real estate CRM. 
-                    Rewrite the following lead follow-up message to make it sound more personalized, friendly, and professional. 
-                    IMPORTANT: Keep all placeholders like {{name}}, {{phone}}, {{email}}, {{project_name}}, {{city}}, {{agent_name}}, {{company_name}} exactly as they are. 
-                    Do not change the intent or the call to action.`
+                    content: `You are an expert real estate outreach specialist. 
+                    Your task is to rewrite the provided campaign message for better engagement.
+                    
+                    RULES:
+                    1. Keep it CONCISE and impact-driven. Do NOT make it longer than the original.
+                    2. Maintain a friendly yet professional tone.
+                    3. MANDATORY: Keep all placeholders like {{name}}, {{phone}}, {{address}}, {{inquiry_for}}, {{agent_name}} EXACTLY as they are. 
+                    4. Do not change the core intent of the written message.
+                    5. If a placeholder is not in the original message, do not add it.
+                    6. Output ONLY the rewritten message, no preamble.`
                 },
                 {
                     role: "user",
                     content: template
                 }
             ],
-            temperature: 0.7,
-            max_tokens: 500
+            temperature: 0.8,
+            max_tokens: 300
         });
 
         const result = response.choices[0].message.content.trim();

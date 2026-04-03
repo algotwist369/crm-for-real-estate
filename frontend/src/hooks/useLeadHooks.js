@@ -5,10 +5,18 @@ import toast from "react-hot-toast";
 export const useLeads = (filters = {}) => {
     return useQuery({
         queryKey: ["leads", filters],
-        queryFn: () => leadService.getAllLeads(filters),
+        queryFn: () => leadService.getLeads(filters),
         staleTime: 1000 * 30, // 30 seconds
         gcTime: 1000 * 60 * 10, // 10 minutes
         refetchOnWindowFocus: false
+    });
+};
+
+export const useLeadsMinimal = () => {
+    return useQuery({
+        queryKey: ["leads-minimal"],
+        queryFn: () => leadService.getLeadsMinimal(),
+        staleTime: 1000 * 60 * 5, // 5 minutes
     });
 };
 

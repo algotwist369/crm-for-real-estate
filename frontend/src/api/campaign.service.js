@@ -36,6 +36,12 @@ const campaignService = {
     updateEmailConfig: async (configData) => {
         const response = await axiosInstance.post('/campaigns/email/config', configData);
         return response.data;
+    },
+    uploadMedia: async (formData) => {
+        const response = await axiosInstance.post('/campaigns/upload-media', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
     }
 };
 

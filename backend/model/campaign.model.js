@@ -32,7 +32,9 @@ const campaignSchema = new mongoose.Schema({
     },
     template: {
         subject: { type: String, trim: true },
-        body: { type: String, required: true }
+        body: { type: String, required: true },
+        mediaUrl: { type: String }, // URL for image or video
+        mediaType: { type: String, enum: ['image', 'video', null] }
     },
     leads: [{
         type: mongoose.Schema.Types.ObjectId,

@@ -1,5 +1,6 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
+const axios = require('axios');
 const WhatsAppSession = require('../model/whatsappSession.model');
 const logger = require('../utils/logger');
 const socketService = require('./socket.service');
@@ -209,17 +210,32 @@ const reconnectSessions = async () => {
     }
 };
 
-const sendMessage = async (phone, message, userId) => {
+const sendMessage = async (phone, message, userId, media = null) => {
     const client = clients.get(userId.toString());
     if (!client) throw new Error('WhatsApp session not found or not connected');
 
-    const formattedPhone = phone.includes('@c.us') ? phone : `${phone.replace(/\+/g, '')}@c.us`;
+    // Enhanced phone number formatting for international compatibility
+    let cleanPhone = phone.toString().replace(/\D/g, '');
+    const formattedPhone = `${cleanPhone}@c.us`;
     
     try {
-        await client.sendMessage(formattedPhone, message);
+        if (media && media.url) {
+            logger.info(`Sending media to ${formattedPhone} from URL: ${media.url}`);
+            
+            // Fetch media manually to be more robust than fromUrl
+            const response = await axios.get(media.url, { responseType: 'arraybuffer' });
+            const buffer = Buffer.from(response.data, 'binary');
+            const base64 = buffer.toString('base64');
+            const mimeType = response.headers['content-type'];
+            
+            const mediaObj = new MessageMedia(mimeType, base64);
+            await client.sendMessage(formattedPhone, mediaObj, { caption: message });
+        } else {
+            await client.sendMessage(formattedPhone, message);
+        }
         return true;
     } catch (error) {
-        logger.error(`Error sending WhatsApp message to ${phone}: ${error.message}`);
+        logger.error(`Error sending WhatsApp message to ${formattedPhone}: ${error.message}`);
         throw error;
     }
 };

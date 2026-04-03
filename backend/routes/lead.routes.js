@@ -6,6 +6,7 @@ const { leadSchemas } = require('../utils/validation');
 
 const router = express.Router();
 
+router.get('/leads/minimal', requireRoles(['admin', 'super_admin', 'agent']), leadController.get_leads_minimal);
 router.get('/leads', requireRoles(['admin', 'super_admin', 'agent']), validateRequest(leadSchemas.query), leadController.get_my_leads);
 router.get('/leads/:id', requireRoles(['admin', 'super_admin', 'agent']), leadController.get_lead_by_id);
 router.post('/leads', requireRoles(['admin', 'super_admin', 'agent']), validateRequest(leadSchemas.create), leadController.create_lead);
