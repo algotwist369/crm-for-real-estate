@@ -88,6 +88,8 @@ const initWhatsAppSession = async (userId, tenantId) => {
                     '--disable-dev-shm-usage',
                     '--no-first-run',
                     '--no-zygote',
+                    '--single-process', // Can help in low-resource/restricted environments
+                    '--disable-crash-reporter', // Fixes "chrome_crashpad_handler: --database is required"
                     '--disable-gpu',
                     '--disable-software-rasterizer',
                     '--allow-pre-commit-input',
@@ -100,7 +102,7 @@ const initWhatsAppSession = async (userId, tenantId) => {
                     '--disable-default-apps',
                     '--disable-domain-reliability',
                     '--disable-extensions',
-                    '--disable-features=AudioServiceOutOfProcess',
+                    '--disable-features=AudioServiceOutOfProcess,HttpsFirstBalancedModeAutoEnable',
                     '--disable-hang-monitor',
                     '--disable-ipc-flooding-protection',
                     '--disable-notifications',
@@ -125,8 +127,7 @@ const initWhatsAppSession = async (userId, tenantId) => {
                 ],
                 headless: true,
                 executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-                // On some systems, the default cache path is not writable.
-                // We handle this via .puppeteerrc.cjs, but we can also log the path for debugging.
+                userDataDir: path.resolve(process.cwd(), '.wwebjs_auth', 'userData'), // Explicitly set user data directory
             }
         });
 
