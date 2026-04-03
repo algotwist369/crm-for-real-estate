@@ -7,6 +7,7 @@ import {
     FiBarChart2,
     FiSettings,
     FiBell,
+    FiSend,
 } from "react-icons/fi";
 import { MdOutlineRealEstateAgent } from "react-icons/md";
 import { useAuth } from "../../context/AuthContext";
@@ -15,6 +16,7 @@ const menuItems = [
     { name: "Dashboard", icon: <FiHome />, path: "/dashboard" },
     { name: "Properties", icon: <MdOutlineRealEstateAgent />, path: "/properties" },
     { name: "Leads", icon: <FiPhone />, path: "/leads" },
+    { name: "Outreach", icon: <FiSend />, path: "/campaigns" },
     { name: "Agents", icon: <FiUsers />, path: "/agents" },
     { name: "Reports", icon: <FiBarChart2 />, path: "/reports" },
     { name: "Notifications", icon: <FiBell />, path: "/notifications" },

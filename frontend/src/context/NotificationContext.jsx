@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
+import { useSocket } from './SocketContext';
 
 const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
     const { user } = useAuth();
+    const { socket, isConnected: isSocketConnected } = useSocket();
     const queryClient = useQueryClient();
-    const socketRef = useRef(null);
     const seenNotifications = useRef(new Set());
 
     const API_URL = import.meta.env.VITE_API_URL || '';
@@ -135,17 +135,8 @@ export const NotificationProvider = ({ children }) => {
 
     // -- Socket Lifecycle --
     useEffect(() => {
-        if (user) {
-            if (!socketRef.current || !socketRef.current.connected) {
-                socketRef.current = io(API_URL, {
-                    withCredentials: true,
-                    transports: ['websocket', 'polling']
-                });
-            }
-
-            const socket = socketRef.current;
-            socket.off('new_notification');
-            socket.on('new_notification', (notification) => {
+        if (socket && isSocketConnected) {
+            const handleNewNotification = (notification) => {
                 if (seenNotifications.current.has(notification._id)) return;
                 seenNotifications.current.add(notification._id);
 
@@ -175,16 +166,15 @@ export const NotificationProvider = ({ children }) => {
                 if (Notification.permission === 'granted') {
                     new Notification(notification.title, { body: notification.message });
                 }
-            });
+            };
+
+            socket.on('new_notification', handleNewNotification);
 
             return () => {
-                if (socketRef.current) {
-                    socketRef.current.disconnect();
-                    socketRef.current = null;
-                }
+                socket.off('new_notification', handleNewNotification);
             };
         }
-    }, [user, API_URL, queryClient]);
+    }, [socket, isSocketConnected, queryClient]);
 
     return (
         <NotificationContext.Provider value={{
@@ -202,8 +192,10 @@ export const NotificationProvider = ({ children }) => {
     );
 };
 
-export const useNotifications = () => {
+export const useNotification = () => {
     const context = useContext(NotificationContext);
-    if (!context) throw new Error('useNotifications must be used within a NotificationProvider');
+    if (!context) {
+        throw new Error('useNotification must be used within a NotificationProvider');
+    }
     return context;
 };

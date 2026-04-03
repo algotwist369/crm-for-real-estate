@@ -20,14 +20,35 @@ if (cluster.isPrimary) {
 
     setupPrimary();
 
+    cluster.on('message', (worker, message) => {
+        if (message.type === 'WHATSAPP_INIT' || message.type === 'WHATSAPP_LOGOUT' || message.type === 'WHATSAPP_REGENERATE') {
+            // Forward WhatsApp init/logout/regenerate request to the worker with the Outreach role
+            const outreachWorker = Object.values(cluster.workers).find(w => w.outreachWorker === true);
+            if (outreachWorker) {
+                outreachWorker.send(message);
+            }
+        } else if (message.type === 'OUTREACH_WORKER_READY') {
+            worker.outreachWorker = true;
+        }
+    });
+
     for (let i = 0; i < NUM_WORKERS; i++) {
-        cluster.fork();
+        const worker = cluster.fork({
+            OUTREACH_WORKER: i === 0 ? 'true' : 'false'
+        });
+        if (i === 0) worker.outreachWorker = true;
     }
 
     cluster.on('exit', (worker, code, signal) => {
         const reason = signal || code;
         process.stderr.write(`Worker ${worker.process.pid} died (${reason}) - restarting...\n`);
-        cluster.fork();
+        
+        // If the outreach worker died, reassign the role to the next spawned worker
+        const wasOutreach = worker.outreachWorker;
+        const newWorker = cluster.fork({
+            OUTREACH_WORKER: wasOutreach ? 'true' : 'false'
+        });
+        if (wasOutreach) newWorker.outreachWorker = true;
     });
 
     cluster.on('online', (worker) => {
@@ -70,9 +91,32 @@ if (cluster.isPrimary) {
             }
         ));
 
-        // ─── Follow-up Reminder Worker (only on worker id 1) ────────────
+        // ─── Outreach Workers (only on the designated worker for WhatsApp stability) ────────────
         let worker = null;
-        if (cluster.worker.id === 1) {
+        if (process.env.OUTREACH_WORKER === 'true') {
+            const whatsappService = require('./services/whatsapp.service');
+            require('./jobs/campaignWorker');
+            
+            // Re-initialize connected sessions on startup
+            whatsappService.reconnectSessions().catch(err => {
+                process.stderr.write(`Error reconnecting sessions: ${err.message}\n`);
+            });
+
+            // Listen for WhatsApp init messages from other workers via Primary
+            process.on('message', (message) => {
+                if (message.type === 'WHATSAPP_INIT' || message.type === 'WHATSAPP_REGENERATE') {
+                    const { userId, tenantId } = message.data;
+                    whatsappService.initWhatsAppSession(userId, tenantId).catch(err => {
+                        process.stderr.write(`Failed to process ${message.type} message: ${err.message}\n`);
+                    });
+                } else if (message.type === 'WHATSAPP_LOGOUT') {
+                    const { userId } = message.data;
+                    whatsappService.logout(userId).catch(err => {
+                        process.stderr.write(`Failed to process WHATSAPP_LOGOUT message: ${err.message}\n`);
+                    });
+                }
+            });
+
             worker = startFollowUpReminderWorker({
                 pollIntervalMs: Number(process.env.FOLLOWUP_WORKER_POLL_MS || 60_000),
                 maxPerTick: Number(process.env.FOLLOWUP_WORKER_MAX_PER_TICK || 25)

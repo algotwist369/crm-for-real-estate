@@ -9,3 +9,5 @@ logs/
 all.log
 error.log
 test-doc.js
+.wwebjs_cache
+.wwebjs_auth

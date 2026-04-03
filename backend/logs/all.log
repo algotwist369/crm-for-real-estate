@@ -191,3 +191,263 @@
 2026-03-31 14:50:16:5016 [35mhttp[39m: [35mGET /api/admin/report/stats 200 246 - 31.994 ms[39m
 2026-03-31 14:50:27:5027 [35mhttp[39m: [35mGET /api/followups?bucket=today&limit=5 304 - - 121.647 ms[39m
 2026-03-31 14:50:27:5027 [35mhttp[39m: [35mGET /api/dashboard/agent-summary 304 - - 144.640 ms[39m
+2026-04-02 19:48:20:4820 [31m'error'[39m: [31m"Error in createCampaign: Cannot read properties of undefined (reading 'user')"[39m
+2026-04-02 19:51:35:5135 [31m'error'[39m: [31m"Error in createCampaign: Cannot read properties of undefined (reading 'user')"[39m
+2026-04-02 20:00:54:054 [31merror[39m: [31mBackground WhatsApp init failed for 69ce28deb2dac08708289e74: The browser is already running for C:\Users\ADMIN\Desktop\lead_real\backend\.wwebjs_auth\session-session_69ce28deb2dac08708289e74. Use a different `userDataDir` or stop the running browser first.[39m
+2026-04-02 20:00:59:059 [31merror[39m: [31mBackground WhatsApp init failed for 69ce28deb2dac08708289e74: The browser is already running for C:\Users\ADMIN\Desktop\lead_real\backend\.wwebjs_auth\session-session_69ce28deb2dac08708289e74. Use a different `userDataDir` or stop the running browser first.[39m
+2026-04-02 20:03:48:348 [31merror[39m: [31mFATAL: Failed to initialize WhatsApp client for 69ce28deb2dac08708289e74: The browser is already running for C:\Users\ADMIN\Desktop\lead_real\backend\.wwebjs_auth\session-session_69ce28deb2dac08708289e74. Use a different `userDataDir` or stop the running browser first.[39m
+2026-04-02 20:04:38:438 [31merror[39m: [31mFATAL: Failed to initialize WhatsApp client for 69ce28deb2dac08708289e74: The browser is already running for C:\Users\ADMIN\Desktop\lead_real\backend\.wwebjs_auth\session-session_69ce28deb2dac08708289e74. Use a different `userDataDir` or stop the running browser first.[39m
+2026-04-02 20:06:00:60 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "undefined". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:06:03:63 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "undefined". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:06:03:63 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "undefined". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:06:03:63 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "undefined". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:06:03:63 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "undefined". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:08:88 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:11:811 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:11:811 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:11:811 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:11:811 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:23:823 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:26:826 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:26:826 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:26:826 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:26:826 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:39:839 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:42:842 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:42:842 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:42:842 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:08:42:842 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:09:09:99 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:09:12:912 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:09:12:912 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:09:12:912 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:09:12:912 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:09:24:924 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:09:27:927 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:09:27:927 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:09:27:927 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:09:27:927 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:10:58:1058 [31merror[39m: [31mFailed to remove lock file lockfile: EBUSY: resource busy or locked, unlink 'C:\Users\ADMIN\Desktop\lead_real\backend\.wwebjs_auth\session-session_69ce28deb2dac08708289e74\lockfile'[39m
+2026-04-02 20:10:58:1058 [31merror[39m: [31mFATAL: Failed to initialize WhatsApp client for 69ce28deb2dac08708289e74: The browser is already running for C:\Users\ADMIN\Desktop\lead_real\backend\.wwebjs_auth\session-session_69ce28deb2dac08708289e74. Use a different `userDataDir` or stop the running browser first.[39m
+2026-04-02 20:11:58:1158 [31merror[39m: [31mInitialization TIMEOUT for user 69ce28deb2dac08708289e74[39m
+2026-04-02 20:12:22:1222 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:12:25:1225 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:12:25:1225 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:12:25:1225 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:12:25:1225 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:12:59:1259 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:13:03:133 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:13:03:133 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:13:03:133 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:13:03:133 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:13:09:139 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:13:12:1312 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:13:12:1312 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:13:12:1312 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:13:12:1312 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:15:07:157 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:15:10:1510 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:15:10:1510 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:15:10:1510 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:15:10:1510 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:15:18:1518 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:15:22:1522 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:15:22:1522 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:15:22:1522 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:15:22:1522 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:16:18:1618 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:16:20:1620 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:16:20:1620 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:16:20:1620 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-02 20:16:20:1620 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 12:54:40:5440 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 12:54:43:5443 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 12:54:43:5443 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 12:54:43:5443 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 12:54:43:5443 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:15:37:1537 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:15:40:1540 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:15:40:1540 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:15:40:1540 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:15:40:1540 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:22:59:2259 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:23:01:231 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:23:01:231 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:23:02:232 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:23:02:232 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:25:19:2519 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:25:22:2522 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:25:22:2522 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:25:22:2522 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:25:22:2522 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:26:24:2624 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:26:27:2627 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:26:27:2627 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:26:27:2627 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:26:27:2627 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:30:37:3037 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:30:39:3039 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:30:39:3039 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:30:39:3039 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:30:39:3039 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:31:59:3159 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:03:323 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:03:323 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:03:323 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:03:323 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:07:327 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:14:3214 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:17:3217 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:17:3217 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:17:3217 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:17:3217 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:34:3234 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:37:3237 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:37:3237 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:37:3237 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:37:3237 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:44:3244 [31merror[39m: [31mJob msg_69cf72c1e3963df2adb408ba failed: Operation `campaignmessages.findOne()` buffering timed out after 10000ms[39m
+2026-04-03 13:32:54:3254 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:57:3257 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:57:3257 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:57:3257 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:32:57:3257 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:01:331 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:04:334 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:04:334 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:04:334 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:04:334 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:09:339 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:12:3312 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:12:3312 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:12:3312 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:12:3312 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:26:3326 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:29:3329 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:29:3329 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:29:3329 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:30:3330 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:33:3333 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:36:3336 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:36:3336 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:36:3336 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:36:3336 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:33:38:3338 [31merror[39m: [31mFailed to process message 69cf72c1e3963df2adb408ba: WhatsApp session not found or not connected[39m
+2026-04-03 13:33:39:3339 [31merror[39m: [31mJob msg_69cf72c1e3963df2adb408ba failed: WhatsApp session not found or not connected[39m
+2026-04-03 13:33:41:3341 [31merror[39m: [31mFailed to process message 69cf72c1e3963df2adb408ba: WhatsApp session not found or not connected[39m
+2026-04-03 13:33:42:3342 [31merror[39m: [31mJob msg_69cf72c1e3963df2adb408ba failed: WhatsApp session not found or not connected[39m
+2026-04-03 13:35:02:352 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:05:355 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:05:355 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:05:355 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:05:355 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:10:3510 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:12:3512 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:12:3512 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:12:3512 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:15:3515 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:20:3520 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:23:3523 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:23:3523 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:23:3523 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:27:3527 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:30:3530 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:30:3530 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:30:3530 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:33:3533 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:39:3539 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:42:3542 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:42:3542 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:42:3542 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:42:3542 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:53:3553 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:35:59:3559 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:36:02:362 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:36:02:362 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:36:02:362 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:36:05:365 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:36:08:368 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:36:08:368 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:36:08:368 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 13:36:09:369 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is set to "unknown". It MUST be set to "noeviction" to prevent data loss in outreach campaigns.[39m
+2026-04-03 15:32:10:3210 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:32:10:3210 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:32:14:3214 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:32:14:3214 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:32:14:3214 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:32:14:3214 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:32:14:3214 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:32:14:3214 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:32:15:3215 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:32:15:3215 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:34:27:3427 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:34:27:3427 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:34:30:3430 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:34:30:3430 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:34:31:3431 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:34:31:3431 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:34:31:3431 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:34:31:3431 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:34:31:3431 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:34:31:3431 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:35:01:351 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:35:01:351 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:35:04:354 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:35:04:354 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:35:04:354 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:35:04:354 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:35:04:354 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:35:04:354 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:35:04:354 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:35:04:354 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:35:33:3533 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:35:33:3533 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:35:37:3537 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:35:37:3537 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:35:37:3537 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:35:37:3537 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:35:37:3537 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:35:37:3537 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:35:38:3538 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:35:38:3538 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:50:23:5023 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:50:24:5024 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:50:27:5027 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:50:27:5027 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:50:27:5027 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:50:27:5027 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:50:27:5027 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:50:27:5027 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 15:50:27:5027 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 15:50:28:5028 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:00:27:027 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 16:00:27:027 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:00:30:030 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 16:00:30:030 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 16:00:30:030 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 16:00:30:030 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:00:30:030 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:00:30:030 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:00:30:030 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 16:00:30:030 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:00:56:056 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 16:00:57:057 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:01:00:10 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 16:01:00:10 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 16:01:00:10 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 16:01:00:10 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:01:00:10 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:01:00:10 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:01:00:10 [33mwarn[39m: [33mCRITICAL: Redis eviction policy is "unknown". Attempting to set it to "noeviction"...[39m
+2026-04-03 16:01:01:11 [31merror[39m: [31mFailed to set Redis eviction policy programmatically: ERR Unsupported CONFIG parameter: maxmemory-policy. Please set it manually in your Redis configuration.[39m
+2026-04-03 16:11:11:1111 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:11:16:1116 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:11:16:1116 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:11:16:1116 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:11:16:1116 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:11:42:1142 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:11:47:1147 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:11:47:1147 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:11:47:1147 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:11:47:1147 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m
+2026-04-03 16:13:27:1327 [33mwarn[39m: [33mRedis policy is "undefined". Recommended: "noeviction" to prevent data loss.[39m

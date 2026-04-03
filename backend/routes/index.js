@@ -7,6 +7,7 @@ const propertyRoutes = require('./property.routes');
 const leadRoutes = require('./lead.routes');
 const reportRoutes = require('./report.routes');
 const notificationRoutes = require('./notification.routes');
+const campaignRoutes = require('./campaign.routes');
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.use('/admin', adminRoutes);
 router.use('/admin/report', reportRoutes);
 router.use('/agent', agentRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/campaigns', campaignRoutes);
 router.use(propertyRoutes);
 router.use(leadRoutes);
 

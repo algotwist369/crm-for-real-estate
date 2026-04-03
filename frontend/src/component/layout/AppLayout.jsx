@@ -5,11 +5,11 @@ import { FiMenu, FiLogOut, FiBell } from "react-icons/fi";
 import { GoSidebarCollapse, GoSidebarExpand } from "react-icons/go";
 import { NotificationSidebar } from "../common/NotificationSidebar";
 import { useAuth } from "../../context/AuthContext";
-import { useNotifications } from "../../context/NotificationContext";
+import { useNotification } from "../../context/NotificationContext";
 
 const AppLayout = ({ children }) => {
     const { user, logout, isLoggingOut } = useAuth();
-    const { notifications, unreadCount, markAsRead, markAllRead, clearAll, deleteOne } = useNotifications();
+    const { notifications, unreadCount, markAsRead, markAllRead, clearAll, deleteOne } = useNotification();
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
