@@ -44,8 +44,8 @@ const leadSchemas = {
                 'any.required': 'Phone number is required',
                 'string.min': 'Phone number must be at least 5 characters long'
             }),
-            source: Joi.string().valid(...ALL_LEAD_SOURCES).required().messages({
-                'any.only': 'Please select a valid lead source',
+            source: Joi.string().trim().required().messages({
+                'string.empty': 'Lead source is required',
                 'any.required': 'Lead source is required'
             }),
 
@@ -164,7 +164,7 @@ const leadSchemas = {
             properties: Joi.array().items(objectId).optional(),
 
             // CRM
-            source: Joi.string().valid(...ALL_LEAD_SOURCES).optional(),
+            source: Joi.string().trim().optional(),
             priority: Joi.string().valid(...PRIORITIES).optional(),
             status: Joi.string().valid(...LEAD_STATUSES).optional(),
             assigned_to: Joi.array().items(objectId).optional(),
