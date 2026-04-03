@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import AppLayout from "../component/layout/AppLayout";
-import { FiBell, FiCheckCircle, FiEye, FiTrash2, FiCheck } from "react-icons/fi";
+import { FiBell, FiEye, FiTrash2, FiCheck } from "react-icons/fi";
 import { Pagination } from "../component/common/Pagination";
 
-import { useNotifications } from "../context/NotificationContext";
+import { useNotification } from "../context/NotificationContext";
 import { useNavigate } from "react-router-dom";
 
 const NotificationRow = ({ n, onRead, onView, onClear }) => (
@@ -56,7 +56,7 @@ const NotificationRow = ({ n, onRead, onView, onClear }) => (
 );
 
 const NotificationsPage = () => {
-  const { notifications, loading, markAsRead, markAllRead, clearAll, deleteOne } = useNotifications();
+  const { notifications, loading, markAsRead, markAllRead, clearAll, deleteOne } = useNotification();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);

@@ -17,7 +17,17 @@ const SOURCES = [
     { label: "Referral", value: "referral" }, { label: "Advertisement", value: "advertisement" },
     { label: "Walk-in", value: "walk_in" }, { label: "Personal", value: "personal" },
     { label: "Broker", value: "broker" }, { label: "Owner", value: "owner" },
-    { label: "Manual Entry", value: "manual_entry" }, { label: "Other", value: "other" }
+    { label: "Manual Entry", value: "manual_entry" }, 
+    { label: "Direct", value: "direct" }, { label: "Email", value: "email" },
+    { label: "SMS", value: "sms" }, { label: "YouTube", value: "youtube" },
+    { label: "TikTok", value: "tiktok" }, { label: "Twitter", value: "twitter" },
+    { label: "Snapchat", value: "snapchat" }, { label: "Pinterest", value: "pinterest" },
+    { label: "Event", value: "event" }, { label: "Exhibition", value: "exhibition" },
+    { label: "Newspaper", value: "newspaper" }, { label: "Magazine", value: "magazine" },
+    { label: "Radio", value: "radio" }, { label: "TV", value: "tv" },
+    { label: "Cold Call", value: "cold_call" }, { label: "Cold Email", value: "cold_email" },
+    { label: "Bulk WhatsApp", value: "bulk_whatsapp" },
+    { label: "Other", value: "other" }
 ];
 const PROPERTY_TYPES = ["villa", "townhouse", "apartment", "penthouse", "plot", "commercial", "office", "shop", "warehouse", "other"];
 const FURNISHED_STATUSES = [

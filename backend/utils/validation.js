@@ -19,6 +19,7 @@ const utmObject = Joi.object({
 
 const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'follow_up', 'site_visit', 'negotiation', 'booked', 'converted', 'lost', 'wasted', 'closed', 'archived'];
 const LEAD_SOURCES = ['website', 'facebook', 'instagram', 'linkedin', 'whatsapp', 'google_ads', 'referral', 'advertisement', 'personal', 'walk_in', 'broker', 'owner', 'manual_entry', 'other'];
+const ALL_LEAD_SOURCES = [...LEAD_SOURCES, 'direct', 'email', 'sms', 'youtube', 'tiktok', 'twitter', 'snapchat', 'pinterest', 'event', 'exhibition', 'newspaper', 'magazine', 'radio', 'tv', 'cold_call', 'cold_email', 'bulk_whatsapp'];
 const LEAD_TYPES = ['buyer', 'seller', 'owner', 'tenant', 'investor', 'listing', 'broker', 'other'];
 const CLIENT_TYPES = ['buying', 'renting', 'investing', 'selling', 'other'];
 const CURRENCIES = ['₹', '$', 'AED'];
@@ -43,7 +44,7 @@ const leadSchemas = {
                 'any.required': 'Phone number is required',
                 'string.min': 'Phone number must be at least 5 characters long'
             }),
-            source: Joi.string().valid(...LEAD_SOURCES).required().messages({
+            source: Joi.string().valid(...ALL_LEAD_SOURCES).required().messages({
                 'any.only': 'Please select a valid lead source',
                 'any.required': 'Lead source is required'
             }),
@@ -163,7 +164,7 @@ const leadSchemas = {
             properties: Joi.array().items(objectId).optional(),
 
             // CRM
-            source: Joi.string().valid(...LEAD_SOURCES).optional(),
+            source: Joi.string().valid(...ALL_LEAD_SOURCES).optional(),
             priority: Joi.string().valid(...PRIORITIES).optional(),
             status: Joi.string().valid(...LEAD_STATUSES).optional(),
             assigned_to: Joi.array().items(objectId).optional(),
