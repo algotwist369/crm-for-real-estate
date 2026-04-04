@@ -416,7 +416,8 @@ const get_my_leads = wrapAsync(async (req, res) => {
                 .populate('properties', 'property_title property_type asking_price currency property_status property_address')
                 .sort({ createdAt: -1 })
                 .skip(skip)
-                .limit(limit),
+                .limit(limit)
+                .lean(),
             Lead.countDocuments(match)
         ]);
     } else {
@@ -429,7 +430,8 @@ const get_my_leads = wrapAsync(async (req, res) => {
                 .populate('properties', 'property_title property_type asking_price currency property_status property_address')
                 .sort({ createdAt: -1 })
                 .skip(skip)
-                .limit(limit),
+                .limit(limit)
+                .lean(),
             Lead.countDocuments(match),
             Lead.aggregate([
                 { $match: statsMatch },

@@ -16,6 +16,9 @@ const logger = require('./utils/logger');
 
 function createApp() {
     const app = express();
+    
+    // Trust the Nginx reverse proxy so rate limiters and IP logs work correctly
+    app.set('trust proxy', 1);
 
     // Security Headers
     app.use(helmet());
