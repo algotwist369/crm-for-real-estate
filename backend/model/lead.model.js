@@ -349,4 +349,24 @@ leadSchema.index({ tenant_id: 1, broker_name: 1 });
 leadSchema.index({ tenant_id: 1, asking_price: 1 });
 leadSchema.index({ tenant_id: 1, property_status: 1 });
 
+// Text Index for Fast Search
+leadSchema.index(
+    { 
+        name: 'text', 
+        email: 'text', 
+        phone: 'text', 
+        alternate_phone: 'text', 
+        whatsapp_number: 'text',
+        requirement: 'text', 
+        owner_name: 'text', 
+        broker_name: 'text', 
+        broker_phone: 'text', 
+        address: 'text' 
+    },
+    {
+        name: 'lead_text_search',
+        weights: { name: 10, phone: 10, email: 5, requirement: 2 }
+    }
+);
+
 module.exports = mongoose.model('Lead', leadSchema);

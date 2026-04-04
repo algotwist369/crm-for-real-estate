@@ -1,4 +1,5 @@
 const express = require('express');
+const os = require('os');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
@@ -22,7 +23,7 @@ function createApp() {
     // CORS configuration
     const allowedOrigins = process.env.CORS_ORIGIN 
         ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()) 
-        : ['https://real-crm-two.vercel.app', 'http://localhost:5173'];
+        : (process.env.NODE_ENV === 'production' ? [] : ['https://real-crm-two.vercel.app', 'http://localhost:5173']);
 
     app.use(cors({
         origin: (origin, callback) => {
@@ -39,14 +40,35 @@ function createApp() {
     }));
 
     // Rate Limiting
-    const limiter = rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100, // limit each IP to 100 requests per windowMs
-        message: 'Too many requests from this IP, please try again after 15 minutes',
+    const apiLimiter = rateLimit({
+        windowMs: 5 * 60 * 1000, // 5 minutes
+        max: 1000, 
+        message: 'Too many requests from this IP, please try again after 5 minutes',
         standardHeaders: true,
         legacyHeaders: false,
     });
-    app.use('/api/', limiter);
+    
+    const authLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 20, 
+        message: 'Too many login attempts from this IP, please try again after 15 minutes',
+        standardHeaders: true,
+        legacyHeaders: false,
+    });
+    
+    // Aggressive limiter to specifically stop frontend React loops from crashing the Whatsapp worker
+    const whatsappLimiter = rateLimit({
+        windowMs: 60 * 1000, // 1 minute
+        max: 2, 
+        message: { success: false, message: 'Please wait a minute before requesting another QR code.' },
+        standardHeaders: true,
+        legacyHeaders: false,
+    });
+
+    app.use('/api/', apiLimiter);
+    app.use('/api/auth/', authLimiter);
+    app.use('/api/campaigns/whatsapp/init', whatsappLimiter);
+    app.use('/api/campaigns/whatsapp/regenerate', whatsappLimiter);
 
     // Logging
     app.use(morgan(
@@ -69,7 +91,23 @@ function createApp() {
     // Compression
     app.use(compression());
 
-    app.get('/health', (req, res) => res.status(200).json({ ok: true }));
+    app.get('/health', (req, res) => {
+        const memUsage = process.memoryUsage();
+        res.status(200).json({ 
+            ok: true,
+            uptime: process.uptime(),
+            memory: {
+                rss: `${(memUsage.rss / 1024 / 1024).toFixed(2)} MB`,
+                heapTotal: `${(memUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
+                heapUsed: `${(memUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
+                external: `${(memUsage.external / 1024 / 1024).toFixed(2)} MB`,
+            },
+            cpu: {
+                loadAvg: os.loadavg(),
+                cores: os.cpus().length,
+            }
+        });
+    });
     app.use('/api', apiRoutes);
 
     app.use(notFound);

@@ -15,8 +15,8 @@ const NUM_WORKERS = process.env.NODE_ENV === 'production'
     ? Number(process.env.WEB_CONCURRENCY || os.cpus().length) 
     : 1;
 
-// ─── PRIMARY PROCESS ────────────────────────────────────────────────────────
-if (cluster.isPrimary) {
+// ─── PRIMARY PROCESS (unless disabled) ──────────────────────────────────────
+if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
     process.stdout.write(`Primary ${process.pid} started - spawning ${NUM_WORKERS} workers\n`);
 
     setupPrimary();
@@ -59,8 +59,9 @@ if (cluster.isPrimary) {
     // ─── WORKER PROCESS ─────────────────────────────────────────────────────────
 } else {
     async function start() {
-        if (!process.env.TOKEN_SECRET && !process.env.JWT_SECRET) {
-            process.stderr.write(`Worker ${process.pid} - WARNING: TOKEN_SECRET not found in environment!\n`);
+        if (!process.env.TOKEN_SECRET && !process.env.JWT_SECRET && process.env.NODE_ENV !== 'test') {
+            process.stderr.write(`CRITICAL ERROR: TOKEN_SECRET or JWT_SECRET not found in environment! Boot aborted.\n`);
+            process.exit(1);
         }
         await connectToDatabase();
         const app = createApp();
@@ -136,8 +137,21 @@ if (cluster.isPrimary) {
         
         socketService.init(server);
 
+        // Periodically log memory and CPU usage for monitoring
+        const logMetrics = () => {
+            const mem = process.memoryUsage();
+            const mb = 1024 * 1024;
+            const isOutreach = process.env.OUTREACH_WORKER === 'true' ? '[OUTREACH]' : '[API]';
+            const load = os.loadavg().map(n => n.toFixed(2)).join(', ');
+            process.stdout.write(`Worker ${process.pid} ${isOutreach} Metrics - RSS: ${(mem.rss/mb).toFixed(2)}MB | HeapUsed: ${(mem.heapUsed/mb).toFixed(2)}MB | LoadAvg: ${load}\n`);
+        };
+        // Log immediately on startup, then every 30 mins
+        logMetrics();
+        const metricsInterval = setInterval(logMetrics, 30 * 60 * 1000);
+
         const shutdown = async () => {
             process.stdout.write(`Worker ${process.pid} shutting down...\n`);
+            clearInterval(metricsInterval);
 
             if (worker) worker.stop();
 

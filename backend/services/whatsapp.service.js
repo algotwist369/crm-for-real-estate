@@ -48,7 +48,7 @@ const cleanupSessionLock = (sessionId) => {
     });
 };
 
-const initWhatsAppSession = async (userId, tenantId) => {
+const initWhatsAppSession = async (userId, tenantId, isAutoReconnect = false) => {
     const sessionId = `session_${userId}`;
     const dataPath = path.resolve(process.cwd(), '.wwebjs_auth');
     
@@ -130,9 +130,33 @@ const initWhatsAppSession = async (userId, tenantId) => {
             }
         });
 
+        let qrCount = 0;
+
         client.on('qr', async (qr) => {
-            logger.info(`QR RECEIVED for user ${userId}`);
-            qrcode.generate(qr, { small: true });
+            if (isAutoReconnect) {
+                logger.warn(`Auto-reconnect failed for ${userId} (session expired/invalid). Destroying client to save memory.`);
+                await WhatsAppSession.findOneAndUpdate({ userId }, { status: 'disconnected', qrCode: null });
+                socketService.emitToUser(userId, 'whatsapp:status', { status: 'disconnected', error: 'Session expired. Please manually regenerate QR code.' });
+                try {
+                    await client.destroy();
+                } catch (e) {}
+                clients.delete(userId.toString());
+                return;
+            }
+
+            qrCount++;
+            if (qrCount > 4) {
+                logger.warn(`User ${userId} ignored the QR code. Tearing down browser instance to save CPU.`);
+                await WhatsAppSession.findOneAndUpdate({ userId }, { status: 'disconnected', qrCode: null });
+                socketService.emitToUser(userId, 'whatsapp:status', { status: 'disconnected', error: 'QR Code expired. Please click regenerate.' });
+                try {
+                    await client.destroy();
+                } catch (e) {}
+                clients.delete(userId.toString());
+                return;
+            }
+
+            logger.info(`QR RECEIVED for user ${userId}. Prompting via socket... (Attempt ${qrCount} / 4)`);
             
             await WhatsAppSession.findOneAndUpdate(
                 { userId },
@@ -203,7 +227,7 @@ const reconnectSessions = async () => {
         logger.info(`Reconnecting ${connectedSessions.length} WhatsApp sessions...`);
         
         for (const session of connectedSessions) {
-            initWhatsAppSession(session.userId, session.tenantId).catch(err => {
+            initWhatsAppSession(session.userId, session.tenantId, true).catch(err => {
                 logger.error(`Auto-reconnect failed for user ${session.userId}: ${err.message}`);
             });
         }

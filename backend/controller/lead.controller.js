@@ -15,6 +15,7 @@ const {
     httpError,
     isEmail
 } = require('../utils/common');
+const { getRedisConnection } = require('../services/queue.service');
 
 function parsePagination(req) {
     const pageRaw = Number(req.query?.page ?? 1);
@@ -386,43 +387,62 @@ const get_my_leads = wrapAsync(async (req, res) => {
     }
 
     if (search) {
-        const regex = new RegExp(escapeRegex(search), 'i');
-        match.$or = [
-            { name: regex },
-            { email: regex },
-            { phone: regex },
-            { alternate_phone: regex },
-            { whatsapp_number: regex },
-            { requirement: regex },
-            { budget: regex },
-            { notes: regex },
-            { owner_name: regex },
-            { broker_name: regex },
-            { broker_phone: regex },
-            { inquiry_for: regex },
-            { address: regex }
-        ];
+        match.$text = { $search: search };
     }
 
     const statsMatch = { ...match };
     delete statsMatch.status;
 
-    const [items, total, statusGroups] = await Promise.all([
-        Lead.find(match)
-            .populate('assigned_to', 'user_name profile_pic')
-            .populate('followed_by', 'user_name profile_pic')
-            .populate('created_by', 'user_name email phone_number profile_pic role')
-            .populate('updated_by', 'user_name email phone_number profile_pic role')
-            .populate('properties', 'property_title property_type asking_price currency property_status property_address')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit),
-        Lead.countDocuments(match),
-        Lead.aggregate([
-            { $match: statsMatch },
-            { $group: { _id: '$status', count: { $sum: 1 } } }
-        ])
-    ]);
+    // Handle dashboard caching for statistics
+    const cacheKey = `status_groups_${tenant_id || user._id}_${JSON.stringify(statsMatch)}`;
+    const redis = getRedisConnection();
+    
+    let statusGroups = null;
+    try {
+        const cached = await redis.get(cacheKey);
+        if (cached) statusGroups = JSON.parse(cached);
+    } catch (e) {
+        // Ignore redis get errors
+    }
+
+    let items, total;
+    if (statusGroups) {
+        [items, total] = await Promise.all([
+            Lead.find(match)
+                .populate('assigned_to', 'user_name profile_pic')
+                .populate('followed_by', 'user_name profile_pic')
+                .populate('created_by', 'user_name email phone_number profile_pic role')
+                .populate('updated_by', 'user_name email phone_number profile_pic role')
+                .populate('properties', 'property_title property_type asking_price currency property_status property_address')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            Lead.countDocuments(match)
+        ]);
+    } else {
+        [items, total, statusGroups] = await Promise.all([
+            Lead.find(match)
+                .populate('assigned_to', 'user_name profile_pic')
+                .populate('followed_by', 'user_name profile_pic')
+                .populate('created_by', 'user_name email phone_number profile_pic role')
+                .populate('updated_by', 'user_name email phone_number profile_pic role')
+                .populate('properties', 'property_title property_type asking_price currency property_status property_address')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            Lead.countDocuments(match),
+            Lead.aggregate([
+                { $match: statsMatch },
+                { $group: { _id: '$status', count: { $sum: 1 } } }
+            ])
+        ]);
+        
+        try {
+            await redis.set(cacheKey, JSON.stringify(statusGroups), 'EX', 300); // 5 mins cache
+        } catch (e) {
+            // Ignore redis set errors
+        }
+    }
 
     const stats = {
         total: 0,

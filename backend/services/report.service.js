@@ -4,6 +4,7 @@ const Agent = require('../model/agent.model');
 const User = require('../model/user.model');
 const { parseBudget } = require('../utils/budgetParser');
 const { convertCurrency } = require('../utils/currencyConverter');
+const { getRedisConnection } = require('../services/queue.service');
 
 // ─── helpers ────────────────────────────────────────────
 
@@ -32,10 +33,27 @@ function periodBounds(days = 30) {
     return { now, current_start, previous_start };
 }
 
+async function withCache(key, ttlSeconds, fn) {
+    const redis = getRedisConnection();
+    try {
+        const cached = await redis.get(key);
+        if (cached) return JSON.parse(cached);
+    } catch (e) { }
+
+    const result = await fn();
+
+    try {
+        await redis.set(key, JSON.stringify(result), 'EX', ttlSeconds);
+    } catch (e) { }
+
+    return result;
+}
+
 // ─── 1. STATS ────────────────────────────────────────────
 
 async function getReportStats(tenantId) {
-    const base = { tenant_id: tenantId, is_active: true };
+    return withCache(`report_stats_${tenantId}`, 300, async () => {
+        const base = { tenant_id: tenantId, is_active: true };
 
     const [
         totalLeads,
@@ -112,12 +130,14 @@ async function getReportStats(tenantId) {
         contacted_leads: contactedLeads,
         currency: 'INR'
     };
+    });
 }
 
 // ─── 2. OVERVIEW / FUNNEL ─────────────────────────────────
 
 async function getReportOverview(tenantId) {
-    const base = { tenant_id: tenantId, is_active: true };
+    return withCache(`report_overview_${tenantId}`, 300, async () => {
+        const base = { tenant_id: tenantId, is_active: true };
 
     const [
         total,
@@ -185,12 +205,14 @@ async function getReportOverview(tenantId) {
     }));
 
     return { funnel, requirement_mix: requirementMix, total_leads: total };
+    });
 }
 
 // ─── 3. AGENT PERFORMANCE ─────────────────────────────────
 
 async function getAgentPerformance(tenantId, days = 30) {
-    const { now, current_start, previous_start } = periodBounds(days);
+    return withCache(`report_agent_perf_${tenantId}_${days}`, 300, async () => {
+        const { now, current_start, previous_start } = periodBounds(days);
 
     const agents = await Agent.find({ tenant_id: tenantId, is_active: true })
         .populate('agent_details', 'user_name email profile_pic')
@@ -292,12 +314,14 @@ async function getAgentPerformance(tenantId, days = 30) {
     return results
         .filter(Boolean)
         .sort((a, b) => b.deals_closed - a.deals_closed);
+    });
 }
 
 // ─── 4. LEAD INSIGHTS ─────────────────────────────────────
 
 async function getLeadInsights(tenantId) {
-    const base = { tenant_id: tenantId, is_active: true };
+    return withCache(`report_lead_insights_${tenantId}`, 300, async () => {
+        const base = { tenant_id: tenantId, is_active: true };
 
     const [
         bySource,
@@ -437,6 +461,7 @@ async function getLeadInsights(tenantId) {
         peak_days: peakDays,
         conversion_by_source: conversionPerSource
     };
+    });
 }
 
 // ─── 5. COMBINED (for export) ─────────────────────────────
