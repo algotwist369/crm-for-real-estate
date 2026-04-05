@@ -49,6 +49,7 @@ function createApp() {
         message: 'Too many requests from this IP, please try again after 5 minutes',
         standardHeaders: true,
         legacyHeaders: false,
+        validate: { xForwardedForHeader: false } // Fixes ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on proxy servers
     });
     
     const authLimiter = rateLimit({
@@ -57,6 +58,7 @@ function createApp() {
         message: 'Too many login attempts from this IP, please try again after 15 minutes',
         standardHeaders: true,
         legacyHeaders: false,
+        validate: { xForwardedForHeader: false } // Fixes ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on proxy servers
     });
     
     // Aggressive limiter to specifically stop frontend React loops from crashing the Whatsapp worker
@@ -66,6 +68,7 @@ function createApp() {
         message: { success: false, message: 'Please wait a minute before requesting another QR code.' },
         standardHeaders: true,
         legacyHeaders: false,
+        validate: { xForwardedForHeader: false } // Fixes ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on proxy servers
     });
 
     app.use('/api/', apiLimiter);

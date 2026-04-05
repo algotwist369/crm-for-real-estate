@@ -19,13 +19,7 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
     process.stdout.write(`Primary ${process.pid} started - spawning ${NUM_WORKERS} workers\n`);
 
     cluster.on('message', (worker, message) => {
-        if (message.type === 'WHATSAPP_INIT' || message.type === 'WHATSAPP_LOGOUT' || message.type === 'WHATSAPP_REGENERATE') {
-            // Forward WhatsApp init/logout/regenerate request to the worker with the Outreach role
-            const outreachWorker = Object.values(cluster.workers).find(w => w.outreachWorker === true);
-            if (outreachWorker) {
-                outreachWorker.send(message);
-            }
-        } else if (message.type === 'OUTREACH_WORKER_READY') {
+        if (message.type === 'OUTREACH_WORKER_READY') {
             worker.outreachWorker = true;
         }
     });
@@ -90,39 +84,25 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
             }
         ));
 
-        // ─── Outreach Workers (only on the designated worker for WhatsApp stability) ────────────
-        let worker = null;
+        // ─── Outreach Workers ───────────────────────────────────────────────────
+        let reminderWorker = null;
         if (process.env.OUTREACH_WORKER === 'true') {
             const whatsappService = require('./services/whatsapp.service');
-            require('./jobs/campaignWorker');
+            require('./jobs/campaignWorker'); // Initialize BullMQ Worker for campaigns
             
-            // Re-initialize connected sessions on startup
-            whatsappService.reconnectSessions().catch(err => {
-                process.stderr.write(`Error reconnecting sessions: ${err.message}\n`);
-            });
+            // 🚀 Senior Dev Strategy: Distributed Command Worker
+            require('./jobs/whatsappWorker');
 
-            // Listen for WhatsApp init messages from other workers via Primary
-            process.on('message', (message) => {
-                if (message.type === 'WHATSAPP_INIT' || message.type === 'WHATSAPP_REGENERATE') {
-                    const { userId, tenantId } = message.data;
-                    whatsappService.initWhatsAppSession(userId, tenantId).catch(err => {
-                        process.stderr.write(`Failed to process ${message.type} message: ${err.message}\n`);
-                    });
-                } else if (message.type === 'WHATSAPP_LOGOUT') {
-                    const { userId } = message.data;
-                    whatsappService.logout(userId).catch(err => {
-                        process.stderr.write(`Failed to process WHATSAPP_LOGOUT message: ${err.message}\n`);
-                    });
-                }
-            });
-
-            worker = startFollowUpReminderWorker({
+            // Staggered boot: workers are ready, but we wait for manual user trigger to connect WhatsApp
+            // whatsappService.reconnectSessions() removed for 100% manual control
+            
+            reminderWorker = startFollowUpReminderWorker({
                 pollIntervalMs: Number(process.env.FOLLOWUP_WORKER_POLL_MS || 60_000),
                 maxPerTick: Number(process.env.FOLLOWUP_WORKER_MAX_PER_TICK || 25)
             });
 
             if (String(process.env.NODE_ENV || '').toLowerCase() !== 'test') {
-                worker.start();
+                reminderWorker.start();
             }
         }
 
@@ -150,7 +130,7 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
             process.stdout.write(`Worker ${process.pid} shutting down...\n`);
             clearInterval(metricsInterval);
 
-            if (worker) worker.stop();
+            if (reminderWorker) reminderWorker.stop();
 
             // Close Redis and BullMQ connections
             try {
@@ -161,14 +141,16 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
                 process.stderr.write(`Worker ${process.pid} - Error closing Redis: ${err.message}\n`);
             }
 
-            // Close BullMQ worker if it exists
+            // Close BullMQ workers if they exist
             if (process.env.OUTREACH_WORKER === 'true') {
                 try {
                     const campaignWorker = require('./jobs/campaignWorker');
+                    const whatsappWorker = require('./jobs/whatsappWorker');
                     await campaignWorker.close();
-                    process.stdout.write(`Worker ${process.pid} - Campaign worker closed\n`);
+                    await whatsappWorker.close();
+                    process.stdout.write(`Worker ${process.pid} - Outreach workers closed\n`);
                 } catch (err) {
-                    process.stderr.write(`Worker ${process.pid} - Error closing campaign worker: ${err.message}\n`);
+                    process.stderr.write(`Worker ${process.pid} - Error closing workers: ${err.message}\n`);
                 }
             }
 
@@ -180,6 +162,20 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
         process.on('SIGINT', () => shutdown().catch(err => process.stderr.write(`${err?.stack || err}\n`)));
         process.on('SIGTERM', () => shutdown().catch(err => process.stderr.write(`${err?.stack || err}\n`)));
     }
+
+    // 🛡️ [Production Safety Net] Catch any unhandled exceptions/rejections
+    // at the process level. PM2 will auto-restart the worker.
+    // Without this, a single bad Promise can silently kill the process.
+    process.on('uncaughtException', (err) => {
+        process.stderr.write(`[CRITICAL] Uncaught Exception in Worker ${process.pid}:\n${err.stack}\n`);
+        process.exit(1); // PM2 ecosystem will restart automatically
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+        process.stderr.write(`[CRITICAL] Unhandled Rejection in Worker ${process.pid}:\n${reason?.stack || reason}\n`);
+        // Do NOT exit — unhandled rejections are often non-fatal in Express apps
+        // but we log them so we know about them
+    });
 
     start().catch(err => {
         process.stderr.write(`${err?.stack || err}\n`);

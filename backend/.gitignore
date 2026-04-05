@@ -29,6 +29,8 @@ dist/
 __tests__/
 backend.integration.test.js
 test-doc.js
+test-baileys.js
+upload_leads.js
 coverage/
 
 # OS / Editor Files

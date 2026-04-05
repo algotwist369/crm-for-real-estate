@@ -32,26 +32,58 @@ export const useCreateCampaign = () => {
     });
 };
 
+export const useWhatsAppStatus = () => {
+    return useQuery({
+        queryKey: ['whatsapp-status'],
+        queryFn: campaignService.getWhatsAppStatus,
+        refetchOnWindowFocus: false, // 🛡️ [Performance] No more spam when clicking back to browser
+        refetchOnMount: true,
+        retry: 1,
+        staleTime: 5000 // 🛡️ Keep status fresh but don't hammer the API
+    });
+};
+
 export const useWhatsAppInit = () => {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: campaignService.initWhatsApp,
+        onMutate: async () => {
+            // Optimistically update the UI to "connecting" state
+            await queryClient.cancelQueries(['whatsapp-status']);
+            queryClient.setQueryData(['whatsapp-status'], (old) => ({
+                ...old,
+                status: 'connecting'
+            }));
+            toast.loading('Initializing WhatsApp Handshake...', { id: 'whatsapp-init' });
+        },
         onSuccess: () => {
-            toast.success('WhatsApp initialization started');
+            toast.success('Handshake Request Sent', { id: 'whatsapp-init' });
+            queryClient.invalidateQueries(['whatsapp-status']);
         },
         onError: (error) => {
-            toast.error(error.response?.data?.message || 'Failed to initialize WhatsApp');
+            toast.error(error.response?.data?.message || 'Failed to initialize WhatsApp', { id: 'whatsapp-init' });
         }
     });
 };
 
 export const useWhatsAppRegenerate = () => {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: campaignService.regenerateWhatsAppQR,
+        onMutate: async () => {
+            await queryClient.cancelQueries(['whatsapp-status']);
+            queryClient.setQueryData(['whatsapp-status'], (old) => ({
+                ...old,
+                status: 'connecting'
+            }));
+            toast.loading('Regenerating Handshake...', { id: 'whatsapp-regen' });
+        },
         onSuccess: () => {
-            toast.success('WhatsApp QR regeneration started');
+            toast.success('Regeneration Requested', { id: 'whatsapp-regen' });
+            queryClient.invalidateQueries(['whatsapp-status']);
         },
         onError: (error) => {
-            toast.error(error.response?.data?.message || 'Failed to regenerate WhatsApp QR');
+            toast.error(error.response?.data?.message || 'Failed to regenerate WhatsApp QR', { id: 'whatsapp-regen' });
         }
     });
 };
@@ -61,7 +93,11 @@ export const useWhatsAppLogout = () => {
     return useMutation({
         mutationFn: campaignService.logoutWhatsApp,
         onSuccess: () => {
-            queryClient.invalidateQueries(['whatsapp-session']);
+            queryClient.setQueryData(['whatsapp-status'], (old) => ({
+                ...old,
+                status: 'disconnected'
+            }));
+            queryClient.invalidateQueries(['whatsapp-status']);
             toast.success('Logged out from WhatsApp');
         },
         onError: (error) => {
@@ -70,10 +106,13 @@ export const useWhatsAppLogout = () => {
     });
 };
 
-export const useEmailConfig = () => {
+export const useEmailConfig = (enabled = true) => {
     return useQuery({
         queryKey: ['email-config'],
         queryFn: campaignService.getEmailConfig,
+        enabled: enabled, // 🛡️ [Lazy Loading] Only fetch when tab is active
+        refetchOnWindowFocus: false,
+        staleTime: 60000 // Configuration doesn't change often
     });
 };
 

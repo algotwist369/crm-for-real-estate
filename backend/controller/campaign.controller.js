@@ -1,9 +1,11 @@
 const campaignService = require('../services/campaign.service');
+const { getWhatsAppQueue } = require('../services/queue.service');
 const whatsappService = require('../services/whatsapp.service');
 const EmailConfig = require('../model/emailConfig.model');
 const Campaign = require('../model/campaign.model');
 const WhatsAppSession = require('../model/whatsappSession.model');
 const logger = require('../utils/logger');
+const socketService = require('../services/socket.service');
 
 const { uploadImage } = require('../utils/uploadImage');
 
@@ -45,23 +47,20 @@ const initWhatsApp = async (req, res, next) => {
         const userId = req.auth.user._id;
         const tenantId = req.auth.tenant_id;
         
-        // Return immediately to the client, initialization happens in background
-        if (process.env.OUTREACH_WORKER !== 'true') {
-            // Send message to primary to forward to the Outreach Worker
-            process.send({ 
-                type: 'WHATSAPP_INIT', 
-                data: { userId, tenantId } 
-            });
-        } else {
-            // We are already on the Outreach Worker
-            whatsappService.initWhatsAppSession(userId, tenantId).catch(err => {
-                logger.error(`Background WhatsApp init failed for ${userId}: ${err.message}`);
-            });
-        }
+        socketService.emitToUser(userId, 'whatsapp:status', { 
+            status: 'connecting', 
+            message: 'Connecting to WhatsApp...' 
+        });
+
+        await getWhatsAppQueue().add('whatsapp-init', { 
+            type: 'INIT', 
+            userId, 
+            tenantId 
+        }, { jobId: userId.toString() });
 
         res.status(200).json({ 
             success: true, 
-            message: 'WhatsApp initialization started. Please wait for the QR code.' 
+            message: 'WhatsApp initialization request queued. The QR code should appear shortly.' 
         });
     } catch (error) {
         next(error);
@@ -73,23 +72,21 @@ const regenerateWhatsAppQR = async (req, res, next) => {
         const userId = req.auth.user._id;
         const tenantId = req.auth.tenant_id;
         
-        // Return immediately to the client, initialization happens in background
-        if (process.env.OUTREACH_WORKER !== 'true') {
-            // Send message to primary to forward to the Outreach Worker
-            process.send({ 
-                type: 'WHATSAPP_REGENERATE', 
-                data: { userId, tenantId } 
-            });
-        } else {
-            // We are already on the Outreach Worker
-            whatsappService.initWhatsAppSession(userId, tenantId).catch(err => {
-                logger.error(`Background WhatsApp regenerate failed for ${userId}: ${err.message}`);
-            });
-        }
+        // 🚀 Senior Intent Strategy: Emit the "Connecting" toast ONLY from the controller.
+        socketService.emitToUser(userId, 'whatsapp:status', { 
+            status: 'connecting', 
+            message: 'Connecting to WhatsApp...' 
+        });
+
+        await getWhatsAppQueue().add('whatsapp-regenerate', { 
+            type: 'REGENERATE', 
+            userId, 
+            tenantId 
+        }, { jobId: userId.toString() });
 
         res.status(200).json({ 
             success: true, 
-            message: 'WhatsApp QR regeneration started. Please wait for the new QR code.' 
+            message: 'WhatsApp QR regeneration request queued. Please wait.' 
         });
     } catch (error) {
         next(error);
@@ -100,11 +97,11 @@ const logoutWhatsApp = async (req, res, next) => {
     try {
         const userId = req.auth.user._id;
 
-        if (process.env.OUTREACH_WORKER !== 'true') {
-            process.send({ type: 'WHATSAPP_LOGOUT', data: { userId } });
-        } else {
-            await whatsappService.logout(userId);
-        }
+        // 🚀 Senior Dev Optimization: Push command to distributed queue
+        await getWhatsAppQueue().add('whatsapp-logout', { 
+            type: 'LOGOUT', 
+            userId 
+        });
         
         res.status(200).json({ success: true });
     } catch (error) {

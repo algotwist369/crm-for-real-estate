@@ -15,8 +15,7 @@ const whatsappSessionSchema = new mongoose.Schema({
     },
     sessionId: {
         type: String,
-        required: true,
-        unique: true,
+        required: false, // 🛡️ [Senior Fix] May not exist during QR phase
         index: true
     },
     status: {

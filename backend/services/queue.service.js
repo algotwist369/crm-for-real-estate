@@ -26,6 +26,7 @@ const redisConfig = {
 let connection = null;
 let campaignQueue = null;
 let campaignEvents = null;
+let whatsappQueue = null;
 
 const getRedisConnection = () => {
     if (!connection) {
@@ -116,10 +117,31 @@ const getCampaignEvents = () => {
     return campaignEvents;
 };
 
+const getWhatsAppQueue = () => {
+    if (!whatsappQueue) {
+        whatsappQueue = new Queue('whatsapp-commands', { 
+            connection: redisConfig,
+            defaultJobOptions: {
+                attempts: 1, // Commands should generally not be retried automatically
+                removeOnComplete: true,
+                removeOnFail: true,
+            }
+        });
+
+        whatsappQueue.on('error', (err) => {
+            if (!err.message.includes('max number of clients reached')) {
+                logger.error(`BullMQ WhatsApp Queue Error: ${err.message}`);
+            }
+        });
+    }
+    return whatsappQueue;
+};
+
 const closeAllConnections = async () => {
     const promises = [];
     if (campaignQueue) promises.push(campaignQueue.close());
     if (campaignEvents) promises.push(campaignEvents.close());
+    if (whatsappQueue) promises.push(whatsappQueue.close());
     if (connection) promises.push(connection.quit());
     
     await Promise.allSettled(promises);
@@ -127,6 +149,7 @@ const closeAllConnections = async () => {
     connection = null;
     campaignQueue = null;
     campaignEvents = null;
+    whatsappQueue = null;
 };
 
 module.exports = {
@@ -134,6 +157,7 @@ module.exports = {
     createWorkerConnection,
     getCampaignQueue,
     getCampaignEvents,
+    getWhatsAppQueue,
     closeAllConnections,
     redisConfig
 };

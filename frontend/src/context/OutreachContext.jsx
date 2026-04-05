@@ -8,76 +8,99 @@ const OutreachContext = createContext();
 
 export const OutreachProvider = ({ children }) => {
     const { user } = useAuth();
-    const { socket, isConnected: isSocketConnected } = useSocket();
+    const { socket } = useSocket();
     const [whatsappStatus, setWhatsappStatus] = useState('disconnected');
     const [qrCode, setQrCode] = useState(null);
+    const [syncStatus, setSyncStatus] = useState('idle');
+    const [logs, setLogs] = useState([]); // 🛡️ Diagnostic History
 
-    useEffect(() => {
-        if (user) {
-            // Fetch initial status from DB
-            campaignService.getWhatsAppStatus()
-                .then(res => {
-                    if (res.success) {
-                        setWhatsappStatus(res.status);
-                        if (res.status === 'qr_pending') {
-                            setQrCode(res.qrCode);
-                        }
+    const whatsappStatusRef = React.useRef('disconnected'); // 🛡️ Ref to fix closure bugs inside socket listeners
+    const lastToastRef = React.useRef(null); // 🛡️ Ref to debounce duplicate toasts
+    const isInitialMountRef = React.useRef(true); // 🛡️ Ref to silence toasts on login
+
+    // Helper to add timestamped logs
+    const addLog = React.useCallback((message) => {
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setLogs(prev => [{ time, message }, ...prev].slice(0, 15));
+    }, []);
+
+    const fetchStatus = React.useCallback(() => {
+        if (!user) return;
+        campaignService.getWhatsAppStatus()
+            .then(res => {
+                if (res.success) {
+                    whatsappStatusRef.current = res.status;
+                    setWhatsappStatus(res.status);
+                    
+                    if (isInitialMountRef.current) {
+                        lastToastRef.current = res.status;
+                        isInitialMountRef.current = false;
                     }
-                })
-                .catch(err => console.error('Failed to fetch WhatsApp status:', err));
-        }
+
+                    if (res.status === 'qr_pending') {
+                        setQrCode(res.qrCode);
+                    } else if (res.status === 'connected') {
+                        setQrCode(null);
+                    }
+                }
+            })
+            .catch(err => console.error('Failed to fetch WhatsApp status:', err));
     }, [user]);
 
     useEffect(() => {
-        if (socket && isSocketConnected) {
-            const handleQr = (data) => {
-                console.log('Outreach Socket: QR Received');
+        if (socket && user) {
+            fetchStatus();
+
+            socket.on('whatsapp:status', (data) => {
+                const nextStatus = data.status;
+                
+                if (data.message && lastToastRef.current !== nextStatus) {
+                    toast.success(data.message, {
+                        icon: data.status === 'connected' ? '✅' : '📲',
+                        id: 'whatsapp-status-toast'
+                    });
+                    lastToastRef.current = nextStatus;
+                }
+
+                whatsappStatusRef.current = nextStatus;
+                setWhatsappStatus(nextStatus);
+                
+                if (nextStatus === 'connected' || nextStatus === 'disconnected') {
+                    setQrCode(null);
+                }
+            });
+
+            socket.on('whatsapp:qr', (data) => {
                 setQrCode(data.qr);
                 setWhatsappStatus('qr_pending');
-            };
+                whatsappStatusRef.current = 'qr_pending';
+            });
 
-            const handleStatus = (data) => {
-                console.log('Outreach Socket: Status Update', data.status, data.message || '');
-                setWhatsappStatus(data.status);
-                
-                if (data.message) {
-                    toast.success(data.message, {
-                        style: { background: '#18181b', color: '#fff', border: '1px solid #27272a' }
-                    });
-                }
-
-                if (data.error) {
-                    toast.error(data.error, {
-                        style: { background: '#18181b', color: '#fff', border: '1px solid #ef4444' }
-                    });
-                }
-
-                if (data.status === 'connected') {
-                    setQrCode(null);
-                }
-                if (data.status === 'disconnected') {
-                    setQrCode(null);
-                }
-            };
-
-            socket.on('whatsapp:qr', handleQr);
-            socket.on('whatsapp:status', handleStatus);
+            socket.on('whatsapp:log', (data) => {
+                addLog(data.message);
+            });
 
             return () => {
-                socket.off('whatsapp:qr', handleQr);
-                socket.off('whatsapp:status', handleStatus);
+                socket.off('whatsapp:status');
+                socket.off('whatsapp:qr');
+                socket.off('whatsapp:log');
             };
         }
-    }, [socket, isSocketConnected]);
+    }, [socket, user, fetchStatus, addLog]);
+
+    const value = {
+        qrCode,
+        whatsappStatus,
+        isSocketConnected: !!socket?.connected,
+        isSyncing: syncStatus === 'syncing',
+        syncStatus,
+        logs,
+        addLog,
+        fetchStatus
+    };
 
     return (
-        <OutreachContext.Provider value={{
-            whatsappStatus,
-            qrCode,
-            setWhatsappStatus,
-            setQrCode,
-            isSocketConnected
-        }}>
+        <OutreachContext.Provider value={value}>
             {children}
         </OutreachContext.Provider>
     );
