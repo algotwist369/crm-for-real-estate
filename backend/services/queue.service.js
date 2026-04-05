@@ -90,6 +90,13 @@ const getCampaignQueue = () => {
                 removeOnFail: false,
             }
         });
+
+        // 🛡️ Prevent uncaught exceptions if Queue's underlying connection fails
+        campaignQueue.on('error', (err) => {
+            if (!err.message.includes('max number of clients reached')) {
+                logger.error(`BullMQ Queue Error: ${err.message}`);
+            }
+        });
     }
     return campaignQueue;
 };

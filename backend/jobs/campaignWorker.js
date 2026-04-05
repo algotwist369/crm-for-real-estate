@@ -118,4 +118,11 @@ campaignWorker.on('failed', (job, err) => {
     logger.error(`Job ${job.id} failed: ${err.message}`);
 });
 
+// 🛡️ Prevent uncaught exceptions if Worker's underlying connection fails
+campaignWorker.on('error', (err) => {
+    if (!err.message.includes('max number of clients reached')) {
+        logger.error(`BullMQ Worker Error: ${err.message}`);
+    }
+});
+
 module.exports = campaignWorker;
