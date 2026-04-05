@@ -8,7 +8,6 @@ const { connectToDatabase } = require('./config/db');
 const { startFollowUpReminderWorker } = require('./jobs/followUpReminderWorker');
 const { createApp } = require('./app');
 const socketService = require('./services/socket.service');
-const { setupPrimary } = require('@socket.io/cluster-adapter');
 const { getRedisConnection, closeAllConnections } = require('./services/queue.service');
 
 const NUM_WORKERS = process.env.NODE_ENV === 'production' 
@@ -18,8 +17,6 @@ const NUM_WORKERS = process.env.NODE_ENV === 'production'
 // ─── PRIMARY PROCESS (unless disabled) ──────────────────────────────────────
 if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
     process.stdout.write(`Primary ${process.pid} started - spawning ${NUM_WORKERS} workers\n`);
-
-    setupPrimary();
 
     cluster.on('message', (worker, message) => {
         if (message.type === 'WHATSAPP_INIT' || message.type === 'WHATSAPP_LOGOUT' || message.type === 'WHATSAPP_REGENERATE') {

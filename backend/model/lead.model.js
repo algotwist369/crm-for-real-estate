@@ -336,18 +336,17 @@ const leadSchema = new mongoose.Schema({
 // =========================
 // COMPOUND INDEXES
 // =========================
-leadSchema.index({ tenant_id: 1, status: 1 });
-leadSchema.index({ tenant_id: 1, assigned_to: 1 });
-leadSchema.index({ tenant_id: 1, createdAt: -1 });
+leadSchema.index({ tenant_id: 1, status: 1, createdAt: -1 });
+leadSchema.index({ tenant_id: 1, assigned_to: 1, createdAt: -1 });
+leadSchema.index({ tenant_id: 1, priority: 1, createdAt: -1 });
+leadSchema.index({ tenant_id: 1, lead_type: 1, createdAt: -1 });
+leadSchema.index({ tenant_id: 1, followed_by: 1, createdAt: -1 });
+leadSchema.index({ tenant_id: 1, properties: 1, createdAt: -1 });
 leadSchema.index({ tenant_id: 1, next_follow_up_date: 1, follow_up_status: 1 });
 leadSchema.index({ tenant_id: 1, email: 1 });
 leadSchema.index({ tenant_id: 1, phone: 1 });
-leadSchema.index({ tenant_id: 1, property_type: 1 });
-leadSchema.index({ tenant_id: 1, city: 1, community: 1 });
 leadSchema.index({ tenant_id: 1, owner_name: 1 });
 leadSchema.index({ tenant_id: 1, broker_name: 1 });
-leadSchema.index({ tenant_id: 1, asking_price: 1 });
-leadSchema.index({ tenant_id: 1, property_status: 1 });
 
 // Text Index for Fast Search
 leadSchema.index(

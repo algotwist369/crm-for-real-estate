@@ -1,7 +1,10 @@
 const { Server } = require('socket.io');
 const { verifyToken } = require('../utils/generateToken');
 const cookie = require('cookie');
-const { createAdapter } = require('@socket.io/cluster-adapter');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const { redisConfig } = require('./queue.service');
+const Redis = require('ioredis');
+const logger = require('../utils/logger');
 
 class SocketService {
     constructor() {
@@ -32,8 +35,14 @@ class SocketService {
             pingInterval: 25000
         });
 
-        // Use the cluster adapter for multi-worker support
-        this.io.adapter(createAdapter());
+        // Use the Redis adapter for multi-worker/multi-server scaling
+        const pubClient = new Redis(redisConfig);
+        const subClient = pubClient.duplicate();
+        
+        pubClient.on('error', (err) => logger.error('Socket.io Redis Pub Error: ' + err.message));
+        subClient.on('error', (err) => logger.error('Socket.io Redis Sub Error: ' + err.message));
+
+        this.io.adapter(createAdapter(pubClient, subClient));
 
         // Authentication Middleware
         this.io.use((socket, next) => {
@@ -52,7 +61,7 @@ class SocketService {
                 socket.user = decoded;
                 next();
             } catch (err) {
-                console.error('Socket authentication failed:', err.message);
+                logger.error('Socket authentication failed: ' + err.message);
                 next(new Error('Authentication error: Invalid token'));
             }
         });
@@ -62,7 +71,7 @@ class SocketService {
             const userId = String(socket.user.sub);
             
             if (!userId || userId === 'undefined') {
-                console.error('Socket connected with undefined sub in token');
+                logger.error('Socket connected with undefined sub in token');
                 return socket.disconnect();
             }
 

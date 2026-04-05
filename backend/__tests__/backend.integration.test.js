@@ -2,6 +2,22 @@ const mongoose = require('mongoose');
 const request = require('supertest');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
+// Mock Redis/Queue service to prevent real connections during integration tests
+jest.mock('../services/queue.service', () => {
+    const mockQueue = {
+        add: jest.fn().mockResolvedValue({ id: 'job_id' }),
+        on: jest.fn(),
+        close: jest.fn().mockResolvedValue(true)
+    };
+    return {
+        getCampaignQueue: jest.fn(() => mockQueue),
+        getCampaignEvents: jest.fn(() => ({ on: jest.fn(), close: jest.fn().mockResolvedValue(true) })),
+        getRedisConnection: jest.fn(() => ({ on: jest.fn(), quit: jest.fn().mockResolvedValue(true), config: jest.fn().mockResolvedValue(['maxmemory-policy', 'noeviction']) })),
+        closeAllConnections: jest.fn().mockResolvedValue(true),
+        redisConfig: {}
+    };
+});
+
 const { createApp } = require('../app');
 const FollowUpReminder = require('../model/followUpReminder.model');
 const Lead = require('../model/lead.model');
@@ -9,6 +25,14 @@ const Agent = require('../model/agent.model');
 const Properties = require('../model/properties.model');
 const TokenBlacklist = require('../model/tokenBlacklist.model');
 const { tick } = require('../jobs/followUpReminderWorker');
+
+// Mock WhatsApp service to avoid ESM SyntaxError in tests (Baileys import issue)
+jest.mock('../services/whatsapp.service', () => ({
+    initWhatsAppSession: jest.fn().mockResolvedValue({ status: 'connecting' }),
+    sendMessage: jest.fn().mockResolvedValue(true),
+    logout: jest.fn().mockResolvedValue({ success: true }),
+    reconnectSessions: jest.fn().mockResolvedValue(true)
+}));
 
 let mongo;
 let app;

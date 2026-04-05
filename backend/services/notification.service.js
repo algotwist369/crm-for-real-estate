@@ -6,6 +6,7 @@ const { sendMail } = require('../utils/sendMail');
 const Notification = require('../model/notification.model');
 const socketService = require('./socket.service');
 const { convertCurrency } = require('../utils/currencyConverter');
+const logger = require('../utils/logger');
 
 function uniqueStrings(values) {
     const set = new Set(values.filter(Boolean).map(v => String(v).trim()).filter(Boolean));
@@ -24,7 +25,6 @@ function formatINR(value) {
 
 async function createSystemNotification({ recipients, senderId, type, category, title, message, url, metadata, tenantId }) {
     try {
-        console.log('Creating system notification:', { recipients, senderId, type, category, title, message, url, metadata, tenantId });
         const userIds = uniqueObjectIds(Array.isArray(recipients) ? recipients : [recipients]);
         if (!userIds.length) return;
 
@@ -49,7 +49,7 @@ async function createSystemNotification({ recipients, senderId, type, category, 
         
         return saved;
     } catch (error) {
-        console.error('Error creating system notification:', error.message);
+        logger.error('Error creating system notification: ' + error.message);
     }
 }
  
@@ -113,7 +113,7 @@ async function notifyUsersOnNewProperty(property, creatorId) {
             })
         ]);
     } catch (error) {
-        console.error('Error in notifyUsersOnNewProperty:', error.message);
+        logger.error('Error in notifyUsersOnNewProperty: ' + error.message);
         // We swallow the error deliberately so it doesn't break the parent API response
     }
 }
@@ -194,7 +194,7 @@ async function notifyPropertyAgentsOnNewLead(lead, creatorId) {
             })
         ]);
     } catch (error) {
-        console.error('Error in notifyPropertyAgentsOnNewLead:', error.message);
+        logger.error('Error in notifyPropertyAgentsOnNewLead: ' + error.message);
     }
 }
 
@@ -290,7 +290,7 @@ async function notifyFollowUpCreated(lead, actionUserId) {
             })
         ]);
     } catch (error) {
-        console.error('Error in notifyFollowUpCreated:', error.message);
+        logger.error('Error in notifyFollowUpCreated: ' + error.message);
     }
 }
 
@@ -343,7 +343,7 @@ async function notifyLeadStatusChanged(lead, oldStatus, newStatus, actionUserId)
             })
         ]);
     } catch (error) {
-        console.error('Error in notifyLeadStatusChanged:', error.message);
+        logger.error('Error in notifyLeadStatusChanged: ' + error.message);
     }
 }
 
