@@ -91,7 +91,8 @@ const getCampaignQueue = () => {
 
 const getCampaignEvents = () => {
     if (!campaignEvents) {
-        campaignEvents = new QueueEvents('campaign-outreach', { connection: getRedisConnection() });
+        // QueueEvents requires a dedicated subscriber connection
+        campaignEvents = new QueueEvents('campaign-outreach', { connection: redisConfig });
     }
     return campaignEvents;
 };

@@ -2,7 +2,7 @@ const { Server } = require('socket.io');
 const { verifyToken } = require('../utils/generateToken');
 const cookie = require('cookie');
 const { createAdapter } = require('@socket.io/redis-adapter');
-const { redisConfig } = require('./queue.service');
+const { redisConfig, getRedisConnection } = require('./queue.service');
 const Redis = require('ioredis');
 const logger = require('../utils/logger');
 
@@ -35,14 +35,43 @@ class SocketService {
             pingInterval: 25000
         });
 
-        // Use the Redis adapter for multi-worker/multi-server scaling
-        const pubClient = new Redis(redisConfig);
-        const subClient = pubClient.duplicate();
-        
-        pubClient.on('error', (err) => logger.error('Socket.io Redis Pub Error: ' + err.message));
-        subClient.on('error', (err) => logger.error('Socket.io Redis Sub Error: ' + err.message));
+        // Try to establish Redis adapter for scaling, fallback gracefully if limit reached.
+        try {
+            const pubClient = getRedisConnection();
+            this.subClient = pubClient.duplicate(); // Sub requires a dedicated connection because it blocks
+            
+            let fallbackTriggered = false;
+            const activateFallback = (err) => {
+                if (fallbackTriggered) return;
+                fallbackTriggered = true;
+                logger.warn(`Redis Adapter Failed (${err.message}). Falling back to In-Memory Sockets.`);
+                
+                // Disconnect failing redis sub client securely
+                if (this.subClient) {
+                    this.subClient.quit().catch(() => {}).finally(() => { this.subClient = null; });
+                }
+                
+                // Nullify adapter to allow Socket.io to route locally (Standard memory mode)
+                this.io.adapter(require('socket.io-adapter').Adapter); 
+            };
 
-        this.io.adapter(createAdapter(pubClient, subClient));
+            this.subClient.on('error', (err) => {
+                logger.error('Socket.io Redis Sub Error: ' + err.message);
+                if (err.message.includes('max number of clients reached') || err.message.includes('ECONNREFUSED')) {
+                    activateFallback(err);
+                }
+            });
+
+            pubClient.on('error', (err) => {
+                if (err.message.includes('max number of clients reached') || err.message.includes('ECONNREFUSED')) {
+                    activateFallback(err);
+                }
+            });
+
+            this.io.adapter(createAdapter(pubClient, this.subClient));
+        } catch (setupErr) {
+            logger.error(`Critical error configuring Redis Sockets: ${setupErr.message}. Defaulting to Memory Sockets.`);
+        }
 
         // Authentication Middleware
         this.io.use((socket, next) => {
@@ -118,6 +147,21 @@ class SocketService {
     // For later implementation with Redis if needed
     emitToTenant(tenantId, event, data) {
         // Implementation would require users to join a tenant room on connection
+    }
+
+    async close() {
+        if (this.io) {
+            this.io.close();
+            this.io = null;
+        }
+        if (this.subClient) {
+            try {
+                await this.subClient.quit();
+                this.subClient = null;
+            } catch (err) {
+                logger.error('Error closing Socket.io Redis Sub Client: ' + err.message);
+            }
+        }
     }
 }
 

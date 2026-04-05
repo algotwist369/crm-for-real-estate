@@ -154,6 +154,7 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
 
             // Close Redis and BullMQ connections
             try {
+                await socketService.close();
                 await closeAllConnections();
                 process.stdout.write(`Worker ${process.pid} - Redis and Queues closed\n`);
             } catch (err) {
