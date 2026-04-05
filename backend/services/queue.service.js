@@ -16,6 +16,11 @@ const redisConfig = {
     port: Number(process.env.REDIS_PORT) || 6379,
     password: process.env.REDIS_PASSWORD || undefined,
     maxRetriesPerRequest: null, // mandatory for BullMQ
+    retryStrategy(times) {
+        // 🛡️ Senior Developer: Exponential backoff to prevent "max clients" log floods during PM2 reloads 
+        const delay = Math.min(times * 100, 3000);
+        return delay;
+    }
 };
 
 let connection = null;
@@ -93,6 +98,13 @@ const getCampaignEvents = () => {
     if (!campaignEvents) {
         // QueueEvents requires a dedicated subscriber connection
         campaignEvents = new QueueEvents('campaign-outreach', { connection: redisConfig });
+        
+        // 🛡️ Prevent uncaught exceptions from crashing Node if Redis connection drops
+        campaignEvents.on('error', (err) => {
+            if (!err.message.includes('max number of clients reached')) {
+                logger.error(`BullMQ QueueEvents Error: ${err.message}`);
+            }
+        });
     }
     return campaignEvents;
 };
