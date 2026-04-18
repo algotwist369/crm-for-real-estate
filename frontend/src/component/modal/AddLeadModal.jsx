@@ -36,7 +36,7 @@ const FURNISHED_STATUSES = [
 ];
 const AREA_UNITS = ["sq.ft", "sq.m", "sqm", "acre", "hectare", "other"];
 const CURRENCIES = ["AED", "₹", "$"];
-const BEDROOMS = ["Studio", "1 BR", "2 BR", "3 BR", "4 BR", "5 BR", "5+ BR", "4 BR + Maid", "5 BR + Maid"];
+const BEDROOMS = ["Studio", "1 BR", "2 BR", "3 BR", "4 BR", "5 BR", "6 BR", "6+ BR", "4 BR + Maid", "5 BR + Maid", "6 BR + Maid"];
 const PRIORITIES = ["low", "medium", "high"];
 
 const getBudgetOptions = (currency) => {

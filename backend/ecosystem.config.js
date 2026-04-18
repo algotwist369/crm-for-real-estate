@@ -10,7 +10,9 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         DISABLE_CLUSTER: "true",  // PM2 handles clustering
-        OUTREACH_WORKER: "false"  // API-only nodes
+        OUTREACH_WORKER: "false", // API-only nodes
+        // 🛡️ Set your frontend production URL here (comma-separated for multiple)
+        CORS_ORIGIN: "https://real-crm-two.vercel.app"
       },
       // Log management
       out_file: "./logs/api-out.log",
@@ -29,7 +31,8 @@ module.exports = {
         NODE_ENV: "production",
         DISABLE_CLUSTER: "true",
         OUTREACH_WORKER: "true",  // Enables BullMQ + Baileys
-        PORT: 5002
+        PORT: 5002,
+        CORS_ORIGIN: "https://real-crm-two.vercel.app"
       },
       // Log management
       out_file: "./logs/whatsapp-out.log",

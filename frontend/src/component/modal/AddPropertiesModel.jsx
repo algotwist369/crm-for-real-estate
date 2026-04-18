@@ -1,22 +1,22 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { 
-    FiX, FiHome, FiDollarSign, FiPlus, FiMapPin, FiInfo, FiLayers, 
-    FiUser, FiTrendingUp, FiUpload, FiTrash2, FiLoader, FiCalendar, FiCheckSquare, FiZap
+import {
+    FiX, FiPlus, FiMapPin, FiInfo, FiLayers,
+    FiUser, FiTrendingUp, FiUpload, FiTrash2, FiCheckSquare
 } from "react-icons/fi";
 import { useCreateProperty } from "../../hooks/usePropertyHooks";
 import { useAgents } from "../../hooks/useAgentHooks";
 
 const PROPERTY_TYPES = ["Apartment", "Villa", "Office", "Plot", "Warehouse", "Studio", "Penthouse", "Townhouse", "Shop", "Industrial"];
 const LISTING_TYPES = [
-    "rent", "sale", "investment", "off_plan", "resale", "lease", 
-    "short_term", "holiday_home", "commercial_rent", "commercial_sale", 
+    "rent", "sale", "investment", "off_plan", "resale", "lease",
+    "short_term", "holiday_home", "commercial_rent", "commercial_sale",
     "pre_launch", "auction", "joint_venture", "land_sale", "other"
 ];
-const CURRENCIES = ["INR", "AED", "USD", "EUR", "GBP", "JPY"];
+const CURRENCIES = ["AED", "INR", "USD", "EUR", "GBP", "JPY"];
 const FURNISHED_STATUS = ["fully furnished", "semi furnished", "unfurnished", "furnished", "NA"];
 const PROPERTY_STATUSES = [
-    "available", "under_offer", "reserved", "booked", "sold", "rented", 
-    "leased", "blocked", "under_negotiation", "hold", "unavailable", 
+    "available", "under_offer", "reserved", "booked", "sold", "rented",
+    "leased", "blocked", "under_negotiation", "hold", "unavailable",
     "withdrawn", "expired", "inactive", "other"
 ];
 const COMPLETION_STATUSES = ["ready", "off_plan", "under_construction", "new_launch", "resale", "secondary_market", "unknown"];
@@ -39,7 +39,7 @@ const getInitialFormData = () => ({
         line2: "",
         city: "",
         state: "",
-        country: "India",
+        country: "United Arab Emirates",
         postal_code: "",
         landmark: "",
         google_map_url: ""
@@ -128,14 +128,14 @@ const getInitialFormData = () => ({
 });
 
 const AMENITY_OPTIONS = [
-    "Infinity Pool", "Gym", "24/7 Security", "Covered Parking", "Concierge Service", "Balcony", "Central AC", 
+    "Infinity Pool", "Gym", "24/7 Security", "Covered Parking", "Concierge Service", "Balcony", "Central AC",
     "Elevator", "Power Backup", "Clubhouse", "Maid Service", "Private Pool", "Garden", "Sauna", "Steam Room",
-    "Jacuzzi", "Built-in Wardrobes", "Kitchen Appliances", "Walk-in Closet", "Study Room", "Maid's Room", 
-    "Laundry Room", "Storage Room", "Balcony/Terrace", "Private Garden", "Shared Pool", "Shared Gym", 
-    "Children's Play Area", "BBQ Area", "Tennis Court", "Basketball Court", "Squash Court", "Yoga Studio", 
-    "Spa", "Business Center", "Conference Room", "Lobby in Building", "Valet Parking", "Pet Friendly", 
-    "Smart Home System", "View of Water", "View of Landmark", "Beach Access", "Marina Access", "Golf Course", 
-    "Park Access", "Supermarket Nearby", "Pharmacy Nearby", "School Nearby", "Metro Nearby", "Waste Disposal", 
+    "Jacuzzi", "Built-in Wardrobes", "Kitchen Appliances", "Walk-in Closet", "Study Room", "Maid's Room",
+    "Laundry Room", "Storage Room", "Balcony/Terrace", "Private Garden", "Shared Pool", "Shared Gym",
+    "Children's Play Area", "BBQ Area", "Tennis Court", "Basketball Court", "Squash Court", "Yoga Studio",
+    "Spa", "Business Center", "Conference Room", "Lobby in Building", "Valet Parking", "Pet Friendly",
+    "Smart Home System", "View of Water", "View of Landmark", "Beach Access", "Marina Access", "Golf Course",
+    "Park Access", "Supermarket Nearby", "Pharmacy Nearby", "School Nearby", "Metro Nearby", "Waste Disposal",
     "Cleaning Services", "Maintenance Staff"
 ];
 
@@ -209,7 +209,7 @@ const AddPropertiesModel = ({ isOpen, onClose }) => {
     const removeImage = (index) => {
         const urlToRemove = previewImages[index];
         setPreviewImages(prev => prev.filter((_, i) => i !== index));
-        
+
         setFormData(prev => {
             if (prev.photos.includes(urlToRemove)) {
                 return { ...prev, photos: prev.photos.filter(u => u !== urlToRemove) };
@@ -327,7 +327,7 @@ const AddPropertiesModel = ({ isOpen, onClose }) => {
         try {
             await createMutation.mutateAsync(formData);
             onClose();
-        } catch (error) {}
+        } catch (error) { }
     };
 
     if (!isOpen) return null;
@@ -336,9 +336,8 @@ const AddPropertiesModel = ({ isOpen, onClose }) => {
         <button
             type="button"
             onClick={() => setActiveSection(id)}
-            className={`flex items-center gap-2 px-6 py-3 text-xs font-semibold uppercase tracking-widest transition-all border-b-2 ${
-                activeSection === id ? 'text-white border-white' : 'text-zinc-500 border-transparent hover:text-zinc-300'
-            }`}
+            className={`flex items-center gap-2 px-6 py-3 text-xs font-semibold uppercase tracking-widest transition-all border-b-2 ${activeSection === id ? 'text-white border-white' : 'text-zinc-500 border-transparent hover:text-zinc-300'
+                }`}
         >
             <Icon size={14} /> {label}
         </button>
@@ -350,7 +349,7 @@ const AddPropertiesModel = ({ isOpen, onClose }) => {
     return (
         <div className="fixed inset-0 bg-zinc-950/80 z-[60] flex items-center justify-center p-4">
             <div className="bg-zinc-900 border border-zinc-800 rounded w-full max-w-4xl overflow-hidden shadow-lg flex flex-col max-h-[95vh]">
-                
+
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
                     <div>
@@ -375,7 +374,7 @@ const AddPropertiesModel = ({ isOpen, onClose }) => {
 
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
                     <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
-                        
+
                         {activeSection === 'basic' && (
                             <div className="space-y-4">
                                 <div>
@@ -460,8 +459,8 @@ const AddPropertiesModel = ({ isOpen, onClose }) => {
                                     <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="store_room" checked={formData.store_room} onChange={handleChange} /> Store Room</label>
                                 </div>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="balcony_count" checked={formData.balcony_count > 0} onChange={(e) => setFormData(p => ({...p, balcony_count: e.target.checked ? 1 : 0}))} /> Has Balcony</label>
-                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="parking_count" checked={formData.parking_count > 0} onChange={(e) => setFormData(p => ({...p, parking_count: e.target.checked ? 1 : 0}))} /> Has Parking</label>
+                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="balcony_count" checked={formData.balcony_count > 0} onChange={(e) => setFormData(p => ({ ...p, balcony_count: e.target.checked ? 1 : 0 }))} /> Has Balcony</label>
+                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400"><input type="checkbox" name="parking_count" checked={formData.parking_count > 0} onChange={(e) => setFormData(p => ({ ...p, parking_count: e.target.checked ? 1 : 0 }))} /> Has Parking</label>
                                 </div>
                                 <div className="pt-4 border-t border-zinc-800">
                                     <label className={labelClasses}>Area Flexibility</label>

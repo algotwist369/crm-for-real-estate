@@ -51,7 +51,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
             line2: "",
             city: "",
             state: "",
-            country: "India",
+            country: "United Arab Emirates",
             postal_code: "",
             landmark: "",
             google_map_url: ""
@@ -167,7 +167,7 @@ const EditPropertiesModel = ({ isOpen, onClose, property }) => {
                     line2: property.property_location?.line2 || "",
                     city: property.property_location?.city || "",
                     state: property.property_location?.state || "",
-                    country: property.property_location?.country || "India",
+                    country: property.property_location?.country || "United Arab Emirates",
                     postal_code: property.property_location?.postal_code || "",
                     landmark: property.property_location?.landmark || "",
                     google_map_url: property.property_location?.google_map_url || ""

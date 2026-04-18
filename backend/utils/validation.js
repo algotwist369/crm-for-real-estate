@@ -267,7 +267,7 @@ const propertySchemas = {
                 line2: Joi.string().trim().allow('', null),
                 city: Joi.string().trim().allow('', null),
                 state: Joi.string().trim().allow('', null),
-                country: Joi.string().trim().default('IN'),
+                country: Joi.string().trim().default('United Arab Emirates'),
                 postal_code: Joi.string().trim().allow('', null),
                 landmark: Joi.string().trim().allow('', null),
                 google_map_url: Joi.string().trim().allow('', null)

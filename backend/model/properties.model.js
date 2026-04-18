@@ -108,7 +108,7 @@ const propertiesSchema = new Schema({
         line2: { type: String, trim: true, default: '' },
         city: { type: String, trim: true, default: '', index: true },
         state: { type: String, trim: true, default: '', index: true },
-        country: { type: String, trim: true, default: 'IN', index: true },
+        country: { type: String, trim: true, default: 'United Arab Emirates', index: true },
         postal_code: { type: String, trim: true, default: '' },
         landmark: { type: String, trim: true, default: '' },
         google_map_url: { type: String, trim: true, default: '' },

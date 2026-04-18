@@ -10,9 +10,9 @@ const Lead = require('./model/lead.model');
 const { connectToDatabase } = require('./config/db');
 const { normalizePhone } = require('./utils/common');
 
-const AGENT_PHONE = '7388480128';
-const AGENT_PIN = 3366;
-const LEADS_DATA_PATH = path.join(__dirname, '..', 'leads.data.js');
+const AGENT_PHONE = '971506875543';
+const AGENT_PIN = 2026;
+const LEADS_DATA_PATH = path.join(__dirname, 'leads.data.js');
 
 async function uploadLeads() {
     try {
@@ -35,29 +35,17 @@ async function uploadLeads() {
         console.log(`Found agent: ${user.user_name} (Tenant ID: ${user.tenant_id})`);
 
         // 2. Read leads data
-        // leads.data.js is a module.exports or just an array?
-        // Based on the 'Read' tool output, it looks like a JSON array [ { ... }, ... ]
-        // but it has a .js extension. Let's try to require it first.
         let leadsData;
         const content = fs.readFileSync(LEADS_DATA_PATH, 'utf8').trim();
         console.log(`Read ${content.length} characters from file.`);
 
         try {
-            // Try to parse it as JSON
             leadsData = JSON.parse(content);
         } catch (e) {
-            // If it's not strictly JSON, try to wrap it in module.exports and use eval or a temporary file
-            // But let's try a simpler approach first: check if it's just a JS array
             try {
-                // Warning: eval is dangerous, but in this controlled script it might be acceptable
-                // Better: try to strip comments and common JS syntax that JSON doesn't support
-                // Actually, if it's a JS file, it might be meant to be imported.
-                // Let's try to wrap it:
                 leadsData = eval(`(${content})`);
             } catch (e2) {
                 console.error('Failed to parse leads data as JSON or JS array.');
-                console.error('JSON Error:', e.message);
-                console.error('JS Error:', e2.message);
                 process.exit(1);
             }
         }
@@ -72,38 +60,38 @@ async function uploadLeads() {
         );
 
         for (const lead of leadsData) {
-            const phoneStr = (lead.cleaned_phone && lead.cleaned_phone[0]) || (lead.raw_phone && lead.raw_phone[0]);
+            const phoneStr = lead.phone || lead.cleaned_phone?.[0] || lead.raw_phone?.[0];
             
             if (!phoneStr) {
-                skippedLeads.push({ name: lead.owner_name, reason: 'No phone number' });
+                skippedLeads.push({ name: lead.name || lead.owner_name, reason: 'No phone number' });
                 continue;
             }
 
             const normalized = normalizePhone(phoneStr);
             if (!normalized) {
-                skippedLeads.push({ name: lead.owner_name, phone: phoneStr, reason: 'Invalid phone format' });
+                skippedLeads.push({ name: lead.name || lead.owner_name, phone: phoneStr, reason: 'Invalid phone format' });
                 continue;
             }
 
             if (existingPhones.has(normalized)) {
-                skippedLeads.push({ name: lead.owner_name, phone: normalized, reason: 'Duplicate phone' });
+                skippedLeads.push({ name: lead.name || lead.owner_name, phone: normalized, reason: 'Duplicate phone' });
                 continue;
             }
 
-            const address = [lead.area, lead.unit_number].filter(Boolean).join(', ');
+            const address = lead.address || [lead.area, lead.unit_number].filter(Boolean).join(', ');
 
             leadsToInsert.push({
-                name: lead.owner_name || 'Unknown',
+                name: lead.name || lead.owner_name || 'Unknown',
                 phone: normalized,
-                source: 'manual_entry',
+                source: lead.source || 'manual_entry',
                 address: address,
                 notes: lead.notes || '',
                 tenant_id: user.tenant_id,
                 created_by: user._id,
                 followed_by: user._id,
                 assigned_to: [user._id],
-                status: 'new',
-                priority: 'low',
+                status: lead.status || 'new',
+                priority: lead.priority || 'low',
                 is_active: true
             });
             // Add to set to prevent duplicates within the same file

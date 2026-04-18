@@ -26,17 +26,19 @@ function createApp() {
     // CORS configuration
     const allowedOrigins = process.env.CORS_ORIGIN 
         ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()) 
-        : (process.env.NODE_ENV === 'production' ? [] : ['https://real-crm-two.vercel.app', 'http://localhost:5173']);
+        : ['https://real-crm-two.vercel.app', 'http://localhost:5173'];
 
     app.use(cors({
         origin: (origin, callback) => {
-            // Allow requests with no origin (like mobile apps or curl)
+            // Allow requests with no origin (mobile apps, curl, Postman, server-to-server)
             if (!origin) return callback(null, true);
             
-            if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+            const cleanOrigin = origin.replace(/\/$/, '');
+            if (allowedOrigins.includes(cleanOrigin)) {
                 callback(null, true);
             } else {
-                callback(new Error('Not allowed by CORS'));
+                // Silent reject — don't throw, just deny. Avoids spamming error logs with bot traffic.
+                callback(null, false);
             }
         },
         credentials: true

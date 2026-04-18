@@ -20,7 +20,7 @@ export const SearchFilter = ({
                     type="text"
                     placeholder={searchPlaceholder}
                     value={searchValue}
-                    onChange={(e) => onSearchChange(e.target.value)}
+                    onChange={(e) => onSearchChange(e)}
                     className="w-full pl-10 pr-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-700 transition-colors"
                 />
             </div>
@@ -29,7 +29,7 @@ export const SearchFilter = ({
             {filterOptions.length > 0 && (
                 <select
                     value={filterValue}
-                    onChange={(e) => onFilterChange(e.target.value)}
+                    onChange={(e) => onFilterChange(e)}
                     className="bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-700 transition-colors"
                 >
                     {filterOptions.map((opt) => (

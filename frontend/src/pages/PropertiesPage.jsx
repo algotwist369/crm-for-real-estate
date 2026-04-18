@@ -219,8 +219,8 @@ const PropertiesPage = () => {
                                     </td>
 
                                     <td className="p-3">
-                                        <div className="flex flex-col text-sm truncate max-w-[150px]" title={prop.property_location?.line2 || prop.property_location?.city}>
-                                            <span>{prop.property_location?.line2 || prop.property_location?.city}</span>
+                                        <div className="flex flex-col text-sm truncate max-w-[150px]" title={prop.property_address || prop.property_location?.line1 || prop.property_location?.city}>
+                                            <span>{prop.property_address || prop.property_location?.line1 || prop.property_location?.city}</span>
                                             <span className="text-xs text-zinc-500">
                                                 {prop.property_location?.city}, {prop.property_location?.state}
                                             </span>
