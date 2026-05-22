@@ -124,13 +124,13 @@ const AppLayout = ({ children }) => {
                 {/* Footer */}
                 <footer className="w-full py-4 px-8 border-t border-zinc-900 bg-black/50 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-auto">
                     <div className="flex items-center gap-2">
-                        <span>© 2026 SpaAdvisor CRM</span>
+                        <span>© 2026 AlgoTwist CRM</span>
                         <span className="text-zinc-800">•</span>
                         <span>Version 1.0.0</span>
                     </div>
                     
                     <button 
-                        onClick={() => window.open('https://wa.me/917388480128?text=Hello, I need support with SpaAdvisor CRM.', '_blank')}
+                        onClick={() => window.open('https://wa.me/917388480128?text=Hello, I need support with AlgoTwist CRM.', '_blank')}
                         className="flex items-center gap-2 px-3 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:text-yellow-500 transition-all active:scale-95"
                     >
                         <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>

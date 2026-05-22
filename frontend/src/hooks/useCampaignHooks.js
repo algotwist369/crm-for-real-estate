@@ -138,3 +138,18 @@ export const useUploadCampaignMedia = () => {
         }
     });
 };
+
+export const useImportLeads = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: campaignService.importLeads,
+        onSuccess: (response) => {
+            queryClient.invalidateQueries(['leads-minimal']);
+            toast.success(response.message || 'Leads imported successfully');
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || 'Failed to import Excel leads');
+        }
+    });
+};
+

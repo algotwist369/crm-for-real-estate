@@ -1,23 +1,19 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../component/layout/AppLayout";
 import {
     FiPlus,
-    FiSearch,
     FiEdit,
     FiTrash2,
     FiEye,
-    FiMapPin,
-    FiHome,
-    FiTrendingUp,
-    FiUser,
-    FiLoader
+    FiDownload
 } from "react-icons/fi";
 import { SearchFilter } from "../component/common/SearchFilter";
 import { Pagination } from "../component/common/Pagination";
 import { RefreshButton } from "../component/common/RefreshButton";
 import AddPropertiesModel from "../component/modal/AddPropertiesModel";
 import EditPropertiesModel from "../component/modal/EditPropertiesModel";
+import ExportPropertiesModal from "../component/modal/ExportPropertiesModal";
 import { useProperties, useUpdatePropertyStatus, useDeleteProperty } from "../hooks/usePropertyHooks";
 
 /* ─── Table Columns ─── */
@@ -25,8 +21,8 @@ const tableColumns = ["#", "Property Info", "Type", "Price", "Location", "Specif
 
 /* ─── Filter Options ─── */
 const statusOptions = [
-    "All", "available", "under_offer", "reserved", "booked", "sold", "rented", 
-    "leased", "blocked", "under_negotiation", "hold", "unavailable", 
+    "All", "available", "under_offer", "reserved", "booked", "sold", "rented",
+    "leased", "blocked", "under_negotiation", "hold", "unavailable",
     "withdrawn", "expired", "inactive", "other"
 ];
 const typeOptions = ["All", "Apartment", "Villa", "Office", "Plot", "Warehouse", "Studio", "Penthouse", "Townhouse", "Shop", "Industrial"];
@@ -40,6 +36,7 @@ const PropertiesPage = () => {
     const [limit, setLimit] = useState(10);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [editingProperty, setEditingProperty] = useState(null);
 
     // Prepare filters for API
@@ -104,6 +101,12 @@ const PropertiesPage = () => {
                 <div className="flex items-center gap-3">
                     <RefreshButton onClick={handleRefresh} isRefreshing={isFetching} />
                     <button
+                        onClick={() => setIsExportModalOpen(true)}
+                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-sm font-medium rounded flex items-center gap-2 transition-colors"
+                    >
+                        <FiDownload size={16} /> Export
+                    </button>
+                    <button
                         onClick={() => setIsAddModalOpen(true)}
                         className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded flex items-center gap-2 transition-colors"
                     >
@@ -161,155 +164,156 @@ const PropertiesPage = () => {
                     ) : properties.length === 0 ? (
                         <div className="p-8 text-center text-zinc-500 text-sm">No properties found matching your criteria.</div>
                     ) : (
-                    <table className="w-full text-left border-collapse min-w-[1100px]">
-                        <thead>
-                            <tr className="border-b border-zinc-800 bg-zinc-900/50 text-zinc-400 text-xs text-left">
-                                {tableColumns.map((col, idx) => (
-                                    <th key={idx} className="p-3 font-medium tracking-wide whitespace-nowrap">
-                                        {col}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-800 text-sm text-zinc-300 bg-zinc-950/20">
-                            {properties.map((prop, index) => {
-                                const isInactive = prop.is_active === false || prop.property_status === "inactive";
-                                return (
-                                <tr
-                                    key={prop._id}
-                                    className={`${isInactive ? "opacity-60 bg-zinc-900/40" : ""}`}
-                                >
-                                    <td className="p-3 text-zinc-500">
-                                        {(page - 1) * limit + index + 1}
-                                    </td>
-
-                                    <td className="p-3">
-                                        <div className="flex flex-col">
-                                            <span className={`font-medium truncate max-w-[200px] ${isInactive ? "line-through text-zinc-500" : "text-zinc-100"}`} title={prop.property_title}>
-                                                {prop.property_title}
-                                            </span>
-                                            <span className="text-xs text-zinc-500 mt-0.5">
-                                                ID: {prop._id.slice(-8).toUpperCase()} | Added: {new Date(prop.createdAt).toLocaleDateString()}
-                                            </span>
-                                        </div>
-                                    </td>
-
-                                    <td className="p-3">
-                                        <div className="flex flex-col gap-1">
-                                            <span className="capitalize">
-                                                {prop.property_type || "N/A"}
-                                            </span>
-                                            <span className="text-xs text-zinc-400">
-                                                For {prop.listing_type}
-                                            </span>
-                                        </div>
-                                    </td>
-
-                                    <td className="p-3 font-medium text-zinc-200">
-                                        <div className="flex flex-col">
-                                            <span>
-                                                {formatPrice(prop.asking_price, prop.currency)}
-                                            </span>
-                                            {prop.price_sqft && (
-                                                <span className="text-xs text-zinc-500">
-                                                    {prop.price_sqft} / sqft
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td>
-
-                                    <td className="p-3">
-                                        <div className="flex flex-col text-sm truncate max-w-[150px]" title={prop.property_address || prop.property_location?.line1 || prop.property_location?.city}>
-                                            <span>{prop.property_address || prop.property_location?.line1 || prop.property_location?.city}</span>
-                                            <span className="text-xs text-zinc-500">
-                                                {prop.property_location?.city}, {prop.property_location?.state}
-                                            </span>
-                                        </div>
-                                    </td>
-
-                                    <td className="p-3">
-                                        <div className="flex flex-col gap-0.5 text-xs">
-                                            <div className="text-zinc-400">
-                                                {prop.bedroom_label || `${prop.total_bedrooms || "0"} Beds`} / {prop.total_bathrooms || "0"} Baths
-                                            </div>
-                                            <div className="text-zinc-500">
-                                                {prop.total_area || prop.plot_area || "0"} {prop.area_unit || "sqft"}
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <td className="p-3">
-                                        {prop.assign_agent && prop.assign_agent.length > 0 ? (
-                                            <div className="flex flex-col gap-1">
-                                                {prop.assign_agent.map((agent) => (
-                                                    <span key={agent._id} className="text-xs text-zinc-400">
-                                                        {agent.agent_details?.user_name || "Agent"}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <span className="text-xs text-zinc-500">Unassigned</span>
-                                        )}
-                                    </td>
-
-                                    <td className="p-3">
-                                        <select
-                                            value={prop.property_status}
-                                            onChange={(e) => handleUpdateStatus(prop._id, e.target.value)}
-                                            className="text-xs p-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-300 capitalize cursor-pointer focus:outline-none"
-                                        >
-                                            {statusOptions.slice(1).map(s => (
-                                                <option key={s} value={s}>{s.replace("_", " ")}</option>
-                                            ))}
-                                        </select>
-                                    </td>
-
-                                    <td className="p-3">
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                className="text-zinc-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-white transition-colors"
-                                                onClick={() => handleViewProperty(prop._id)}
-                                                title="View Full Details"
-                                            >
-                                                <FiEye size={14} />
-                                            </button>
-                                            <button
-                                                className="text-yellow-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-yellow-300 transition-colors"
-                                                onClick={() => {
-                                                    setEditingProperty(prop);
-                                                    setIsEditModalOpen(true);
-                                                }}
-                                                title="Edit Listing"
-                                            >
-                                                <FiEdit size={14} />
-                                            </button>
-                                            <button
-                                                className="text-red-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-red-300 transition-colors"
-                                                onClick={() => handleDeleteProperty(prop._id)}
-                                                title="Delete Listing"
-                                            >
-                                                <FiTrash2 size={14} />
-                                            </button>
-                                        </div>
-                                    </td>
+                        <table className="w-full text-left border-collapse min-w-[1100px]">
+                            <thead>
+                                <tr className="border-b border-zinc-800 bg-zinc-900/50 text-zinc-400 text-xs text-left">
+                                    {tableColumns.map((col, idx) => (
+                                        <th key={idx} className="p-3 font-medium tracking-wide whitespace-nowrap">
+                                            {col}
+                                        </th>
+                                    ))}
                                 </tr>
-                            )})}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-800 text-sm text-zinc-300 bg-zinc-950/20">
+                                {properties.map((prop, index) => {
+                                    const isInactive = prop.is_active === false || prop.property_status === "inactive";
+                                    return (
+                                        <tr
+                                            key={prop._id}
+                                            className={`${isInactive ? "opacity-60 bg-zinc-900/40" : ""}`}
+                                        >
+                                            <td className="p-3 text-zinc-500">
+                                                {(page - 1) * limit + index + 1}
+                                            </td>
+
+                                            <td className="p-3">
+                                                <div className="flex flex-col">
+                                                    <span className={`font-medium truncate max-w-[200px] ${isInactive ? "line-through text-zinc-500" : "text-zinc-100"}`} title={prop.property_title}>
+                                                        {prop.property_title}
+                                                    </span>
+                                                    <span className="text-xs text-zinc-500 mt-0.5">
+                                                        ID: {prop._id.slice(-8).toUpperCase()} | Added: {new Date(prop.createdAt).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td className="p-3">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="capitalize">
+                                                        {prop.property_type || "N/A"}
+                                                    </span>
+                                                    <span className="text-xs text-zinc-400">
+                                                        For {prop.listing_type}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td className="p-3 font-medium text-zinc-200">
+                                                <div className="flex flex-col">
+                                                    <span>
+                                                        {formatPrice(prop.asking_price, prop.currency)}
+                                                    </span>
+                                                    {prop.price_sqft && (
+                                                        <span className="text-xs text-zinc-500">
+                                                            {prop.price_sqft} / sqft
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            <td className="p-3">
+                                                <div className="flex flex-col text-sm truncate max-w-[150px]" title={prop.property_address || prop.property_location?.line1 || prop.property_location?.city}>
+                                                    <span>{prop.property_address || prop.property_location?.line1 || prop.property_location?.city}</span>
+                                                    <span className="text-xs text-zinc-500">
+                                                        {prop.property_location?.city}, {prop.property_location?.state}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td className="p-3">
+                                                <div className="flex flex-col gap-0.5 text-xs">
+                                                    <div className="text-zinc-400">
+                                                        {prop.bedroom_label || `${prop.total_bedrooms || "0"} Beds`} / {prop.total_bathrooms || "0"} Baths
+                                                    </div>
+                                                    <div className="text-zinc-500">
+                                                        {prop.total_area || prop.plot_area || "0"} {prop.area_unit || "sqft"}
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td className="p-3">
+                                                {prop.assign_agent && prop.assign_agent.length > 0 ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        {prop.assign_agent.map((agent) => (
+                                                            <span key={agent._id} className="text-xs text-zinc-400">
+                                                                {agent.agent_details?.user_name || "Agent"}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-zinc-500">Unassigned</span>
+                                                )}
+                                            </td>
+
+                                            <td className="p-3">
+                                                <select
+                                                    value={prop.property_status}
+                                                    onChange={(e) => handleUpdateStatus(prop._id, e.target.value)}
+                                                    className="text-xs p-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-300 capitalize cursor-pointer focus:outline-none"
+                                                >
+                                                    {statusOptions.slice(1).map(s => (
+                                                        <option key={s} value={s}>{s.replace("_", " ")}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+
+                                            <td className="p-3">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        className="text-zinc-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-white transition-colors"
+                                                        onClick={() => handleViewProperty(prop._id)}
+                                                        title="View Full Details"
+                                                    >
+                                                        <FiEye size={14} />
+                                                    </button>
+                                                    <button
+                                                        className="text-yellow-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-yellow-300 transition-colors"
+                                                        onClick={() => {
+                                                            setEditingProperty(prop);
+                                                            setIsEditModalOpen(true);
+                                                        }}
+                                                        title="Edit Listing"
+                                                    >
+                                                        <FiEdit size={14} />
+                                                    </button>
+                                                    <button
+                                                        className="text-red-400 bg-zinc-900 border border-zinc-800 p-1.5 rounded hover:text-red-300 transition-colors"
+                                                        onClick={() => handleDeleteProperty(prop._id)}
+                                                        title="Delete Listing"
+                                                    >
+                                                        <FiTrash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
                     )}
                 </div>
 
                 {/* Pagination Section */}
                 {properties.length > 0 && (
-                <div className="p-4 border-t border-zinc-800 bg-zinc-900/30">
-                    <Pagination
-                        currentPage={page}
-                        totalPages={pagination.pages}
-                        onPageChange={setPage}
-                        rowsPerPage={limit}
-                        onRowsPerPageChange={(val) => { setLimit(val); setPage(1); }}
-                    />
-                </div>
+                    <div className="p-4 border-t border-zinc-800 bg-zinc-900/30">
+                        <Pagination
+                            currentPage={page}
+                            totalPages={pagination.pages}
+                            onPageChange={setPage}
+                            rowsPerPage={limit}
+                            onRowsPerPageChange={(val) => { setLimit(val); setPage(1); }}
+                        />
+                    </div>
                 )}
             </div>
 
@@ -329,6 +333,20 @@ const PropertiesPage = () => {
                         setEditingProperty(null);
                     }}
                     property={editingProperty}
+                />
+            )}
+
+            {isExportModalOpen && (
+                <ExportPropertiesModal
+                    isOpen={isExportModalOpen}
+                    onClose={() => setIsExportModalOpen(false)}
+                    activeFilters={{
+                        search,
+                        property_status: statusFilter,
+                        property_type: typeFilter,
+                        page,
+                        limit
+                    }}
                 />
             )}
         </AppLayout>

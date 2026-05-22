@@ -7,7 +7,7 @@ import {
     FiEye,
     FiMessageSquare,
     FiTrendingUp,
-  
+    FiDownload
 } from "react-icons/fi";
 import { MdOutlineFactCheck } from "react-icons/md";
 import { CopyButton } from "../component/common/CopyButton";
@@ -18,6 +18,7 @@ import AddLeadModal from "../component/modal/AddLeadModal";
 import EditLeadModal from "../component/modal/EditLeadModal";
 import FollowUpModal from "../component/modal/FollowUpModal";
 import MarkLostModal from "../component/modal/MarkLostModal";
+import ExportLeadsModal from "../component/modal/ExportLeadsModal";
 import { useLeads, useUpdateLead, useDeleteLead } from "../hooks/useLeadHooks";
 import { useAuth } from "../context/AuthContext";
 
@@ -44,6 +45,7 @@ const LeadsPage = () => {
     const [selectedLead, setSelectedLead] = useState(null);
     const [isMarkLostModalOpen, setIsMarkLostModalOpen] = useState(false);
     const [leadToMarkLost, setLeadToMarkLost] = useState(null);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const navigate = useNavigate();
 
     // Prepare filters for API with memoization to prevent object literal instability
@@ -77,7 +79,6 @@ const LeadsPage = () => {
         setStatusFilter("All");
         setPriorityFilter("All");
         setLeadTypeFilter("All");
-        setPropertyTypeFilter("All");
         setPage(1);
         refetch();
     };
@@ -130,6 +131,12 @@ const LeadsPage = () => {
 
                 <div className="flex items-center gap-3">
                     <RefreshButton onClick={handleRefresh} />
+                    <button
+                        onClick={() => setIsExportModalOpen(true)}
+                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-sm font-medium rounded flex items-center gap-2 transition-colors h-10"
+                    >
+                        <FiDownload size={16} /> Export
+                    </button>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
                         className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded flex items-center justify-center transition-colors h-10"
@@ -503,6 +510,14 @@ const LeadsPage = () => {
                     onClose={() => setIsMarkLostModalOpen(false)}
                     lead={leadToMarkLost}
                     onStatusUpdated={handleMarkLostSuccess}
+                />
+            )}
+
+            {isExportModalOpen && (
+                <ExportLeadsModal
+                    isOpen={isExportModalOpen}
+                    onClose={() => setIsExportModalOpen(false)}
+                    activeFilters={filters}
                 />
             )}
         </AppLayout>

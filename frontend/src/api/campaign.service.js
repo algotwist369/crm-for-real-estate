@@ -42,6 +42,18 @@ const campaignService = {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         return response.data;
+    },
+    downloadTemplate: async () => {
+        const response = await axiosInstance.get('/campaigns/import-template', {
+            responseType: 'blob'
+        });
+        return response.data;
+    },
+    importLeads: async (formData) => {
+        const response = await axiosInstance.post('/campaigns/import-leads', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
     }
 };
 

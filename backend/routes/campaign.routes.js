@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const campaignController = require('../controller/campaign.controller');
-const { uploadCampaignMedia } = require('./upload');
+const { uploadCampaignMedia, upload } = require('./upload');
 const { authenticate } = require('../middleware/auth');
 const validateRequest = require('../middleware/validateRequest');
 const Joi = require('joi');
@@ -18,8 +18,8 @@ const campaignSchema = Joi.object({
         }).required(),
         leadIds: Joi.array().items(Joi.string()).min(1).required(),
         delayConfig: Joi.object({
-            minDelay: Joi.number().min(0).default(30),
-            maxDelay: Joi.number().min(1).default(60),
+            minDelay: Joi.number().min(0).default(45),
+            maxDelay: Joi.number().min(1).default(210),
             batchSize: Joi.number().min(1).default(20),
             batchPause: Joi.number().min(1).default(300)
         }),
@@ -51,6 +51,8 @@ router.use(authenticate);
 
 router.post('/', validateRequest(campaignSchema), campaignController.createCampaign);
 router.get('/', campaignController.getCampaigns);
+router.get('/import-template', campaignController.downloadTemplate);
+router.post('/import-leads', upload.single('file'), campaignController.importLeads);
 router.get('/:campaignId/stats', campaignController.getCampaignStats);
 
 router.get('/whatsapp/status', campaignController.getWhatsAppStatus);

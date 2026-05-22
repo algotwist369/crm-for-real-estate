@@ -125,8 +125,8 @@ const report_export = wrapAsync(async (req, res) => {
         insightSheet.addRow(['Warm (Medium)', leadInsights.hot_vs_cold.warm]);
         insightSheet.addRow(['Cold (Low)', leadInsights.hot_vs_cold.cold]);
 
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="report-${timestamp}.xlsx"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', 'inline');
         await wb.xlsx.write(res);
         res.end();
         return;
@@ -136,8 +136,8 @@ const report_export = wrapAsync(async (req, res) => {
     const PDFDocument = require('pdfkit');
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="report-${timestamp}.pdf"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', 'inline');
     doc.pipe(res);
 
     // Title

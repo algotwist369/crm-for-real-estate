@@ -57,8 +57,8 @@ const campaignSchema = new mongoose.Schema({
         default: 0
     },
     delayConfig: {
-        minDelay: { type: Number, default: 30 }, // in seconds
-        maxDelay: { type: Number, default: 60 }, // in seconds
+        minDelay: { type: Number, default: 45 }, // in seconds
+        maxDelay: { type: Number, default: 210 }, // in seconds
         batchSize: { type: Number, default: 20 },
         batchPause: { type: Number, default: 300 } // in seconds
     },

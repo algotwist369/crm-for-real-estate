@@ -133,6 +133,10 @@ const getCampaignStats = async (campaignId) => {
         { $group: { _id: '$status', count: { $sum: 1 } } }
     ]);
 
+    const messages = await CampaignMessage.find({ campaignId: campaign._id })
+        .populate('leadId', 'name phone email')
+        .sort({ createdAt: -1 });
+
     const formattedStats = {
         total: campaign.totalLeads,
         processed: campaign.processedLeads,
@@ -141,7 +145,22 @@ const getCampaignStats = async (campaignId) => {
         statusBreakdown: stats.reduce((acc, curr) => {
             acc[curr._id] = curr.count;
             return acc;
-        }, {})
+        }, {}),
+        messages: messages.map(msg => ({
+            _id: msg._id,
+            lead: msg.leadId ? {
+                _id: msg.leadId._id,
+                name: msg.leadId.name,
+                phone: msg.leadId.phone,
+                email: msg.leadId.email
+            } : null,
+            recipient: msg.recipient,
+            status: msg.status,
+            renderedMessage: msg.renderedMessage,
+            sentAt: msg.sentAt,
+            failedReason: msg.failedReason,
+            createdAt: msg.createdAt
+        }))
     };
 
     return formattedStats;

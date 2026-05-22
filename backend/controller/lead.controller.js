@@ -4,6 +4,8 @@ const User = require('../model/user.model');
 const Properties = require('../model/properties.model');
 const Agent = require('../model/agent.model');
 const FollowUpReminder = require('../model/followUpReminder.model');
+const CampaignMessage = require('../model/campaignMessage.model');
+const Campaign = require('../model/campaign.model');
 const { parseBudget } = require('../utils/budgetParser');
 const { convertCurrency } = require('../utils/currencyConverter');
 const { sendMail } = require('../utils/sendMail');
@@ -1011,6 +1013,209 @@ const delete_lead = wrapAsync(async (req, res) => {
     res.status(200).json({ success: true, message: 'Lead deleted successfully' });
 });
 
+const export_leads = wrapAsync(async (req, res) => {
+    const { user, payload, tenant_id } = req.auth;
+    const type = String(req.query?.type || 'excel').toLowerCase();
+    const exportRange = String(req.query?.export_range || 'filtered').toLowerCase();
+    const selectedFieldsString = String(req.query?.fields || '').trim();
+
+    if (!['pdf', 'excel'].includes(type)) {
+        throw httpError(400, 'type must be pdf or excel');
+    }
+
+    const match = { is_active: true, tenant_id };
+
+    if (exportRange !== 'all') {
+        const status = String(req.query?.status ?? '').trim().toLowerCase();
+        const priority = String(req.query?.priority ?? '').trim().toLowerCase();
+        const lead_type = String(req.query?.lead_type ?? '').trim().toLowerCase();
+        const property_type = String(req.query?.property_type ?? '').trim().toLowerCase();
+        const search = String(req.query?.search ?? '').trim();
+        const followUpDue = String(req.query?.follow_up_due ?? req.query?.followUpDue ?? '').trim().toLowerCase();
+
+        if (status) match.status = status;
+        if (priority) match.priority = priority;
+        if (lead_type) match.lead_type = lead_type;
+        if (property_type) match.property_type = property_type;
+
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+        if (followUpDue === 'today') {
+            match.next_follow_up_date = { $gte: startOfToday, $lt: startOfTomorrow };
+            match.follow_up_status = { $in: ['pending', 'rescheduled'] };
+        } else if (followUpDue === 'overdue') {
+            match.next_follow_up_date = { $lt: startOfToday };
+            match.follow_up_status = { $in: ['pending', 'rescheduled'] };
+        } else if (followUpDue === 'upcoming') {
+            match.next_follow_up_date = { $gte: startOfTomorrow };
+            match.follow_up_status = { $in: ['pending', 'rescheduled'] };
+        } else if (followUpDue === 'true' || followUpDue === '1') {
+            match.next_follow_up_date = { $lte: now };
+            match.follow_up_status = { $in: ['pending', 'rescheduled'] };
+        }
+
+        if (search) {
+            match.$text = { $search: search };
+        }
+    }
+
+    if (payload.role === 'agent') {
+        const agentId = await getAgentIdFromUserId(user._id);
+        const assignedPropIds = agentId ? await getAgentAssignedPropertyIds(agentId) : [];
+
+        match.$or = [
+            { assigned_to: user._id },
+            { created_by: user._id },
+            { followed_by: user._id },
+            { properties: { $in: assignedPropIds } }
+        ];
+    } else if (req.query?.assigned_to && exportRange !== 'all') {
+        const ids = normalizeObjectIdArray(req.query.assigned_to);
+        if (ids.length === 1) match.assigned_to = ids[0];
+        if (ids.length > 1) match.assigned_to = { $in: ids };
+    }
+
+    let query = Lead.find(match).sort({ createdAt: -1 });
+
+    if (exportRange === 'current_page') {
+        const { page, limit, skip } = parsePagination(req);
+        query = query.skip(skip).limit(limit);
+    } else if (exportRange === 'filtered_100') {
+        query = query.limit(100);
+    }
+
+    const items = await query
+        .populate('assigned_to', 'user_name')
+        .populate('followed_by', 'user_name')
+        .populate('created_by', 'user_name')
+        .lean();
+
+    const fieldMapping = {
+        name: { label: 'Name', getValue: l => l.name || '' },
+        email: { label: 'Email', getValue: l => l.email || '' },
+        phone: { label: 'Phone', getValue: l => l.phone || '' },
+        whatsapp_number: { label: 'WhatsApp', getValue: l => l.whatsapp_number || '' },
+        lead_type: { label: 'Lead Type', getValue: l => l.lead_type || '' },
+        client_type: { label: 'Client Type', getValue: l => l.client_type || '' },
+        budget: { label: 'Budget', getValue: l => l.budget || (l.budget_max ? `${l.currency || 'AED'} ${l.budget_min || 0} - ${l.budget_max}` : '') },
+        property_type: { label: 'Property Type', getValue: l => l.property_type || '' },
+        bedrooms: { label: 'Bedrooms', getValue: l => l.bedrooms || '' },
+        bathrooms: { label: 'Bathrooms', getValue: l => l.bathrooms !== undefined ? String(l.bathrooms) : '' },
+        source: { label: 'Source', getValue: l => l.source || '' },
+        priority: { label: 'Priority', getValue: l => l.priority || '' },
+        status: { label: 'Status', getValue: l => l.status || '' },
+        assigned_to: { label: 'Assigned Agent(s)', getValue: l => (l.assigned_to || []).map(u => u.user_name || '').filter(Boolean).join(', ') },
+        createdAt: { label: 'Created At', getValue: l => l.createdAt ? new Date(l.createdAt).toLocaleDateString() : '' }
+    };
+
+    let selectedFieldKeys = selectedFieldsString
+        ? selectedFieldsString.split(',').map(s => s.trim()).filter(k => fieldMapping[k])
+        : Object.keys(fieldMapping);
+
+    if (selectedFieldKeys.length === 0) {
+        selectedFieldKeys = Object.keys(fieldMapping);
+    }
+
+    const timestamp = new Date().toISOString().split('T')[0];
+
+    if (type === 'excel') {
+        const ExcelJS = require('exceljs');
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'AlgoTwist CRM';
+        wb.created = new Date();
+
+        const sheet = wb.addWorksheet('Leads');
+        sheet.columns = selectedFieldKeys.map(key => ({
+            header: fieldMapping[key].label,
+            key: key,
+            width: Math.max(15, fieldMapping[key].label.length + 5)
+        }));
+
+        function styleHeader(row) {
+            row.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
+            row.height = 22;
+        }
+
+        styleHeader(sheet.getRow(1));
+
+        items.forEach(item => {
+            const rowData = {};
+            selectedFieldKeys.forEach(key => {
+                rowData[key] = fieldMapping[key].getValue(item);
+            });
+            sheet.addRow(rowData);
+        });
+
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', 'inline');
+        await wb.xlsx.write(res);
+        res.end();
+        return;
+    }
+
+    // PDF Export
+    const PDFDocument = require('pdfkit-table');
+    const doc = new PDFDocument({ margin: 20, size: 'A4', layout: 'landscape' });
+
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', 'inline');
+    doc.pipe(res);
+
+    const columnWidths = {
+        name: 110,
+        email: 110,
+        phone: 80,
+        whatsapp_number: 80,
+        lead_type: 60,
+        client_type: 60,
+        budget: 90,
+        property_type: 65,
+        bedrooms: 40,
+        bathrooms: 40,
+        source: 60,
+        priority: 50,
+        status: 60,
+        assigned_to: 80,
+        createdAt: 60
+    };
+
+    const totalDefaultWidth = selectedFieldKeys.reduce((sum, key) => sum + (columnWidths[key] || 50), 0);
+    const printableWidth = 802;
+
+    const headers = selectedFieldKeys.map(key => ({
+        label: fieldMapping[key].label,
+        property: key,
+        width: Math.floor(((columnWidths[key] || 50) / totalDefaultWidth) * printableWidth)
+    }));
+
+    const datas = items.map(item => {
+        const rowData = {};
+        selectedFieldKeys.forEach(key => {
+            rowData[key] = String(fieldMapping[key].getValue(item) ?? '');
+        });
+        return rowData;
+    });
+
+    const table = {
+        title: "Lead Pipeline Report",
+        subtitle: `Generated on ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })} | Range: ${exportRange.replace('_', ' ').toUpperCase()}`,
+        headers,
+        datas
+    };
+
+    await doc.table(table, {
+        prepareHeader: () => doc.font("Helvetica-Bold").fontSize(7.5),
+        prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+            doc.font("Helvetica").fontSize(6.5);
+        }
+    });
+
+    doc.end();
+});
+
 const get_leads_minimal = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
     const isAdmin = ['admin', 'super_admin'].includes(payload.role);
@@ -1023,19 +1228,55 @@ const get_leads_minimal = wrapAsync(async (req, res) => {
     }
 
     const leads = await Lead.find(match)
-        .select('name phone address inquiry_for assigned_to')
+        .select('name phone inquiry_for assigned_to lead_type')
         .populate('assigned_to', 'user_name')
         .sort({ name: 1 })
         .lean();
 
-    const formattedLeads = leads.map(lead => ({
-        _id: lead._id,
-        name: lead.name,
-        phone: lead.phone,
-        address: lead.address || '',
-        inquiry_for: lead.inquiry_for || '',
-        agent_name: lead.assigned_to && lead.assigned_to.length > 0 ? lead.assigned_to[0].user_name : 'Unassigned'
-    }));
+    const leadIds = leads.map(l => l._id);
+    
+    // Find all campaigns created by the logged-in user to scope outreach status
+    const userCampaigns = await Campaign.find({ createdBy: user._id }).select('_id').lean();
+    const userCampaignIds = userCampaigns.map(c => c._id);
+
+    const messages = await CampaignMessage.find({ 
+        leadId: { $in: leadIds }, 
+        status: 'sent',
+        campaignId: { $in: userCampaignIds }
+    })
+        .select('leadId campaignId')
+        .populate('campaignId', 'name')
+        .lean();
+
+    const statsMap = {};
+    messages.forEach(msg => {
+        const leadIdStr = msg.leadId.toString();
+        if (!statsMap[leadIdStr]) {
+            statsMap[leadIdStr] = {
+                count: 0,
+                campaignNames: new Set()
+            };
+        }
+        statsMap[leadIdStr].count += 1;
+        if (msg.campaignId && msg.campaignId.name) {
+            statsMap[leadIdStr].campaignNames.add(msg.campaignId.name);
+        }
+    });
+
+    const formattedLeads = leads.map(lead => {
+        const stats = statsMap[lead._id.toString()] || { count: 0, campaignNames: new Set() };
+        return {
+            _id: lead._id,
+            name: lead.name,
+            phone: lead.phone,
+            inquiry_for: lead.inquiry_for || '',
+            type: lead.lead_type || '',
+            agent_name: lead.assigned_to && lead.assigned_to.length > 0 ? lead.assigned_to[0].user_name : 'Unassigned',
+            messageSentCount: stats.count,
+            messageStatus: stats.count > 0 ? 'sent' : 'none',
+            campaignNames: Array.from(stats.campaignNames)
+        };
+    });
 
     res.status(200).json({ success: true, data: formattedLeads });
 });
@@ -1055,5 +1296,6 @@ module.exports = {
     reschedule_followup,
     agent_dashboard_summary,
     agent_activity_timeline,
-    delete_lead
+    delete_lead,
+    export_leads
 };

@@ -481,6 +481,205 @@ const get_all_properties = wrapAsync(async (req, res) => {
     });
 });
 
+const export_properties = wrapAsync(async (req, res) => {
+    const { user, payload, tenant_id } = req.auth;
+    const type = String(req.query?.type || 'excel').toLowerCase();
+    const exportRange = String(req.query?.export_range || 'filtered').toLowerCase();
+    const selectedFieldsString = String(req.query?.fields || '').trim();
+
+    if (!['pdf', 'excel'].includes(type)) {
+        throw httpError(400, 'type must be pdf or excel');
+    }
+
+    const match = { tenant_id };
+
+    if (exportRange !== 'all') {
+        const search = String(req.query?.search ?? '').trim();
+        const propertyType = String(req.query?.property_type ?? '').trim();
+        const listingType = String(req.query?.listing_type ?? '').trim();
+        const propertyStatus = String(req.query?.property_status ?? '').trim();
+        const isActiveRaw = req.query?.is_active;
+        const minPrice = toNumberOrUndefined(req.query?.min_price);
+        const maxPrice = toNumberOrUndefined(req.query?.max_price);
+
+        if (propertyType) match.property_type = propertyType;
+        if (listingType) match.listing_type = listingType;
+        if (propertyStatus) match.property_status = propertyStatus;
+        if (isActiveRaw !== undefined) match.is_active = String(isActiveRaw).toLowerCase() === 'true';
+        if (minPrice !== undefined || maxPrice !== undefined) {
+            match.asking_price = {};
+            if (minPrice !== undefined) match.asking_price.$gte = minPrice;
+            if (maxPrice !== undefined) match.asking_price.$lte = maxPrice;
+        }
+
+        if (search) {
+            const regex = new RegExp(escapeRegex(search), 'i');
+            match.$or = [
+                { property_title: regex },
+                { property_type: regex },
+                { property_address: regex },
+                { 'property_location.city': regex },
+                { 'property_location.state': regex },
+                { 'property_location.country': regex }
+            ];
+        }
+    }
+
+    if (payload.role === 'agent') {
+        const agent = await Agent.findOne({ agent_details: user._id, is_active: true });
+        if (!agent) throw httpError(403, 'Agent profile not found');
+        match.assign_agent = agent._id;
+    } else if (req.query?.agent_id && exportRange !== 'all') {
+        match.assign_agent = req.query.agent_id;
+    }
+
+    let query = Properties.find(match).sort({ createdAt: -1 });
+
+    if (exportRange === 'current_page') {
+        const { page, limit, skip } = parsePagination(req);
+        query = query.skip(skip).limit(limit);
+    } else if (exportRange === 'filtered_100') {
+        query = query.limit(100);
+    }
+
+    const items = await populatePropertyQuery(query);
+
+    function formatPriceLocal(price, currency) {
+        if (!price) return "TBD";
+        if (currency === "INR") {
+            if (price >= 10000000) return `₹${(price / 10000000).toFixed(2)} Cr`;
+            if (price >= 100000) return `₹${(price / 100000).toFixed(2)} L`;
+            return `₹${Number(price).toLocaleString('en-IN')}`;
+        }
+        return `${currency || "USD"} ${Number(price).toLocaleString()}`;
+    }
+
+    const fieldMapping = {
+        property_title: { label: 'Title', getValue: p => p.property_title || '' },
+        property_type: { label: 'Type', getValue: p => p.property_type || '' },
+        listing_type: { label: 'Listing Type', getValue: p => p.listing_type || '' },
+        asking_price: { label: 'Asking Price', getValue: p => p.asking_price ? formatPriceLocal(p.asking_price, p.currency) : 'TBD' },
+        currency: { label: 'Currency', getValue: p => p.currency || '' },
+        property_status: { label: 'Status', getValue: p => p.property_status || '' },
+        property_address: { label: 'Address', getValue: p => p.property_address || '' },
+        total_bedrooms: { label: 'Beds', getValue: p => p.total_bedrooms !== undefined ? String(p.total_bedrooms) : '0' },
+        total_bathrooms: { label: 'Baths', getValue: p => p.total_bathrooms !== undefined ? String(p.total_bathrooms) : '0' },
+        total_area: { label: 'Area', getValue: p => p.total_area ? `${p.total_area} ${p.area_unit || 'sqft'}` : '' },
+        furnished_status: { label: 'Furnished', getValue: p => p.furnished_status || '' },
+        assign_agent: { label: 'Agent(s)', getValue: p => (p.assign_agent || []).map(a => a.agent_details?.user_name || '').filter(Boolean).join(', ') },
+        project_name: { label: 'Project Name', getValue: p => p.project_name || '' },
+        property_code: { label: 'Property Code', getValue: p => p.property_code || '' },
+        completion_status: { label: 'Completion Status', getValue: p => p.completion_status || '' },
+        createdAt: { label: 'Created At', getValue: p => p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '' }
+    };
+
+    let selectedFieldKeys = selectedFieldsString
+        ? selectedFieldsString.split(',').map(s => s.trim()).filter(k => fieldMapping[k])
+        : Object.keys(fieldMapping);
+
+    if (selectedFieldKeys.length === 0) {
+        selectedFieldKeys = Object.keys(fieldMapping);
+    }
+
+    const timestamp = new Date().toISOString().split('T')[0];
+
+    if (type === 'excel') {
+        const ExcelJS = require('exceljs');
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'AlgoTwist CRM';
+        wb.created = new Date();
+
+        const sheet = wb.addWorksheet('Properties');
+        sheet.columns = selectedFieldKeys.map(key => ({
+            header: fieldMapping[key].label,
+            key: key,
+            width: Math.max(15, fieldMapping[key].label.length + 5)
+        }));
+
+        function styleHeader(row) {
+            row.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
+            row.height = 22;
+        }
+
+        styleHeader(sheet.getRow(1));
+
+        items.forEach(item => {
+            const rowData = {};
+            selectedFieldKeys.forEach(key => {
+                rowData[key] = fieldMapping[key].getValue(item);
+            });
+            sheet.addRow(rowData);
+        });
+
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', 'inline');
+        await wb.xlsx.write(res);
+        res.end();
+        return;
+    }
+
+    // PDF Export
+    const PDFDocument = require('pdfkit-table');
+    const doc = new PDFDocument({ margin: 20, size: 'A4', layout: 'landscape' });
+
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', 'inline');
+    doc.pipe(res);
+
+    const columnWidths = {
+        property_title: 110,
+        property_type: 55,
+        listing_type: 55,
+        asking_price: 75,
+        currency: 45,
+        property_status: 60,
+        property_address: 110,
+        total_bedrooms: 30,
+        total_bathrooms: 30,
+        total_area: 50,
+        furnished_status: 60,
+        assign_agent: 80,
+        project_name: 75,
+        property_code: 65,
+        completion_status: 70,
+        createdAt: 60
+    };
+
+    const totalDefaultWidth = selectedFieldKeys.reduce((sum, key) => sum + (columnWidths[key] || 50), 0);
+    const printableWidth = 802; // A4 landscape width (842) - 2 * margin (20)
+
+    const headers = selectedFieldKeys.map(key => ({
+        label: fieldMapping[key].label,
+        property: key,
+        width: Math.floor(((columnWidths[key] || 50) / totalDefaultWidth) * printableWidth)
+    }));
+
+    const datas = items.map(item => {
+        const rowData = {};
+        selectedFieldKeys.forEach(key => {
+            rowData[key] = String(fieldMapping[key].getValue(item) ?? '');
+        });
+        return rowData;
+    });
+
+    const table = {
+        title: "Property Inventory Report",
+        subtitle: `Generated on ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })} | Range: ${exportRange.replace('_', ' ').toUpperCase()}`,
+        headers,
+        datas
+    };
+
+    await doc.table(table, {
+        prepareHeader: () => doc.font("Helvetica-Bold").fontSize(7.5),
+        prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+            doc.font("Helvetica").fontSize(6.5);
+        }
+    });
+
+    doc.end();
+});
+
 const get_property_by_id = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
 
@@ -744,6 +943,7 @@ const delete_property = wrapAsync(async (req, res) => {
 
 module.exports = {
     get_all_properties,
+    export_properties,
     get_property_by_id,
     create_property,
     update_property,
