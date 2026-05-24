@@ -339,9 +339,9 @@ async function getLeadInsights(tenantId) {
             { $group: { _id: '$source', count: { $sum: 1 } } },
             { $sort: { count: -1 } }
         ]),
-        // Leads by city
+        // Leads by lead location, falling back to linked property city.
         Lead.aggregate([
-            { $match: { ...base, properties: { $exists: true, $not: { $size: 0 } } } },
+            { $match: base },
             {
                 $lookup: {
                     from: 'properties',
@@ -350,14 +350,24 @@ async function getLeadInsights(tenantId) {
                     as: 'propertyDocs'
                 }
             },
-            { $unwind: { path: '$propertyDocs', preserveNullAndEmptyArrays: false } },
+            { $unwind: { path: '$propertyDocs', preserveNullAndEmptyArrays: true } },
+            {
+                $project: {
+                    location_value: {
+                        $ifNull: [
+                            { $cond: [{ $ne: ['$location', ''] }, '$location', null] },
+                            '$propertyDocs.property_location.city'
+                        ]
+                    }
+                }
+            },
             {
                 $group: {
-                    _id: '$propertyDocs.property_location.city',
+                    _id: '$location_value',
                     count: { $sum: 1 }
                 }
             },
-            { $match: { _id: { $ne: '' } } },
+            { $match: { _id: { $nin: ['', null] } } },
             { $sort: { count: -1 } },
             { $limit: 10 }
         ]),

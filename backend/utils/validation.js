@@ -88,6 +88,7 @@ const leadSchemas = {
             broker_name: Joi.string().trim().allow('', null).optional(),
             broker_phone: Joi.string().trim().allow('', null).optional(),
             shared_details: Joi.string().trim().allow('', null).optional(),
+            location: Joi.string().trim().allow('', null).optional(),
             address: Joi.string().trim().allow('', null).optional(),
 
             // OPTIONAL - Property links
@@ -158,6 +159,7 @@ const leadSchemas = {
             broker_name: Joi.string().trim().allow('', null).optional(),
             broker_phone: Joi.string().trim().allow('', null).optional(),
             shared_details: Joi.string().trim().allow('', null).optional(),
+            location: Joi.string().trim().allow('', null).optional(),
             address: Joi.string().trim().allow('', null).optional(),
 
             // Property links
@@ -192,10 +194,51 @@ const leadSchemas = {
             priority: Joi.string().valid(...PRIORITIES).allow('', null).optional(),
             lead_type: Joi.string().valid(...LEAD_TYPES).allow('', null).optional(),
             property_type: Joi.string().valid(...PROPERTY_TYPES).allow('', null).optional(),
+            location: Joi.string().trim().allow('', null).optional(),
             search: Joi.string().trim().allow('', null).optional(),
             follow_up_due: Joi.string().valid('today', 'overdue', 'upcoming', 'true', '1').allow('', null).optional(),
             assigned_to: Joi.string().allow('', null).optional()
         })
+    }),
+
+    bulkDelete: Joi.object({
+        body: Joi.object({
+            leadIds: Joi.array().items(objectId).default([]),
+            startDate: Joi.date().iso().allow('', null).optional(),
+            endDate: Joi.date().iso().allow('', null).optional(),
+            confirmPermanent: Joi.boolean().valid(true).required().messages({
+                'any.only': 'Permanent delete confirmation is required',
+                'any.required': 'Permanent delete confirmation is required'
+            })
+        })
+            .custom((value, helpers) => {
+                const hasIds = Array.isArray(value.leadIds) && value.leadIds.length > 0;
+                const hasStart = !!value.startDate;
+                const hasEnd = !!value.endDate;
+
+                if (!hasIds && (!hasStart || !hasEnd)) {
+                    return helpers.error('any.custom', {
+                        message: 'Select leads or provide both startDate and endDate'
+                    });
+                }
+
+                if ((hasStart && !hasEnd) || (!hasStart && hasEnd)) {
+                    return helpers.error('any.custom', {
+                        message: 'Both startDate and endDate are required for interval delete'
+                    });
+                }
+
+                if (hasStart && hasEnd && new Date(value.startDate).getTime() > new Date(value.endDate).getTime()) {
+                    return helpers.error('any.custom', {
+                        message: 'startDate cannot be after endDate'
+                    });
+                }
+
+                return value;
+            })
+            .messages({
+                'any.custom': '{{#message}}'
+            })
     })
 };
 

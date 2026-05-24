@@ -69,6 +69,7 @@ const DEFAULT_STATE = {
     bathrooms: "",
     furnished_status: "unknown",
     maid_room: false,
+    location: "",
     address: "",
     plot_size_value: "",
     plot_size_unit: "sq.ft",
@@ -162,6 +163,7 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
             bathrooms: formData.bathrooms ? Number(formData.bathrooms) : undefined,
             furnished_status: formData.furnished_status,
             maid_room: formData.maid_room,
+            location: formData.location || undefined,
             address: formData.address || undefined,
             plot_size: formData.plot_size_value ? { value: Number(formData.plot_size_value), unit: formData.plot_size_unit } : undefined,
             built_up_area: formData.built_up_area_value ? { value: Number(formData.built_up_area_value), unit: formData.built_up_area_unit } : undefined,
@@ -295,8 +297,11 @@ const AddLeadModal = ({ isOpen, onClose, onAdd }) => {
                                 </div>
                             </InputField>
                         </div>
-                        <InputField label="Property Address" icon={FiMapPin}>
-                        <input name="address" value={formData.address} onChange={handleChange} placeholder="e.g. Downtown Dubai" className={inputCls} />
+                    <InputField label="Location" icon={FiMapPin}>
+                        <input name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Downtown Dubai, Business Bay" className={inputCls} />
+                    </InputField>
+                    <InputField label="Property Address" icon={FiMapPin}>
+                        <input name="address" value={formData.address} onChange={handleChange} placeholder="Tower, street, building details" className={inputCls} />
                     </InputField>
                 </div>
             </div>

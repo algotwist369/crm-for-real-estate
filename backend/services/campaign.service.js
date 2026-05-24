@@ -9,8 +9,9 @@ const renderTemplate = (template, lead) => {
     const variables = {
         name: lead.name || 'Lead',
         phone: lead.phone || '',
+        location: lead.location || lead.address || '',
         address: lead.address || '',
-        city: lead.address || '', // Alias for address
+        city: lead.location || lead.address || '', // Alias for lead location
         inquiry_for: lead.inquiry_for || '',
         project_name: lead.inquiry_for || '', // Alias for inquiry_for
         agent_name: lead.agent_name || (lead.assigned_to && lead.assigned_to.length > 0 ? lead.assigned_to[0].user_name : 'Unassigned')
@@ -50,7 +51,7 @@ const createCampaign = async (campaignData, userId, tenantId) => {
 
     // Fetch minimal lead data for rendering
     const leadsMinimal = await Lead.find({ _id: { $in: leadIds } })
-        .select('name phone address inquiry_for assigned_to')
+        .select('name phone location address inquiry_for assigned_to')
         .populate('assigned_to', 'user_name')
         .lean();
 

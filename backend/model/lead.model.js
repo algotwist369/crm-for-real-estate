@@ -183,8 +183,16 @@ const leadSchema = new mongoose.Schema({
         default: ''
     },
 
+    location: {
+        type: String,
+        trim: true,
+        default: '',
+        index: true
+    },
     address: {
-        type: String
+        type: String,
+        trim: true,
+        default: ''
     },
     // =========================
     // EXISTING PROPERTY LINK
@@ -347,6 +355,7 @@ leadSchema.index({ tenant_id: 1, email: 1 });
 leadSchema.index({ tenant_id: 1, phone: 1 });
 leadSchema.index({ tenant_id: 1, owner_name: 1 });
 leadSchema.index({ tenant_id: 1, broker_name: 1 });
+leadSchema.index({ tenant_id: 1, location: 1 });
 
 // Text Index for Fast Search
 leadSchema.index(
@@ -360,6 +369,7 @@ leadSchema.index(
         owner_name: 'text', 
         broker_name: 'text', 
         broker_phone: 'text', 
+        location: 'text',
         address: 'text' 
     },
     {

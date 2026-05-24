@@ -93,8 +93,12 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
             // 🚀 Senior Dev Strategy: Distributed Command Worker
             require('./jobs/whatsappWorker');
 
-            // Staggered boot: workers are ready, but we wait for manual user trigger to connect WhatsApp
-            // whatsappService.reconnectSessions() removed for 100% manual control
+            // Staggered boot reconnect is capped inside the service to avoid load spikes.
+            setTimeout(() => {
+                whatsappService.reconnectSessions().catch(err => {
+                    process.stderr.write(`Worker ${process.pid} - WhatsApp reconnect failed: ${err.message}\n`);
+                });
+            }, 10_000);
             
             reminderWorker = startFollowUpReminderWorker({
                 pollIntervalMs: Number(process.env.FOLLOWUP_WORKER_POLL_MS || 60_000),

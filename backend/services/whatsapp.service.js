@@ -19,6 +19,84 @@ const sessions = new Map(); // Store active socket instances per user
 const lastActive = new Map(); // Track last activity for pruning idle connections
 const initializingUsers = new Set();
 const reconnectAttempts = new Map(); // Track consecutive failures
+const QR_TTL_MS = 60 * 1000;
+const INIT_LOCK_TTL_MS = 2 * 60 * 1000;
+const IDLE_TIMEOUT_MS = Number(process.env.WHATSAPP_IDLE_TIMEOUT_MS || 45 * 60 * 1000);
+const MAX_SOCKET_RETRIES = Number(process.env.WHATSAPP_SOCKET_RETRIES || 5);
+const BOOT_RECONNECT_LIMIT = Number(process.env.WHATSAPP_BOOT_RECONNECT_LIMIT || 200);
+const BOOT_RECONNECT_MAX_AGE_DAYS = Number(process.env.WHATSAPP_BOOT_RECONNECT_MAX_AGE_DAYS || 7);
+
+const toKey = (userId) => userId.toString();
+
+const killSocket = (userId, shouldLogout = false) => {
+    const key = toKey(userId);
+    const sock = sessions.get(key);
+    if (!sock) return;
+
+    try {
+        sock.ev?.removeAllListeners();
+        if (shouldLogout && typeof sock.logout === 'function') {
+            sock.logout().catch(() => {});
+        }
+        sock.end?.();
+    } catch (e) {
+        logger.debug(`[Baileys] Ignored socket cleanup error for ${userId}: ${e.message}`);
+    }
+
+    sessions.delete(key);
+    lastActive.delete(key);
+};
+
+const clearRuntimeState = (userId) => {
+    const key = toKey(userId);
+    initializingUsers.delete(key);
+    reconnectAttempts.delete(key);
+    lastActive.delete(key);
+    lastInitTimes.delete(key);
+};
+
+let sessionIndexRepairPromise = null;
+
+const ensureWhatsAppSessionIndexes = async () => {
+    if (!sessionIndexRepairPromise) {
+        sessionIndexRepairPromise = (async () => {
+            try {
+                const indexes = await WhatsAppSession.collection.indexes();
+                const badSessionIdIndex = indexes.find(index =>
+                    index.name === 'sessionId_1' &&
+                    (
+                        index.unique === true ||
+                        index.sparse === true ||
+                        !index.partialFilterExpression
+                    )
+                );
+
+                if (badSessionIdIndex) {
+                    logger.warn('[Baileys] Dropping unsafe unique whatsappsessions.sessionId_1 index.');
+                    await WhatsAppSession.collection.dropIndex('sessionId_1');
+                }
+
+                await WhatsAppSession.collection.createIndex(
+                    { sessionId: 1 },
+                    {
+                        name: 'sessionId_1',
+                        partialFilterExpression: { sessionId: { $type: 'string' } }
+                    }
+                );
+            } catch (err) {
+                if (err.codeName !== 'NamespaceNotFound') {
+                    logger.error(`[Baileys] WhatsAppSession index repair failed: ${err.message}`);
+                    throw err;
+                }
+            }
+        })().catch(err => {
+            sessionIndexRepairPromise = null;
+            throw err;
+        });
+    }
+
+    return sessionIndexRepairPromise;
+};
 
 // // 🛡️ [Senior Dev Helper] Buffer Fixer for DB-restored credentials only
 const fixBuffers = (data) => {
@@ -176,14 +254,15 @@ const bindSocket = async ({
         lastActive.set(userId.toString(), Date.now());
 
         if (qr) {
+            const qrExpiresAt = new Date(Date.now() + QR_TTL_MS);
             logger.info(`[Baileys] QR Received for user ${userId}`);
             await WhatsAppSession.findOneAndUpdate(
                 { userId },
-                { userId, tenantId, status: 'qr_pending', qrCode: qr },
+                { userId, tenantId, status: 'qr_pending', qrCode: qr, qrExpiresAt, error: null },
                 { upsert: true }
             );
-            socketService.emitToUser(userId, 'whatsapp:qr', { qr });
-            socketService.emitToUser(userId, 'whatsapp:status', { status: 'qr_pending', message: 'QR Code Generated' });
+            socketService.emitToUser(userId, 'whatsapp:qr', { qr, qrExpiresAt });
+            socketService.emitToUser(userId, 'whatsapp:status', { status: 'qr_pending', message: 'QR Code Generated', qrExpiresAt });
             socketService.emitToUser(userId, 'whatsapp:log', { message: '📸 QR Code Received (Please Scan Now)' });
         }
 
@@ -199,6 +278,7 @@ const bindSocket = async ({
             });
 
             sessions.delete(userId.toString());
+            const hasRegisteredCreds = Boolean(auth?.creds?.registered);
 
             // ════════════════════════════════════════════════════════════
             // 🛡️ CRITICAL FIX: 515 = WhatsApp "Stream Reset" Signal
@@ -222,11 +302,39 @@ const bindSocket = async ({
                 return;
             }
 
+            if (!isLoggedOut && hasRegisteredCreds && retryCount < MAX_SOCKET_RETRIES) {
+                const attempt = retryCount + 1;
+                const backoffMs = Math.min(30000, 2000 * attempt);
+                reconnectAttempts.set(userId.toString(), attempt);
+                await WhatsAppSession.findOneAndUpdate(
+                    { userId },
+                    {
+                        status: 'reconnecting',
+                        qrCode: null,
+                        qrExpiresAt: null,
+                        reconnectAttempts: attempt,
+                        error: disconnectError?.message || `Connection closed (${statusCode || 'unknown'})`
+                    },
+                    { upsert: true }
+                );
+                socketService.emitToUser(userId, 'whatsapp:status', {
+                    status: 'reconnecting',
+                    message: 'WhatsApp connection interrupted. Reconnecting...'
+                });
+                await delay(backoffMs);
+                await bindSocket({
+                    userId, tenantId, auth, state, saveCreds, commitToDB,
+                    version, pinoLogger, makeWASocket, Browsers, DisconnectReason, delay,
+                    isSilentReconnect: true, retryCount: attempt
+                });
+                return;
+            }
+
             // Permanent logout (401/403) — wipe credentials and notify
             if (isLoggedOut || statusCode === 401 || statusCode === 403) {
                 logger.info(`[Baileys] Permanent logout for ${userId}. Wiping credentials.`);
                 await WhatsAppAuth.deleteOne({ userId });
-                await WhatsAppSession.findOneAndUpdate({ userId }, { status: 'disconnected', qrCode: null });
+                await WhatsAppSession.findOneAndUpdate({ userId }, { status: 'disconnected', qrCode: null, qrExpiresAt: null, error: null, reconnectAttempts: 0 });
                 socketService.emitToUser(userId, 'whatsapp:status', {
                     status: 'disconnected',
                     message: 'Session Expired. Please link your device again.'
@@ -239,7 +347,7 @@ const bindSocket = async ({
             // All other errors — release lock and notify user
             await WhatsAppSession.findOneAndUpdate(
                 { userId },
-                { status: 'disconnected', qrCode: null },
+                { status: 'disconnected', qrCode: null, qrExpiresAt: null, error: disconnectError?.message || `Connection closed (${statusCode || 'unknown'})`, reconnectAttempts: 0 },
                 { upsert: true }
             );
             socketService.emitToUser(userId, 'whatsapp:status', {
@@ -263,7 +371,7 @@ const bindSocket = async ({
             logger.info(`[Baileys] Connection opened for ${userId}`);
             await WhatsAppSession.findOneAndUpdate(
                 { userId },
-                { status: 'connected', qrCode: null, lastConnectedAt: new Date() },
+                { status: 'connected', qrCode: null, qrExpiresAt: null, lastConnectedAt: new Date(), error: null, reconnectAttempts: 0 },
                 { upsert: true }
             );
             socketService.emitToUser(userId, 'whatsapp:status', { status: 'connected', message: 'WhatsApp Connected!' });
@@ -281,9 +389,9 @@ const initWhatsAppSession = async (userId, tenantId, isAutoReconnect = false, fo
     const now = Date.now();
 
     const lastInitTime = lastInitTimes.get(userId.toString()) || 0;
-    const isLockStale = (now - lastInitTime) > 5 * 60 * 1000;
+    const isLockStale = (now - lastInitTime) > INIT_LOCK_TTL_MS;
 
-    if (initializingUsers.has(userId.toString()) && !isLockStale) {
+    if (initializingUsers.has(userId.toString()) && !isLockStale && !forceNew) {
         logger.debug(`[Baileys] Mutex active: Session for ${userId} is already initializing.`);
         return { status: 'initializing' };
     }
@@ -384,10 +492,168 @@ const initWhatsAppSession = async (userId, tenantId, isAutoReconnect = false, fo
     return { status: 'connecting', userId };
 };
 
+const startWhatsAppSession = async (userId, tenantId, isAutoReconnect = false, forceNew = false) => {
+    await ensureWhatsAppSessionIndexes();
+
+    const now = Date.now();
+    const key = toKey(userId);
+    const lastInitTime = lastInitTimes.get(key) || 0;
+    const isLockStale = (now - lastInitTime) > INIT_LOCK_TTL_MS;
+
+    if (initializingUsers.has(key) && !isLockStale && !forceNew) {
+        logger.debug(`[Baileys] Mutex active: Session for ${userId} is already initializing.`);
+        return { status: 'initializing' };
+    }
+
+    if (isLockStale) {
+        logger.warn(`[Baileys] Force-recovering stale lock for user ${userId}.`);
+        initializingUsers.delete(key);
+    }
+
+    let isSilentReconnect = false;
+
+    try {
+        const dbSession = await WhatsAppSession.findOne({ userId });
+
+        if (forceNew) {
+            killSocket(userId);
+            await Promise.all([
+                WhatsAppAuth.deleteOne({ userId }),
+                WhatsAppSession.findOneAndUpdate(
+                    { userId },
+                    {
+                        userId,
+                        tenantId,
+                        status: 'connecting',
+                        qrCode: null,
+                        qrExpiresAt: null,
+                        error: null,
+                        reconnectAttempts: 0
+                    },
+                    { upsert: true }
+                )
+            ]);
+        } else if (dbSession?.status === 'connected' || dbSession?.status === 'reconnecting') {
+            const existingSocket = sessions.get(key);
+            if (existingSocket) {
+                socketService.emitToUser(userId, 'whatsapp:status', { status: 'connected', message: 'WhatsApp Connected!' });
+                return { status: 'connected', userId };
+            }
+            isSilentReconnect = true;
+        }
+
+        if (isAutoReconnect && !isSilentReconnect) {
+            logger.debug(`[Baileys] Auto reconnect skipped for ${userId}: no connected DB session.`);
+            return { status: 'aborted' };
+        }
+    } catch (e) {
+        logger.error(`Error checking DB session: ${e.message}`);
+        if (isAutoReconnect) return { status: 'aborted' };
+    }
+
+    initializingUsers.add(key);
+    lastInitTimes.set(key, now);
+    killSocket(userId);
+
+    if (!isSilentReconnect) {
+        reconnectAttempts.delete(key);
+    }
+
+    try {
+        const {
+            default: makeWASocket,
+            DisconnectReason,
+            fetchLatestBaileysVersion,
+            makeCacheableSignalKeyStore,
+            Browsers,
+            delay
+        } = await getBaileys();
+
+        socketService.emitToUser(userId, 'whatsapp:log', { message: 'Initializing WhatsApp session...' });
+        logger.info(`[Baileys] Initializing session for user ${userId} (Silent: ${isSilentReconnect})`);
+
+        if (isSilentReconnect) {
+            await WhatsAppSession.findOneAndUpdate(
+                { userId },
+                { status: 'reconnecting', qrCode: null, qrExpiresAt: null, error: null },
+                { upsert: true }
+            );
+        } else {
+            await WhatsAppSession.findOneAndUpdate(
+                { userId },
+                { userId, tenantId, status: 'connecting', qrCode: null, qrExpiresAt: null, error: null, reconnectAttempts: 0 },
+                { upsert: true }
+            );
+        }
+
+        logger.info(`[Baileys] Setting up auth state...`);
+        const { state, saveCreds, commitToDB } = await useMongoDBAuthState(userId, tenantId);
+
+        logger.info(`[Baileys] Fetching latest WhatsApp version...`);
+        const versionPromise = fetchLatestBaileysVersion();
+        const timeoutPromise = new Promise(r => setTimeout(() => r({ version: [2, 3000, 1015901307], isLatest: false }), 5000));
+        const { version } = await Promise.race([versionPromise, timeoutPromise]);
+        logger.info(`[Baileys] Using version: ${version.join('.')}`);
+
+        const pinoLogger = pino({ level: 'warn' });
+        const auth = {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, pinoLogger)
+        };
+
+        logger.info(`[Baileys] Creating socket...`);
+        await bindSocket({
+            userId, tenantId, auth, state, saveCreds, commitToDB,
+            version, pinoLogger, makeWASocket, Browsers, DisconnectReason, delay,
+            isSilentReconnect, retryCount: 0
+        });
+    } catch (err) {
+        logger.error(`[Baileys] Fatal error for ${userId}: ${err.message}`);
+        initializingUsers.delete(key);
+        await WhatsAppSession.findOneAndUpdate(
+            { userId },
+            { userId, tenantId, status: 'disconnected', qrCode: null, qrExpiresAt: null, error: err.message, reconnectAttempts: 0 },
+            { upsert: true }
+        );
+        socketService.emitToUser(userId, 'whatsapp:status', { status: 'disconnected', error: err.message });
+    }
+
+    return { status: isSilentReconnect ? 'reconnecting' : 'connecting', userId };
+};
+
+const waitForSocket = async (userId, timeoutMs = 30000) => {
+    const startedAt = Date.now();
+    const key = toKey(userId);
+
+    while (Date.now() - startedAt < timeoutMs) {
+        const sock = sessions.get(key);
+        if (sock?.user || sock?.authState?.creds?.registered) return sock;
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    return sessions.get(key) || null;
+};
 
 const sendMessage = async (phone, message, userId, media = null) => {
-    const sock = sessions.get(userId.toString());
-    if (!sock) throw new Error('WhatsApp session not found. Please connect in your dashboard.');
+    let sock = sessions.get(userId.toString());
+
+    if (!sock) {
+        const [session, authDoc] = await Promise.all([
+            WhatsAppSession.findOne({ userId }).lean(),
+            WhatsAppAuth.findOne({ userId }).select('_id tenantId').lean()
+        ]);
+
+        if (!session || session.status !== 'connected' || !authDoc) {
+            throw new Error('WhatsApp session not found. Please connect in your dashboard.');
+        }
+
+        await startWhatsAppSession(userId, authDoc.tenantId || session.tenantId, true, false);
+        sock = await waitForSocket(userId, 30000);
+
+        if (!sock) {
+            throw new Error('WhatsApp is reconnecting. Please try again in a moment.');
+        }
+    }
 
     let cleanPhone = phone.toString().replace(/\D/g, '');
     const jid = `${cleanPhone}@s.whatsapp.net`;
@@ -408,6 +674,7 @@ const sendMessage = async (phone, message, userId, media = null) => {
         } else {
             await sock.sendMessage(jid, { text: message });
         }
+        lastActive.set(userId.toString(), Date.now());
         return true;
     } catch (err) {
         logger.error(`[Baileys] Send error for user ${userId}: ${err.message}`);
@@ -419,20 +686,18 @@ const logout = async (userId) => {
     logger.info(`[Baileys] Performing hard logout & state purge for user ${userId}`);
     
     // 🛡️ Kill in-memory socket and tracking immediately
-    const sock = sessions.get(userId.toString());
-    if (sock) {
+    const activeSock = sessions.get(userId.toString());
+    if (activeSock && typeof activeSock.logout === 'function') {
         try {
-            await sock.logout();
-            sock.end();
-        } catch (e) {}
-        sessions.delete(userId.toString());
+            await activeSock.logout();
+        } catch (e) {
+            logger.debug(`[Baileys] Logout handshake ignored for ${userId}: ${e.message}`);
+        }
     }
+    killSocket(userId);
 
     // 🧼 Hard Memory Slate: Ensure NO memory trackers persist for this user
-    initializingUsers.delete(userId.toString());
-    reconnectAttempts.delete(userId.toString());
-    lastActive.delete(userId.toString());
-    lastInitTimes.delete(userId.toString());
+    clearRuntimeState(userId);
 
     // 🧹 DB Purge (Definitive Cleanup) 
     await Promise.all([
@@ -448,15 +713,21 @@ const logout = async (userId) => {
 
 const reconnectSessions = async () => {
     try {
-        const connectedSessions = await WhatsAppSession.find({ status: 'connected' });
+        const recentCutoff = new Date(Date.now() - BOOT_RECONNECT_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
+        const connectedSessions = await WhatsAppSession.find({
+            status: 'connected',
+            lastConnectedAt: { $gte: recentCutoff }
+        })
+            .sort({ lastConnectedAt: -1 })
+            .limit(BOOT_RECONNECT_LIMIT);
         logger.info(`[Baileys] Auto-reconnecting ${connectedSessions.length} sessions...`);
         
-        // Use a staggered reconnection to prevent CPU/Network spikes for 1000+ users
+        // Stagger reconnects so boot does not spike CPU/network for large tenants.
         for (let i = 0; i < connectedSessions.length; i++) {
             const session = connectedSessions[i];
             setTimeout(() => {
-                initWhatsAppSession(session.userId, session.tenantId, true).catch(() => {});
-            }, i * 500); // 500ms delay between each connection
+                startWhatsAppSession(session.userId, session.tenantId, true).catch(() => {});
+            }, i * 1000);
         }
     } catch (err) {
         logger.error(`[Baileys] Error in reconnectSessions: ${err.message}`);
@@ -469,11 +740,10 @@ const reconnectSessions = async () => {
  * This ensures that if you have 1000 vendors but only 50 are active, you use 95% less RAM.
  */
 const pruneIdleSessions = () => {
-    const IDLE_TIMEOUT = 45 * 60 * 1000;
     const now = Date.now();
     
     for (const [userId, lastTime] of lastActive.entries()) {
-        if (now - lastTime > IDLE_TIMEOUT) {
+        if (now - lastTime > IDLE_TIMEOUT_MS) {
             const sock = sessions.get(userId);
             if (sock) {
                 logger.info(`[Baileys] Hibernating idle session for user ${userId} to save memory.`);
@@ -493,7 +763,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 module.exports = {
-    initWhatsAppSession,
+    initWhatsAppSession: startWhatsAppSession,
     reconnectSessions,
     sendMessage,
     logout

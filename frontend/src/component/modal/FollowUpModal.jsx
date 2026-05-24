@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FiX, FiCalendar, FiClock, FiSmartphone, FiMail, FiTarget, FiDollarSign, FiShare2 } from "react-icons/fi";
+import { FiX, FiCalendar, FiClock, FiSmartphone, FiMail, FiTarget, FiDollarSign, FiShare2, FiMapPin } from "react-icons/fi";
 import { useSetFollowUp, useCompleteFollowUp } from "../../hooks/useLeadHooks";
 
 const FOLLOWUP_PRESETS = [
@@ -201,6 +201,16 @@ const FollowUpModal = ({ isOpen, onClose, onSave, lead }) => {
                                             <span className="text-sm text-zinc-400">Budget Range</span>
                                         </div>
                                         <span className="text-sm text-zinc-200">{lead.budget}</span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-3 rounded bg-zinc-900/50 border border-zinc-800 gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <FiMapPin className="text-zinc-500" size={14} />
+                                            <span className="text-sm text-zinc-400">Location</span>
+                                        </div>
+                                        <span className="text-sm text-zinc-200 truncate max-w-[160px]" title={lead.location || lead.address || ""}>
+                                            {lead.location || lead.address || "Not set"}
+                                        </span>
                                     </div>
 
                                     <div className="flex items-center justify-between p-3 rounded bg-zinc-900/50 border border-zinc-800">

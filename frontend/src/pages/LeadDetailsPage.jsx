@@ -13,7 +13,9 @@ import {
     FiEdit,
     FiPlus,
     FiHome,
-    FiTrash2
+    FiTrash2,
+    FiMapPin,
+    FiAlertCircle
 } from "react-icons/fi";
 import { useLead, useUpdateLead, useDeleteLead } from "../hooks/useLeadHooks";
 import { useAuth } from "../context/AuthContext";
@@ -223,7 +225,7 @@ const LeadDetailsPage = () => {
                 <div className="p-8 space-y-10 bg-zinc-950/20">
                     
                     {/* Top Stats Row */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-zinc-900/30 border border-zinc-800 rounded-lg">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-zinc-900/30 border border-zinc-800 rounded-lg">
                         <div className="space-y-1">
                             <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Client Type</p>
                             <p className="text-sm font-medium text-white capitalize">{lead.client_type || "Buying"}</p>
@@ -236,6 +238,12 @@ const LeadDetailsPage = () => {
                             <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Source</p>
                             <p className="text-sm font-medium text-zinc-300 capitalize flex items-center gap-1.5">
                                 <FiShare2 size={12} className="text-zinc-500"/> {lead.source || "Website"}
+                            </p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Location</p>
+                            <p className="text-sm font-medium text-zinc-300 flex items-center gap-1.5">
+                                <FiMapPin size={12} className="text-zinc-500"/> {lead.location || lead.address || "Not set"}
                             </p>
                         </div>
                         <div className="space-y-1">
@@ -272,10 +280,11 @@ const LeadDetailsPage = () => {
                                             <p className="text-[10px] text-zinc-500 mb-1">Email Address</p>
                                             <p className="text-sm text-zinc-300 font-medium truncate">{lead.email || "Not Provided"}</p>
                                         </div>
-                                        {lead.address && (
+                                        {(lead.location || lead.address) && (
                                             <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg group hover:border-zinc-700 transition-colors">
                                                 <p className="text-[10px] text-zinc-500 mb-1">Location / Address</p>
-                                                <p className="text-sm text-zinc-300 font-medium">{lead.address}</p>
+                                                {lead.location && <p className="text-sm text-white font-medium">{lead.location}</p>}
+                                                {lead.address && <p className="text-xs text-zinc-400 mt-1">{lead.address}</p>}
                                             </div>
                                         )}
                                     </div>

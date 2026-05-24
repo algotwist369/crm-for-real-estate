@@ -67,7 +67,7 @@ export const SocketProvider = ({ children }) => {
                 }
             };
         }
-    }, [user, API_URL]);
+    }, [user, token, API_URL]);
 
     return (
         <SocketContext.Provider value={{

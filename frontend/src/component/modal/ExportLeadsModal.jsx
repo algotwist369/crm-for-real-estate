@@ -8,6 +8,7 @@ const fieldsOptions = [
     { key: "email", label: "Email" },
     { key: "phone", label: "Phone" },
     { key: "whatsapp_number", label: "WhatsApp" },
+    { key: "location", label: "Location" },
     { key: "lead_type", label: "Lead Type" },
     { key: "client_type", label: "Client Type" },
     { key: "budget", label: "Budget" },

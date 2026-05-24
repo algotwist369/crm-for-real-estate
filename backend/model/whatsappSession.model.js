@@ -5,8 +5,7 @@ const whatsappSessionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        unique: true,
-        index: true
+        unique: true
     },
     tenantId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -15,8 +14,7 @@ const whatsappSessionSchema = new mongoose.Schema({
     },
     sessionId: {
         type: String,
-        required: false, // 🛡️ [Senior Fix] May not exist during QR phase
-        index: true
+        required: false
     },
     status: {
         type: String,
@@ -25,10 +23,14 @@ const whatsappSessionSchema = new mongoose.Schema({
         index: true
     },
     qrCode: {
-        type: String // base64 or string
+        type: String
+    },
+    qrExpiresAt: {
+        type: Date,
+        index: true
     },
     sessionData: {
-        type: mongoose.Schema.Types.Mixed // store session object or credentials
+        type: mongoose.Schema.Types.Mixed
     },
     lastConnectedAt: {
         type: Date
@@ -38,10 +40,20 @@ const whatsappSessionSchema = new mongoose.Schema({
     },
     error: {
         type: String
+    },
+    reconnectAttempts: {
+        type: Number,
+        default: 0
     }
 }, { timestamps: true });
 
 whatsappSessionSchema.index({ userId: 1, status: 1 });
 whatsappSessionSchema.index({ tenantId: 1, status: 1 });
+whatsappSessionSchema.index(
+    { sessionId: 1 },
+    {
+        partialFilterExpression: { sessionId: { $type: 'string' } }
+    }
+);
 
 module.exports = mongoose.model('WhatsAppSession', whatsappSessionSchema);

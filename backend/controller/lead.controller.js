@@ -197,6 +197,7 @@ function buildLeadDocFromBody(body = {}) {
     const broker_name = body.broker_name !== undefined ? String(body.broker_name || '').trim() : undefined;
     const broker_phone = body.broker_phone !== undefined ? String(body.broker_phone || '').trim() : undefined;
     const shared_details = body.shared_details !== undefined ? String(body.shared_details || '').trim() : undefined;
+    const location = body.location !== undefined ? String(body.location || '').trim() : undefined;
     const address = body.address !== undefined ? String(body.address || '').trim() : undefined;
 
     // ── Source / UTM ─────────────────────────────────────────────────
@@ -256,6 +257,7 @@ function buildLeadDocFromBody(body = {}) {
         broker_name,
         broker_phone,
         shared_details,
+        location,
         address,
         // Relations
         properties,
@@ -287,6 +289,39 @@ async function cancelPendingReminders(leadId) {
         { lead: leadId, status: { $in: ['pending', 'processing', 'error'] } },
         { $set: { status: 'cancelled', cleanup_at: computeCleanupAt(new Date()) } }
     );
+}
+
+async function deleteRedisKeysByPattern(redis, pattern) {
+    let cursor = '0';
+    const keys = [];
+
+    do {
+        const [nextCursor, batch] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = nextCursor;
+        if (Array.isArray(batch) && batch.length) keys.push(...batch);
+    } while (cursor !== '0');
+
+    if (keys.length) await redis.del(...keys);
+}
+
+async function clearLeadCachesForTenants(tenantIds = []) {
+    const ids = uniqueStrings(tenantIds).map(String).filter(Boolean);
+    if (!ids.length) return;
+
+    try {
+        const redis = getRedisConnection();
+        const patterns = ids.flatMap(id => [
+            `status_groups_${id}_*`,
+            `report_stats_${id}`,
+            `report_overview_${id}`,
+            `report_agent_perf_${id}_*`,
+            `report_lead_insights_${id}`
+        ]);
+
+        await Promise.all(patterns.map(pattern => deleteRedisKeysByPattern(redis, pattern)));
+    } catch {
+        // Cache invalidation should never block the delete response.
+    }
 }
 
 async function scheduleFollowUpReminders({ lead, actionUserId }) {
@@ -346,6 +381,7 @@ const get_my_leads = wrapAsync(async (req, res) => {
     const priority = String(req.query?.priority ?? '').trim().toLowerCase();
     const lead_type = String(req.query?.lead_type ?? '').trim().toLowerCase();
     const property_type = String(req.query?.property_type ?? '').trim().toLowerCase();
+    const location = String(req.query?.location ?? '').trim();
     const search = String(req.query?.search ?? '').trim();
     const followUpDue = String(req.query?.follow_up_due ?? req.query?.followUpDue ?? '').trim().toLowerCase();
 
@@ -353,6 +389,7 @@ const get_my_leads = wrapAsync(async (req, res) => {
     if (priority) match.priority = priority;
     if (lead_type) match.lead_type = lead_type;
     if (property_type) match.property_type = property_type;
+    if (location) match.location = { $regex: escapeRegex(location), $options: 'i' };
 
     if (payload.role === 'agent') {
         const agentId = await getAgentIdFromUserId(user._id);
@@ -1013,6 +1050,63 @@ const delete_lead = wrapAsync(async (req, res) => {
     res.status(200).json({ success: true, message: 'Lead deleted successfully' });
 });
 
+const bulk_delete_leads = wrapAsync(async (req, res) => {
+    const { user, payload, tenant_id } = req.auth;
+    const leadIds = normalizeObjectIdArray(req.body?.leadIds || []);
+    const startDate = toDateOrUndefined(req.body?.startDate);
+    const endDateRaw = toDateOrUndefined(req.body?.endDate);
+
+    if (!['admin', 'super_admin'].includes(payload.role)) {
+        throw httpError(403, 'Only administrators can bulk delete leads');
+    }
+
+    const match = { is_active: true };
+    if (payload.role !== 'super_admin') match.tenant_id = tenant_id;
+
+    if (leadIds.length > 0) {
+        match._id = { $in: leadIds };
+    }
+
+    if (startDate && endDateRaw) {
+        const endDate = new Date(endDateRaw);
+        endDate.setHours(23, 59, 59, 999);
+        match.createdAt = { $gte: startDate, $lte: endDate };
+    } else if (leadIds.length === 0) {
+        throw httpError(400, 'Select leads or provide a valid date interval');
+    }
+
+    const leadsToDelete = await Lead.find(match).select('_id tenant_id').lean();
+    if (leadsToDelete.length === 0) {
+        return res.status(200).json({
+            success: true,
+            message: 'No matching leads found for bulk delete',
+            deleted_count: 0
+        });
+    }
+
+    const ids = leadsToDelete.map(lead => lead._id);
+    const affectedTenantIds = leadsToDelete.map(lead => lead.tenant_id);
+    const result = await Lead.deleteMany({ _id: { $in: ids } });
+
+    await Promise.all([
+        FollowUpReminder.deleteMany({ lead: { $in: ids } }),
+        CampaignMessage.deleteMany({ leadId: { $in: ids } }),
+        Campaign.updateMany(
+            { leads: { $in: ids } },
+            { $pull: { leads: { $in: ids } } }
+        )
+    ]);
+
+    await clearLeadCachesForTenants(affectedTenantIds);
+
+    const deletedCount = result.deletedCount || ids.length;
+    res.status(200).json({
+        success: true,
+        message: `${deletedCount} lead${deletedCount === 1 ? '' : 's'} permanently deleted`,
+        deleted_count: deletedCount
+    });
+});
+
 const export_leads = wrapAsync(async (req, res) => {
     const { user, payload, tenant_id } = req.auth;
     const type = String(req.query?.type || 'excel').toLowerCase();
@@ -1030,6 +1124,7 @@ const export_leads = wrapAsync(async (req, res) => {
         const priority = String(req.query?.priority ?? '').trim().toLowerCase();
         const lead_type = String(req.query?.lead_type ?? '').trim().toLowerCase();
         const property_type = String(req.query?.property_type ?? '').trim().toLowerCase();
+        const location = String(req.query?.location ?? '').trim();
         const search = String(req.query?.search ?? '').trim();
         const followUpDue = String(req.query?.follow_up_due ?? req.query?.followUpDue ?? '').trim().toLowerCase();
 
@@ -1037,6 +1132,7 @@ const export_leads = wrapAsync(async (req, res) => {
         if (priority) match.priority = priority;
         if (lead_type) match.lead_type = lead_type;
         if (property_type) match.property_type = property_type;
+        if (location) match.location = { $regex: escapeRegex(location), $options: 'i' };
 
         const now = new Date();
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1097,6 +1193,7 @@ const export_leads = wrapAsync(async (req, res) => {
         email: { label: 'Email', getValue: l => l.email || '' },
         phone: { label: 'Phone', getValue: l => l.phone || '' },
         whatsapp_number: { label: 'WhatsApp', getValue: l => l.whatsapp_number || '' },
+        location: { label: 'Location', getValue: l => l.location || '' },
         lead_type: { label: 'Lead Type', getValue: l => l.lead_type || '' },
         client_type: { label: 'Client Type', getValue: l => l.client_type || '' },
         budget: { label: 'Budget', getValue: l => l.budget || (l.budget_max ? `${l.currency || 'AED'} ${l.budget_min || 0} - ${l.budget_max}` : '') },
@@ -1169,6 +1266,7 @@ const export_leads = wrapAsync(async (req, res) => {
         email: 110,
         phone: 80,
         whatsapp_number: 80,
+        location: 90,
         lead_type: 60,
         client_type: 60,
         budget: 90,
@@ -1228,7 +1326,7 @@ const get_leads_minimal = wrapAsync(async (req, res) => {
     }
 
     const leads = await Lead.find(match)
-        .select('name phone inquiry_for assigned_to lead_type')
+        .select('name phone location inquiry_for assigned_to lead_type')
         .populate('assigned_to', 'user_name')
         .sort({ name: 1 })
         .lean();
@@ -1269,6 +1367,7 @@ const get_leads_minimal = wrapAsync(async (req, res) => {
             _id: lead._id,
             name: lead.name,
             phone: lead.phone,
+            location: lead.location || '',
             inquiry_for: lead.inquiry_for || '',
             type: lead.lead_type || '',
             agent_name: lead.assigned_to && lead.assigned_to.length > 0 ? lead.assigned_to[0].user_name : 'Unassigned',
@@ -1297,5 +1396,6 @@ module.exports = {
     agent_dashboard_summary,
     agent_activity_timeline,
     delete_lead,
+    bulk_delete_leads,
     export_leads
 };

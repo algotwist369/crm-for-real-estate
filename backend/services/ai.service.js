@@ -23,7 +23,7 @@ const generateVariation = async (template) => {
                     RULES:
                     1. Keep it CONCISE and impact-driven. Do NOT make it longer than the original.
                     2. Maintain a friendly yet professional tone.
-                    3. MANDATORY: Keep all placeholders like {{name}}, {{phone}}, {{address}}, {{inquiry_for}}, {{agent_name}} EXACTLY as they are. 
+                    3. MANDATORY: Keep all placeholders like {{name}}, {{phone}}, {{location}}, {{address}}, {{inquiry_for}}, {{agent_name}} EXACTLY as they are.
                     4. Do not change the core intent of the written message.
                     5. If a placeholder is not in the original message, do not add it.
                     6. Output ONLY the rewritten message, no preamble.`

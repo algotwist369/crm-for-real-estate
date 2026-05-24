@@ -52,7 +52,9 @@ export const useWhatsAppInit = () => {
             await queryClient.cancelQueries(['whatsapp-status']);
             queryClient.setQueryData(['whatsapp-status'], (old) => ({
                 ...old,
-                status: 'connecting'
+                status: 'connecting',
+                qrCode: null,
+                qrExpiresAt: null
             }));
             toast.loading('Initializing WhatsApp Handshake...', { id: 'whatsapp-init' });
         },
@@ -74,7 +76,9 @@ export const useWhatsAppRegenerate = () => {
             await queryClient.cancelQueries(['whatsapp-status']);
             queryClient.setQueryData(['whatsapp-status'], (old) => ({
                 ...old,
-                status: 'connecting'
+                status: 'connecting',
+                qrCode: null,
+                qrExpiresAt: null
             }));
             toast.loading('Regenerating Handshake...', { id: 'whatsapp-regen' });
         },
@@ -95,7 +99,9 @@ export const useWhatsAppLogout = () => {
         onSuccess: () => {
             queryClient.setQueryData(['whatsapp-status'], (old) => ({
                 ...old,
-                status: 'disconnected'
+                status: 'disconnected',
+                qrCode: null,
+                qrExpiresAt: null
             }));
             queryClient.invalidateQueries(['whatsapp-status']);
             toast.success('Logged out from WhatsApp');
@@ -144,6 +150,7 @@ export const useImportLeads = () => {
     return useMutation({
         mutationFn: campaignService.importLeads,
         onSuccess: (response) => {
+            queryClient.invalidateQueries(['leads']);
             queryClient.invalidateQueries(['leads-minimal']);
             toast.success(response.message || 'Leads imported successfully');
         },
@@ -152,4 +159,3 @@ export const useImportLeads = () => {
         }
     });
 };
-

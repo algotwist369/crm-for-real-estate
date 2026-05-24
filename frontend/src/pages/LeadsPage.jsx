@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../component/layout/AppLayout";
 import {
@@ -7,7 +7,9 @@ import {
     FiEye,
     FiMessageSquare,
     FiTrendingUp,
-    FiDownload
+    FiDownload,
+    FiMapPin,
+    FiUploadCloud
 } from "react-icons/fi";
 import { MdOutlineFactCheck } from "react-icons/md";
 import { CopyButton } from "../component/common/CopyButton";
@@ -19,11 +21,14 @@ import EditLeadModal from "../component/modal/EditLeadModal";
 import FollowUpModal from "../component/modal/FollowUpModal";
 import MarkLostModal from "../component/modal/MarkLostModal";
 import ExportLeadsModal from "../component/modal/ExportLeadsModal";
-import { useLeads, useUpdateLead, useDeleteLead } from "../hooks/useLeadHooks";
+import { useLeads, useUpdateLead, useDeleteLead, useBulkDeleteLeads } from "../hooks/useLeadHooks";
+import { useImportLeads } from "../hooks/useCampaignHooks";
+import campaignService from "../api/campaign.service";
 import { useAuth } from "../context/AuthContext";
+import toast from "react-hot-toast";
 
 /* ─── Table Columns ─── */
-const tableColumns = ["#", "Lead Info", "Lead / Prop Type", "Contact", "Requirement", "Budget", "Source", "Properties", "Priority", "Next Follow-up", "Status", "Actions"];
+const tableColumns = ["Select", "#", "Lead Info", "Lead / Prop Type", "Contact", "Location", "Requirement", "Budget", "Source", "Properties", "Priority", "Next Follow-up", "Status", "Actions"];
 
 /* ─── Filter Options ─── */
 const statusOptions = ["All", "New", "Contacted", "Qualified", "Follow_up", "Site_visit", "Negotiation", "Booked", "Converted", "Closed", "Lost", "Wasted", "Archived"];
@@ -46,6 +51,11 @@ const LeadsPage = () => {
     const [isMarkLostModalOpen, setIsMarkLostModalOpen] = useState(false);
     const [leadToMarkLost, setLeadToMarkLost] = useState(null);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [selectedLeadIds, setSelectedLeadIds] = useState([]);
+    const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+    const [bulkDeleteRange, setBulkDeleteRange] = useState({ startDate: "", endDate: "" });
+    const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState("");
+    const excelInputRef = useRef(null);
     const navigate = useNavigate();
 
     // Prepare filters for API with memoization to prevent object literal instability
@@ -60,11 +70,17 @@ const LeadsPage = () => {
 
     const { user } = useAuth();
     const isAdmin = ['admin', 'super_admin'].includes(user?.role);
+    const visibleTableColumns = useMemo(
+        () => isAdmin ? tableColumns : tableColumns.filter(col => col !== "Select"),
+        [isAdmin]
+    );
 
     const { data: leadsData, isLoading, refetch } = useLeads(filters);
 
     const updateLeadMutation = useUpdateLead();
     const deleteLeadMutation = useDeleteLead();
+    const bulkDeleteMutation = useBulkDeleteLeads();
+    const importLeadsMutation = useImportLeads();
 
     const leads = leadsData?.data || [];
     const totalPages = leadsData?.pagination?.pages || 1;
@@ -72,6 +88,8 @@ const LeadsPage = () => {
         total: 0, new: 0, contacted: 0, qualified: 0, 
         follow_up: 0, site_visit: 0, negotiation: 0, booked: 0, converted: 0, lost: 0, wasted: 0 
     };
+    const currentPageLeadIds = useMemo(() => leads.map(lead => lead._id), [leads]);
+    const allCurrentPageSelected = currentPageLeadIds.length > 0 && currentPageLeadIds.every(id => selectedLeadIds.includes(id));
 
     /* ─── Refresh Handler ─── */
     const handleRefresh = () => {
@@ -79,6 +97,7 @@ const LeadsPage = () => {
         setStatusFilter("All");
         setPriorityFilter("All");
         setLeadTypeFilter("All");
+        setSelectedLeadIds([]);
         setPage(1);
         refetch();
     };
@@ -120,23 +139,153 @@ const LeadsPage = () => {
         }
     };
 
+    const handleToggleLeadSelection = (id) => {
+        setSelectedLeadIds(prev => (
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        ));
+    };
+
+    const handleToggleCurrentPageSelection = () => {
+        setSelectedLeadIds(prev => {
+            if (allCurrentPageSelected) {
+                return prev.filter(id => !currentPageLeadIds.includes(id));
+            }
+            const next = new Set(prev);
+            currentPageLeadIds.forEach(id => next.add(id));
+            return Array.from(next);
+        });
+    };
+
+    const handleBulkDelete = async (e) => {
+        e.preventDefault();
+
+        const payload = {
+            leadIds: selectedLeadIds,
+            startDate: bulkDeleteRange.startDate || undefined,
+            endDate: bulkDeleteRange.endDate || undefined,
+            confirmPermanent: bulkDeleteConfirmText === "DELETE"
+        };
+
+        if (selectedLeadIds.length === 0 && (!payload.startDate || !payload.endDate)) {
+            toast.error("Select leads or choose both start and end dates.");
+            return;
+        }
+
+        if (bulkDeleteConfirmText !== "DELETE") {
+            toast.error('Type DELETE to confirm permanent deletion.');
+            return;
+        }
+
+        const scope = selectedLeadIds.length > 0
+            ? `${selectedLeadIds.length} selected lead${selectedLeadIds.length === 1 ? "" : "s"}`
+            : "all matching leads in the selected date interval";
+
+        if (!window.confirm(`Permanently delete ${scope}? This cannot be undone.`)) {
+            return;
+        }
+
+        await bulkDeleteMutation.mutateAsync(payload);
+        setSelectedLeadIds([]);
+        setBulkDeleteRange({ startDate: "", endDate: "" });
+        setBulkDeleteConfirmText("");
+        setIsBulkDeleteModalOpen(false);
+        setPage(1);
+        refetch();
+    };
+
+    const handleExcelTemplateDownload = async () => {
+        try {
+            toast.loading("Downloading template...", { id: "download-template" });
+            const blob = await campaignService.downloadTemplate();
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", "leads_import_template.xlsx");
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Template downloaded successfully", { id: "download-template" });
+        } catch (error) {
+            toast.error("Failed to download template", { id: "download-template" });
+        }
+    };
+
+    const handleExcelUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const fileExtension = file.name.split(".").pop()?.toLowerCase();
+        if (!["xlsx", "xls"].includes(fileExtension)) {
+            toast.error("Please upload an Excel file (.xlsx or .xls)");
+            if (excelInputRef.current) excelInputRef.current.value = "";
+            return;
+        }
+
+        const formDataExcel = new FormData();
+        formDataExcel.append("file", file);
+
+        try {
+            await importLeadsMutation.mutateAsync(formDataExcel);
+            setPage(1);
+            refetch();
+        } finally {
+            if (excelInputRef.current) excelInputRef.current.value = "";
+        }
+    };
+
     return (
         <AppLayout>
             {/* Header Actions */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                     <h2 className="text-xl font-medium text-white mb-1">Lead Pipeline</h2>
-                    <p className="text-sm text-zinc-400">Track and manage your potential property buyers</p>
+                    <p className="text-sm text-zinc-400">Track and manage your potential property leads by location and status</p>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <RefreshButton onClick={handleRefresh} />
+                    <button
+                        onClick={handleExcelTemplateDownload}
+                        className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-sm font-medium rounded flex items-center gap-2 transition-colors h-10"
+                        title="Download Excel import template"
+                    >
+                        <FiDownload size={16} /> Template
+                    </button>
+                    <input
+                        ref={excelInputRef}
+                        type="file"
+                        className="hidden"
+                        accept=".xlsx,.xls"
+                        onChange={handleExcelUpload}
+                    />
+                    <button
+                        onClick={() => excelInputRef.current?.click()}
+                        disabled={importLeadsMutation.isPending}
+                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-sm font-medium rounded flex items-center gap-2 transition-colors h-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <FiUploadCloud size={16} /> {importLeadsMutation.isPending ? "Importing..." : "Import Excel"}
+                    </button>
                     <button
                         onClick={() => setIsExportModalOpen(true)}
                         className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-sm font-medium rounded flex items-center gap-2 transition-colors h-10"
                     >
                         <FiDownload size={16} /> Export
                     </button>
+                    {isAdmin && (
+                        <button
+                            onClick={() => setIsBulkDeleteModalOpen(true)}
+                            className="px-4 py-2 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 text-sm font-medium rounded flex items-center gap-2 transition-colors h-10"
+                            title="Bulk delete selected leads or leads in a date interval"
+                        >
+                            <FiTrash2 size={16} /> Bulk Delete
+                            {selectedLeadIds.length > 0 && (
+                                <span className="ml-1 min-w-5 h-5 px-1 rounded-full bg-red-500/20 text-[10px] flex items-center justify-center">
+                                    {selectedLeadIds.length}
+                                </span>
+                            )}
+                        </button>
+                    )}
                     <button
                         onClick={() => setIsAddModalOpen(true)}
                         className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded flex items-center justify-center transition-colors h-10"
@@ -215,7 +364,7 @@ const LeadsPage = () => {
                     <SearchFilter
                         searchValue={search}
                         onSearchChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        searchPlaceholder="Search leads by name, phone or requirement..."
+                        searchPlaceholder="Search leads by name, phone, location or requirement..."
                     />
                 </div>
 
@@ -254,12 +403,21 @@ const LeadsPage = () => {
                     ) : leads.length === 0 ? (
                         <div className="p-8 text-center text-zinc-500 text-sm">No leads found matching your criteria.</div>
                     ) : (
-                    <table className="w-full text-left border-collapse min-w-[1100px]">
+                    <table className="w-full text-left border-collapse min-w-[1250px]">
                         <thead>
                             <tr className="border-b border-zinc-800 bg-zinc-900/50 text-zinc-400 text-xs text-left">
-                                {tableColumns.map((col, idx) => (
+                                {visibleTableColumns.map((col, idx) => (
                                     <th key={idx} className="p-3 font-medium tracking-wide whitespace-nowrap">
-                                        {col}
+                                        {col === "Select" ? (
+                                            <input
+                                                type="checkbox"
+                                                checked={allCurrentPageSelected}
+                                                onChange={handleToggleCurrentPageSelection}
+                                                disabled={!isAdmin}
+                                                title="Select all leads on this page"
+                                                className="w-4 h-4 rounded border border-zinc-700 bg-zinc-950 checked:accent-red-500 disabled:opacity-40"
+                                            />
+                                        ) : col}
                                     </th>
                                 ))}
                             </tr>
@@ -272,6 +430,17 @@ const LeadsPage = () => {
                                     key={lead._id}
                                     className={isWasted ? "opacity-60 bg-zinc-900/40" : ""}
                                 >
+                                    {isAdmin && (
+                                        <td className="p-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedLeadIds.includes(lead._id)}
+                                                onChange={() => handleToggleLeadSelection(lead._id)}
+                                                className="w-4 h-4 rounded border border-zinc-700 bg-zinc-950 checked:accent-red-500"
+                                            />
+                                        </td>
+                                    )}
+
                                     <td className="p-3 text-zinc-500">
                                         {(page - 1) * rowsPerPage + index + 1}
                                     </td>
@@ -308,6 +477,13 @@ const LeadsPage = () => {
                                                     {lead.email}
                                                 </div>
                                             )}
+                                        </div>
+                                    </td>
+
+                                    <td className="p-3">
+                                        <div className="flex items-center gap-1.5 text-xs text-zinc-400 max-w-[150px]" title={lead.location || lead.address || ""}>
+                                            <FiMapPin size={13} className="text-zinc-600 shrink-0" />
+                                            <span className="truncate">{lead.location || lead.address || "Not set"}</span>
                                         </div>
                                     </td>
 
@@ -519,6 +695,89 @@ const LeadsPage = () => {
                     onClose={() => setIsExportModalOpen(false)}
                     activeFilters={filters}
                 />
+            )}
+
+            {isBulkDeleteModalOpen && isAdmin && (
+                <div className="fixed inset-0 bg-zinc-950/85 z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-lg w-full max-w-lg overflow-hidden shadow-2xl">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+                            <div>
+                                <h2 className="text-base font-semibold text-white">Bulk Delete Leads</h2>
+                                <p className="text-[11px] text-zinc-500 mt-0.5">Permanently delete selected leads or every lead added in a date interval.</p>
+                            </div>
+                            <button onClick={() => setIsBulkDeleteModalOpen(false)} className="text-zinc-500 hover:text-white">
+                                <FiTrash2 size={18} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleBulkDelete} className="p-6 space-y-5">
+                            <div className="rounded border border-zinc-800 bg-zinc-950/40 p-4">
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Selected Leads</p>
+                                    <p className="text-sm text-zinc-300">
+                                    {selectedLeadIds.length > 0
+                                        ? `${selectedLeadIds.length} manually selected lead${selectedLeadIds.length === 1 ? "" : "s"}`
+                                        : "No manual selection. Date interval will decide the delete scope."}
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block mb-2">Start Date</label>
+                                    <input
+                                        type="date"
+                                        value={bulkDeleteRange.startDate}
+                                        onChange={(e) => setBulkDeleteRange(prev => ({ ...prev, startDate: e.target.value }))}
+                                        className="w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 focus:outline-none focus:border-zinc-600"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block mb-2">End Date</label>
+                                    <input
+                                        type="date"
+                                        value={bulkDeleteRange.endDate}
+                                        onChange={(e) => setBulkDeleteRange(prev => ({ ...prev, endDate: e.target.value }))}
+                                        className="w-full bg-zinc-950 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 focus:outline-none focus:border-zinc-600"
+                                    />
+                                </div>
+                            </div>
+
+                            <p className="text-xs text-zinc-500 leading-relaxed">
+                                This permanently removes lead records and related follow-up reminders/campaign lead messages from the database. With selected leads, dates are optional and will narrow the selected set. Without selected leads, both dates are required.
+                            </p>
+
+                            <div>
+                                <label className="text-[10px] text-red-400 tracking-widest font-bold block mb-2">Type DELETE to confirm</label>
+                                <input
+                                    value={bulkDeleteConfirmText}
+                                    onChange={(e) => setBulkDeleteConfirmText(e.target.value)}
+                                    placeholder="DELETE"
+                                    className="w-full bg-zinc-950 border border-red-500/20 text-white text-sm rounded px-3 py-2.5 focus:outline-none focus:border-red-500"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-3 pt-3 border-t border-zinc-800">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsBulkDeleteModalOpen(false);
+                                        setBulkDeleteConfirmText("");
+                                    }}
+                                    disabled={bulkDeleteMutation.isPending}
+                                    className="flex-1 px-4 py-2 border border-zinc-800 text-zinc-400 text-xs font-medium rounded hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={bulkDeleteMutation.isPending || bulkDeleteConfirmText !== "DELETE"}
+                                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded transition-colors disabled:opacity-50"
+                                >
+                                    {bulkDeleteMutation.isPending ? "Deleting..." : "Permanently Delete"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </AppLayout>
     );

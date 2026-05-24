@@ -184,3 +184,19 @@ export const useDeleteLead = () => {
         },
     });
 };
+
+export const useBulkDeleteLeads = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data) => leadService.bulkDeleteLeads(data),
+        onSuccess: (response) => {
+            queryClient.invalidateQueries(["leads"]);
+            queryClient.invalidateQueries(["leads-minimal"]);
+            queryClient.invalidateQueries(["dashboard", "agent-summary"]);
+            toast.success(response.message || "Leads deleted successfully");
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || "Failed to bulk delete leads");
+        },
+    });
+};

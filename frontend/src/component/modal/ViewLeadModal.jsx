@@ -1,5 +1,5 @@
 import React from "react";
-import { FiX, FiUser, FiSmartphone, FiTarget, FiDollarSign, FiShare2, FiHome, FiCalendar, FiClock, FiMessageSquare } from "react-icons/fi";
+import { FiX, FiUser, FiSmartphone, FiTarget, FiDollarSign, FiShare2, FiHome, FiCalendar, FiClock, FiMessageSquare, FiMapPin } from "react-icons/fi";
 
 const ViewLeadModal = ({ isOpen, onClose, lead }) => {
     if (!isOpen || !lead) return null;
@@ -97,6 +97,10 @@ const ViewLeadModal = ({ isOpen, onClose, lead }) => {
                             <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Source</p>
                             <span className="text-sm font-medium text-zinc-300 capitalize flex items-center gap-1.5"><FiShare2 size={12} className="text-zinc-500"/> {lead.source || "Website"}</span>
                         </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Location</p>
+                            <span className="text-sm font-medium text-zinc-300 flex items-center gap-1.5"><FiMapPin size={12} className="text-zinc-500"/> {lead.location || lead.address || "Not set"}</span>
+                        </div>
                     </div>
 
                     {/* Contact Info */}
@@ -123,10 +127,11 @@ const ViewLeadModal = ({ isOpen, onClose, lead }) => {
                                     <p className="text-[10px] text-zinc-500 mb-1">Email Address</p>
                                     <p className="text-sm text-white font-medium truncate">{lead.email || "Not Provided"}</p>
                                 </div>
-                                {lead.address && (
+                                {(lead.location || lead.address) && (
                                 <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded">
                                     <p className="text-[10px] text-zinc-500 mb-1">Location / Address</p>
-                                    <p className="text-sm text-zinc-300">{lead.address}</p>
+                                    {lead.location && <p className="text-sm text-white font-medium">{lead.location}</p>}
+                                    {lead.address && <p className="text-xs text-zinc-400 mt-1">{lead.address}</p>}
                                 </div>
                                 )}
                             </div>

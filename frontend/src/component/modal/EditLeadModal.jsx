@@ -95,6 +95,7 @@ const EditLeadModal = ({ isOpen, onClose, onUpdate, lead }) => {
                 bathrooms: lead.bathrooms || "",
                 furnished_status: lead.furnished_status || "unknown",
                 maid_room: !!lead.maid_room,
+                location: lead.location || "",
                 address: lead.address || "",
                 plot_size_value: lead.plot_size?.value || "",
                 plot_size_unit: lead.plot_size?.unit || "sq.ft",
@@ -168,6 +169,7 @@ const EditLeadModal = ({ isOpen, onClose, onUpdate, lead }) => {
             bathrooms: formData.bathrooms ? Number(formData.bathrooms) : undefined,
             furnished_status: formData.furnished_status,
             maid_room: formData.maid_room,
+            location: formData.location || undefined,
             address: formData.address || undefined,
             plot_size: formData.plot_size_value ? { value: Number(formData.plot_size_value), unit: formData.plot_size_unit } : undefined,
             built_up_area: formData.built_up_area_value ? { value: Number(formData.built_up_area_value), unit: formData.built_up_area_unit } : undefined,
@@ -300,8 +302,11 @@ const EditLeadModal = ({ isOpen, onClose, onUpdate, lead }) => {
                             </div>
                         </InputField>
                     </div>
+                    <InputField label="Location" icon={FiMapPin}>
+                        <input name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Downtown Dubai, Business Bay" className={inputCls} />
+                    </InputField>
                     <InputField label="Property Address" icon={FiMapPin}>
-                        <input name="address" value={formData.address} onChange={handleChange} placeholder="e.g. Downtown Dubai" className={inputCls} />
+                        <input name="address" value={formData.address} onChange={handleChange} placeholder="Tower, street, building details" className={inputCls} />
                     </InputField>
                 </div>
             </div>

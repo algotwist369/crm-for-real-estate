@@ -7,6 +7,7 @@ import { FiMessageSquare, FiMail, FiCheckCircle, FiInfo, FiLogOut, FiZap, FiChec
 import { QRCodeSVG } from 'qrcode.react';
 import { IoArrowBackCircleOutline } from "react-icons/io5";
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const CampaignSettingsPage = () => {
     const navigate = useNavigate();
@@ -15,7 +16,7 @@ const CampaignSettingsPage = () => {
         whatsappStatus: socketStatus, 
         isSocketConnected, 
         isSyncing, 
-        syncStatus,
+        fetchStatus,
         logs // 🛡️ Diagnostic Logs from Context
     } = useOutreach();
 
@@ -148,13 +149,13 @@ const CampaignSettingsPage = () => {
                                             {whatsappLogoutMutation.isPending ? 'Logging out...' : 'Disconnect Account'}
                                         </button>
                                     </div>
-                                ) : (whatsappStatus === 'connecting' || whatsappStatus === 'qr_pending') && qrCode ? (
+                                ) : (whatsappStatus === 'connecting' || whatsappStatus === 'qr_pending' || whatsappStatus === 'reconnecting') && qrCode ? (
                                     <div className="max-w-sm text-center">
                                         <div className="bg-white p-4 rounded-lg mb-6 inline-block shadow-[0_0_30px_rgba(255,255,255,0.05)] border-4 border-zinc-900">
                                             <QRCodeSVG value={qrCode} size={200} />
                                         </div>
                                         <h3 className="text-lg font-bold text-white mb-2">Scan QR Code</h3>
-                                        {whatsappStatus === 'connecting' && (
+                                        {(whatsappStatus === 'connecting' || whatsappStatus === 'reconnecting') && (
                                             <div className="flex items-center justify-center gap-2 mb-4 text-yellow-500 animate-pulse">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
                                                 <span className="text-[10px] font-bold uppercase tracking-widest">Refreshing Link...</span>
@@ -176,34 +177,34 @@ const CampaignSettingsPage = () => {
                                 ) : (
                                     <div className="max-w-sm">
                                         <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800">
-                                            {whatsappStatus === 'connecting' ? (
+                                            {(whatsappStatus === 'connecting' || whatsappStatus === 'reconnecting') ? (
                                                 <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
                                             ) : (
                                                 <FiMessageSquare className="text-3xl text-zinc-700" />
                                             )}
                                         </div>
                                         <h3 className="text-lg font-bold text-white mb-2">
-                                            {whatsappStatus === 'connecting' ? 'Handshaking...' : 'No Active Session'}
+                                            {whatsappStatus === 'connecting' ? 'Handshaking...' : whatsappStatus === 'reconnecting' ? 'Reconnecting...' : 'No Active Session'}
                                         </h3>
                                         <p className="text-zinc-500 text-sm mb-8">
-                                            {whatsappStatus === 'connecting' 
+                                            {whatsappStatus === 'connecting' || whatsappStatus === 'reconnecting'
                                                 ? 'Establishing a secure link. If this takes too long, manual sync or reset.'
                                                 : 'Connect your WhatsApp to enable direct messaging to your leads.'}
                                         </p>
                                         <div className="flex flex-col gap-3">
                                             <button 
                                                 onClick={() => whatsappInitMutation.mutate()}
-                                                disabled={whatsappInitMutation.isPending || whatsappStatus === 'connecting'}
+                                                disabled={whatsappInitMutation.isPending || whatsappStatus === 'connecting' || whatsappStatus === 'reconnecting'}
                                                 className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded font-bold text-sm transition-all shadow-lg active:transform active:scale-95 disabled:opacity-50"
                                             >
                                                 {whatsappInitMutation.isPending ? 'Queuing Link...' : 
-                                                 whatsappStatus === 'connecting' ? 'Handshaking (Connecting)...' : 'Link WhatsApp Device'}
+                                                 whatsappStatus === 'connecting' || whatsappStatus === 'reconnecting' ? 'Handshaking (Connecting)...' : 'Link WhatsApp Device'}
                                             </button>
                                             
-                                            {(whatsappStatus === 'connecting' || whatsappStatus === 'disconnected' || whatsappStatus === 'qr_pending') && (
+                                            {(whatsappStatus === 'connecting' || whatsappStatus === 'disconnected' || whatsappStatus === 'qr_pending' || whatsappStatus === 'reconnecting') && (
                                                 <div className="pt-2 space-y-3">
                                                     <button 
-                                                        onClick={() => syncStatus()}
+                                                        onClick={() => fetchStatus()}
                                                         className="w-full flex items-center justify-center gap-2 py-2.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors bg-zinc-900/50 border border-zinc-800 rounded"
                                                     >
                                                         <FiRefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} /> 

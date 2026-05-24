@@ -24,9 +24,10 @@ export const OutreachProvider = ({ children }) => {
         setLogs(prev => [{ time, message }, ...prev].slice(0, 15));
     }, []);
 
-    const fetchStatus = React.useCallback(() => {
-        if (!user) return;
-        campaignService.getWhatsAppStatus()
+    const fetchStatus = React.useCallback(async (silent = false) => {
+        if (!user) return null;
+        if (!silent) setSyncStatus('syncing');
+        return campaignService.getWhatsAppStatus()
             .then(res => {
                 if (res.success) {
                     whatsappStatusRef.current = res.status;
@@ -37,20 +38,38 @@ export const OutreachProvider = ({ children }) => {
                         isInitialMountRef.current = false;
                     }
 
-                    if (res.status === 'qr_pending') {
+                    if (res.status === 'qr_pending' && res.qrCode) {
                         setQrCode(res.qrCode);
-                    } else if (res.status === 'connected') {
+                    } else if (['connected', 'disconnected', 'expired'].includes(res.status)) {
                         setQrCode(null);
                     }
                 }
+                return res;
             })
-            .catch(err => console.error('Failed to fetch WhatsApp status:', err));
+            .catch(err => {
+                console.error('Failed to fetch WhatsApp status:', err);
+                return null;
+            })
+            .finally(() => {
+                if (!silent) setSyncStatus('idle');
+            });
     }, [user]);
 
     useEffect(() => {
-        if (socket && user) {
+        if (user) {
             fetchStatus();
+        }
+    }, [user, fetchStatus]);
 
+    useEffect(() => {
+        if (['connecting', 'qr_pending', 'reconnecting'].includes(whatsappStatus)) {
+            const interval = setInterval(() => fetchStatus(true), 3000);
+            return () => clearInterval(interval);
+        }
+    }, [whatsappStatus, fetchStatus]);
+
+    useEffect(() => {
+        if (socket && user) {
             socket.on('whatsapp:status', (data) => {
                 const nextStatus = data.status;
                 
@@ -65,7 +84,7 @@ export const OutreachProvider = ({ children }) => {
                 whatsappStatusRef.current = nextStatus;
                 setWhatsappStatus(nextStatus);
                 
-                if (nextStatus === 'connected' || nextStatus === 'disconnected') {
+                if (['connected', 'disconnected', 'expired'].includes(nextStatus)) {
                     setQrCode(null);
                 }
             });

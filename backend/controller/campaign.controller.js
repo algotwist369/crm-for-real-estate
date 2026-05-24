@@ -57,7 +57,7 @@ const initWhatsApp = async (req, res, next) => {
             type: 'INIT',
             userId,
             tenantId
-        }, { jobId: userId.toString() });
+        }, { jobId: `whatsapp-init:${userId}:${Date.now()}` });
 
         res.status(200).json({
             success: true,
@@ -83,7 +83,7 @@ const regenerateWhatsAppQR = async (req, res, next) => {
             type: 'REGENERATE',
             userId,
             tenantId
-        }, { jobId: userId.toString() });
+        }, { jobId: `whatsapp-regenerate:${userId}:${Date.now()}` });
 
         res.status(200).json({
             success: true,
@@ -113,11 +113,31 @@ const logoutWhatsApp = async (req, res, next) => {
 const getWhatsAppStatus = async (req, res, next) => {
     try {
         const userId = req.auth.user._id;
-        const session = await WhatsAppSession.findOne({ userId });
+        let session = await WhatsAppSession.findOne({ userId });
+
+        if (session?.status === 'qr_pending' && session.qrExpiresAt && session.qrExpiresAt < new Date()) {
+            session = await WhatsAppSession.findOneAndUpdate(
+                { userId },
+                { status: 'disconnected', qrCode: null, qrExpiresAt: null, error: 'QR code expired' },
+                { returnDocument: 'after' }
+            );
+        }
+
+        if (session?.status === 'connecting' && session.updatedAt && (Date.now() - session.updatedAt.getTime()) > 2 * 60 * 1000) {
+            session = await WhatsAppSession.findOneAndUpdate(
+                { userId },
+                { status: 'disconnected', qrCode: null, qrExpiresAt: null, error: 'Connection timed out' },
+                { returnDocument: 'after' }
+            );
+        }
+
         res.status(200).json({
             success: true,
             status: session?.status || 'disconnected',
-            qrCode: session?.qrCode || null
+            qrCode: session?.qrCode || null,
+            qrExpiresAt: session?.qrExpiresAt || null,
+            error: session?.error || null,
+            reconnectAttempts: session?.reconnectAttempts || 0
         });
     } catch (error) {
         next(error);
@@ -200,6 +220,7 @@ const downloadTemplate = async (req, res, next) => {
             { header: 'Name', key: 'name', width: 20 },
             { header: 'Phone', key: 'phone', width: 20 },
             { header: 'Type', key: 'type', width: 15 },
+            { header: 'Location', key: 'location', width: 25 },
             { header: 'Inquiry For', key: 'inquiry_for', width: 25 },
             { header: 'Client Type', key: 'client_type', width: 15 },
             { header: 'Priority', key: 'priority', width: 15 },
@@ -219,6 +240,7 @@ const downloadTemplate = async (req, res, next) => {
             name: 'John Doe',
             phone: '+971501234567',
             type: 'buyer',
+            location: 'Downtown Dubai',
             inquiry_for: 'Burj Khalifa',
             client_type: 'buying',
             priority: 'high',
@@ -230,10 +252,11 @@ const downloadTemplate = async (req, res, next) => {
             name: 'Jane Smith',
             phone: '+971507654321',
             type: 'tenant',
+            location: 'Business Bay',
             inquiry_for: 'Downtown Views',
             client_type: 'renting',
             priority: 'medium',
-            status: 'contact_in_progress',
+            status: 'contacted',
             remarks: 'Requires fully furnished penthouse on rent.'
         });
 
@@ -282,11 +305,12 @@ const importLeads = async (req, res, next) => {
             const name = String(row.getCell(1).value || '').trim();
             let rawPhone = String(row.getCell(2).value || '').trim();
             const type = String(row.getCell(3).value || 'buyer').trim().toLowerCase();
-            const inquiry_for = String(row.getCell(4).value || '').trim();
-            const client_type = String(row.getCell(5).value || 'buying').trim().toLowerCase();
-            const priority = String(row.getCell(6).value || 'medium').trim().toLowerCase();
-            const status = String(row.getCell(7).value || 'new').trim().toLowerCase();
-            const remarks = String(row.getCell(8).value || '').trim();
+            const location = String(row.getCell(4).value || '').trim();
+            const inquiry_for = String(row.getCell(5).value || '').trim();
+            const client_type = String(row.getCell(6).value || 'buying').trim().toLowerCase();
+            const priority = String(row.getCell(7).value || 'medium').trim().toLowerCase();
+            const status = String(row.getCell(8).value || 'new').trim().toLowerCase();
+            const remarks = String(row.getCell(9).value || '').trim();
 
             if (!name || !rawPhone) {
                 skippedRows.push({ row: rowNumber, reason: 'Name or Phone is missing' });
@@ -304,13 +328,27 @@ const importLeads = async (req, res, next) => {
             const leadTypeEnum = ['buyer', 'seller', 'owner', 'tenant', 'investor', 'listing', 'broker', 'other'].includes(type) ? type : 'buyer';
             const clientTypeEnum = ['buying', 'renting', 'investing', 'selling', 'other'].includes(client_type) ? client_type : 'buying';
             const priorityEnum = ['low', 'medium', 'high'].includes(priority) ? priority : 'medium';
-            const statusEnum = ['new', 'contact_in_progress', 'follow_up', 'converted', 'lost'].includes(status) ? status : 'new';
+            const statusEnum = [
+                'new',
+                'contacted',
+                'qualified',
+                'follow_up',
+                'site_visit',
+                'negotiation',
+                'booked',
+                'converted',
+                'lost',
+                'wasted',
+                'closed',
+                'archived'
+            ].includes(status) ? status : 'new';
 
             importedLeads.push({
                 name,
                 phone,
                 lead_type: leadTypeEnum,
                 client_type: clientTypeEnum,
+                location,
                 inquiry_for,
                 requirement: inquiry_for,
                 priority: priorityEnum,
@@ -342,6 +380,7 @@ const importLeads = async (req, res, next) => {
                     lead.inquiry_for = leadData.inquiry_for;
                     lead.requirement = leadData.inquiry_for;
                 }
+                if (leadData.location) lead.location = leadData.location;
                 lead.priority = leadData.priority;
                 lead.status = leadData.status;
                 if (leadData.remarks) lead.remarks = leadData.remarks;
@@ -388,4 +427,3 @@ module.exports = {
     downloadTemplate,
     importLeads
 };
-

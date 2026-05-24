@@ -117,6 +117,7 @@ const CreateCampaignPage = () => {
                 !searchTerm ||
                 lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                lead.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 lead.inquiry_for?.toLowerCase().includes(searchTerm.toLowerCase());
 
             const matchesType = 
@@ -421,6 +422,7 @@ const CreateCampaignPage = () => {
                                         {[
                                             { label: 'Name', key: 'name' },
                                             { label: 'Phone', key: 'phone' },
+                                            { label: 'Location', key: 'location' },
                                             { label: 'Project Name', key: 'inquiry_for' },
                                             { label: 'Agent Name', key: 'agent_name' }
                                         ].map(v => (
@@ -649,13 +651,14 @@ const CreateCampaignPage = () => {
                                                     <th className="p-3 w-10"></th>
                                                     <th className="p-3 text-zinc-500 font-medium">Lead Name</th>
                                                     <th className="p-3 text-zinc-500 font-medium">Contact</th>
+                                                    <th className="p-3 text-zinc-500 font-medium">Location</th>
                                                     <th className="p-3 text-zinc-500 font-medium">Type</th>
                                                     <th className="p-3 text-zinc-500 font-medium">Outreach Status</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-zinc-800/50">
                                                 {leadsLoading ? (
-                                                    <tr><td colSpan="5" className="p-10 text-center text-zinc-500">Loading leads...</td></tr>
+                                                    <tr><td colSpan="6" className="p-10 text-center text-zinc-500">Loading leads...</td></tr>
                                                 ) : filteredLeads.length > 0 ? (
                                                     filteredLeads.map((lead) => (
                                                         <tr 
@@ -674,6 +677,7 @@ const CreateCampaignPage = () => {
                                                             </td>
                                                             <td className="p-3 text-zinc-200 font-medium">{lead.name}</td>
                                                             <td className="p-3 text-zinc-400">{lead.phone}</td>
+                                                            <td className="p-3 text-zinc-400">{lead.location || 'N/A'}</td>
                                                             <td className="p-3 text-zinc-400">{lead.type || '—'}</td>
                                                             <td className="p-3">
                                                                 {lead.messageSentCount && lead.messageSentCount > 0 ? (
@@ -702,7 +706,7 @@ const CreateCampaignPage = () => {
                                                         </tr>
                                                     ))
                                                 ) : (
-                                                    <tr><td colSpan="5" className="p-10 text-center text-zinc-500 italic">No leads match filter criteria</td></tr>
+                                                    <tr><td colSpan="6" className="p-10 text-center text-zinc-500 italic">No leads match filter criteria</td></tr>
                                                 )}
                                             </tbody>
                                         </table>

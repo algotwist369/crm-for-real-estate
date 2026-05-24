@@ -11,6 +11,7 @@ router.get('/leads/export', requireRoles(['admin', 'super_admin', 'agent']), lea
 router.get('/leads', requireRoles(['admin', 'super_admin', 'agent']), validateRequest(leadSchemas.query), leadController.get_my_leads);
 router.get('/leads/:id', requireRoles(['admin', 'super_admin', 'agent']), leadController.get_lead_by_id);
 router.post('/leads', requireRoles(['admin', 'super_admin', 'agent']), validateRequest(leadSchemas.create), leadController.create_lead);
+router.delete('/leads/bulk', requireRoles(['admin', 'super_admin']), validateRequest(leadSchemas.bulkDelete), leadController.bulk_delete_leads);
 router.patch('/leads/:id', requireRoles(['admin', 'super_admin', 'agent']), validateRequest(leadSchemas.update), leadController.update_lead);
 router.post('/leads/:id/notes', requireRoles(['admin', 'super_admin', 'agent']), leadController.add_lead_note);
 router.post('/leads/:id/followup', requireRoles(['admin', 'super_admin', 'agent']), leadController.set_follow_up);

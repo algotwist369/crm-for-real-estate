@@ -72,5 +72,10 @@ export const leadService = {
     deleteLead: async (id) => {
         const response = await axiosInstance.delete(`/leads/${id}`);
         return response.data;
+    },
+
+    bulkDeleteLeads: async (data) => {
+        const response = await axiosInstance.delete("/leads/bulk", { data });
+        return response.data;
     }
 };
