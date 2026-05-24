@@ -1,29 +1,128 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "../component/layout/AppLayout";
-import { 
-    FiArrowLeft, 
-    FiUser, 
-    FiSmartphone, 
-    FiTarget, 
-    FiShare2, 
-    FiCalendar, 
-    FiClock, 
-    FiMessageSquare,
+import {
+    FiAlertCircle,
+    FiArrowLeft,
+    FiCalendar,
+    FiClock,
     FiEdit,
-    FiPlus,
     FiHome,
-    FiTrash2,
+    FiMail,
     FiMapPin,
-    FiAlertCircle
+    FiMessageSquare,
+    FiPhone,
+    FiPlus,
+    FiShare2,
+    FiTarget,
+    FiTrash2,
+    FiUser
 } from "react-icons/fi";
 import { useLead, useUpdateLead, useDeleteLead } from "../hooks/useLeadHooks";
 import { useAuth } from "../context/AuthContext";
 import EditLeadModal from "../component/modal/EditLeadModal";
 import FollowUpModal from "../component/modal/FollowUpModal";
 import MarkLostModal from "../component/modal/MarkLostModal";
+import { CopyButton } from "../component/common/CopyButton";
 
-const statusOptions = ["New", "Contacted", "Qualified", "Follow_up", "Site_visit", "Negotiation", "Booked", "Converted", "Closed", "Lost", "Wasted", "Archived"];
+const statusOptions = [
+    "new",
+    "contacted",
+    "qualified",
+    "follow_up",
+    "site_visit",
+    "negotiation",
+    "booked",
+    "converted",
+    "closed",
+    "lost",
+    "wasted",
+    "archived"
+];
+
+const statusStyles = {
+    new: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    contacted: "bg-zinc-500/10 text-zinc-300 border-zinc-500/20",
+    qualified: "bg-violet-500/10 text-violet-300 border-violet-500/20",
+    follow_up: "bg-blue-500/10 text-blue-300 border-blue-500/20",
+    site_visit: "bg-orange-500/10 text-orange-300 border-orange-500/20",
+    negotiation: "bg-purple-500/10 text-purple-300 border-purple-500/20",
+    booked: "bg-emerald-300/10 text-emerald-300 border-emerald-400/20",
+    converted: "bg-teal-500/10 text-teal-300 border-teal-500/20",
+    closed: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+    lost: "bg-red-500/10 text-red-300 border-red-500/20",
+    wasted: "bg-zinc-700/30 text-zinc-400 border-zinc-700/40",
+    archived: "bg-zinc-800 text-zinc-500 border-zinc-700"
+};
+
+const priorityStyles = {
+    high: "text-red-300 bg-red-500/10 border-red-500/20",
+    medium: "text-orange-300 bg-orange-500/10 border-orange-500/20",
+    low: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20"
+};
+
+const labelize = (value) => String(value || "").replace(/_/g, " ");
+
+const formatDate = (date, fallback = "Not set") => {
+    if (!date) return fallback;
+    return new Date(date).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+};
+
+const formatShortDate = (date, fallback = "Not set") => {
+    if (!date) return fallback;
+    return new Date(date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+    });
+};
+
+const formatMoney = (value, currency = "AED") => {
+    if (value === undefined || value === null || value === "") return "Not specified";
+    const amount = Number(value);
+    const display = Number.isFinite(amount) ? amount.toLocaleString() : value;
+    return `${currency || "AED"} ${display}`;
+};
+
+const Pill = ({ children, className = "" }) => (
+    <span className={`inline-flex items-center rounded border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${className}`}>
+        {children}
+    </span>
+);
+
+const Section = ({ title, icon: Icon, children }) => (
+    <section className="space-y-4">
+        <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
+            <Icon size={14} className="text-zinc-500" />
+            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{title}</h3>
+        </div>
+        {children}
+    </section>
+);
+
+const Field = ({ label, value, children }) => (
+    <div className="min-w-0">
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-zinc-600">{label}</p>
+        {children || <p className="truncate text-sm font-medium text-zinc-200">{value || "Not provided"}</p>}
+    </div>
+);
+
+const ActionButton = ({ children, icon: Icon, className = "", ...props }) => (
+    <button
+        type="button"
+        className={`inline-flex items-center justify-center gap-2 rounded border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        {...props}
+    >
+        {Icon && <Icon size={14} />}
+        {children}
+    </button>
+);
 
 const LeadDetailsPage = () => {
     const { id } = useParams();
@@ -33,14 +132,15 @@ const LeadDetailsPage = () => {
     const [isMarkLostModalOpen, setIsMarkLostModalOpen] = React.useState(false);
 
     const { user: authUser } = useAuth();
-    const isAdmin = ['admin', 'super_admin'].includes(authUser?.role);
+    const isAdmin = ["admin", "super_admin"].includes(authUser?.role);
 
     const { data: leadResponse, isLoading, isError, refetch } = useLead(id);
     const updateLeadMutation = useUpdateLead();
     const deleteLeadMutation = useDeleteLead();
+    const lead = leadResponse?.data;
 
     const handleStatusChange = (newStatus) => {
-        if (newStatus === 'lost') {
+        if (newStatus === "lost") {
             setIsMarkLostModalOpen(true);
             return;
         }
@@ -50,67 +150,18 @@ const LeadDetailsPage = () => {
     };
 
     const handleDelete = () => {
-        if (window.confirm(`Are you sure you want to delete this lead? This action cannot be undone.`)) {
+        if (window.confirm("Are you sure you want to delete this lead? This action cannot be undone.")) {
             deleteLeadMutation.mutate(id, {
-                onSuccess: () => navigate('/leads')
+                onSuccess: () => navigate("/leads")
             });
         }
-    };
-
-    const lead = leadResponse?.data;
-
-    const formatDate = (date) => {
-        if (!date) return "Not Scheduled";
-        return new Date(date).toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const StatusBadge = ({ status }) => {
-        const colors = {
-            new: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-            contacted: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-            qualified: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-            follow_up: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-            site_visit: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-            negotiation: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-            booked: "bg-emerald-300/10 text-emerald-300 border-emerald-400/20",
-            closed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-            converted: "bg-teal-500/10 text-teal-400 border-teal-500/20",
-            lost: "bg-red-500/10 text-red-400 border-red-500/20",
-            wasted: "bg-zinc-700/10 text-zinc-500 border-zinc-700/20",
-        };
-        const colorClass = colors[status?.toLowerCase()] || colors.new;
-        return (
-            <span className={`px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ${colorClass}`}>
-                {status || "New"}
-            </span>
-        );
-    };
-
-    const PriorityBadge = ({ priority }) => {
-        const colors = {
-            high: "text-red-400 bg-red-500/10 border-red-500/20",
-            medium: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-            low: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-        };
-        const colorClass = colors[priority?.toLowerCase()] || colors.medium;
-        return (
-            <span className={`px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ${colorClass}`}>
-                {priority || "Medium"}
-            </span>
-        );
     };
 
     if (isLoading) {
         return (
             <AppLayout>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <p className="text-zinc-400">Loading lead details...</p>
+                <div className="flex min-h-[60vh] items-center justify-center text-sm text-zinc-400">
+                    Loading lead details...
                 </div>
             </AppLayout>
         );
@@ -119,9 +170,9 @@ const LeadDetailsPage = () => {
     if (isError || !lead) {
         return (
             <AppLayout>
-                <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                    <p className="text-red-400">Error loading lead details</p>
-                    <button onClick={() => navigate('/leads')} className="text-zinc-500 hover:text-white flex items-center gap-2">
+                <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+                    <p className="text-sm text-red-400">Error loading lead details</p>
+                    <button onClick={() => navigate("/leads")} className="flex items-center gap-2 text-sm text-zinc-500 hover:text-white">
                         <FiArrowLeft /> Back to Leads
                     </button>
                 </div>
@@ -129,416 +180,305 @@ const LeadDetailsPage = () => {
         );
     }
 
+    const status = lead.status || "new";
+    const priority = lead.priority || "medium";
+    const location = lead.location || lead.address || "Not set";
+    const assignedTeam = Array.isArray(lead.assigned_to) ? lead.assigned_to : [];
+
+    const quickFacts = [
+        { label: "Client", value: labelize(lead.client_type || "buying") },
+        { label: "Lead Type", value: labelize(lead.lead_type || "buyer") },
+        { label: "Property", value: labelize(lead.property_type || "Any") },
+        { label: "Budget", value: formatMoney(lead.budget, lead.currency) },
+        { label: "Source", value: labelize(lead.source || "manual") },
+        { label: "Created", value: formatShortDate(lead.createdAt) }
+    ];
+
     return (
         <AppLayout>
-            {/* Header / Breadcrumb */}
-            <div className="mb-6 flex items-center justify-between">
-                <button 
-                    onClick={() => navigate('/leads')} 
-                    className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors group"
-                >
-                    <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-                    <span>Back to Registry</span>
-                </button>
-                
-                <div className="flex items-center gap-3">
-                    <button 
-                        onClick={() => setIsFollowUpModalOpen(true)}
-                        className="px-4 py-2 bg-yellow-600/10 border border-yellow-500/20 text-yellow-500 text-xs font-medium rounded transition-colors flex items-center gap-2"
+            <div className="mx-auto max-w-7xl space-y-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <button
+                        onClick={() => navigate("/leads")}
+                        className="inline-flex w-fit items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-white"
                     >
-                        <FiPlus size={14} /> Schedule Follow-up
+                        <FiArrowLeft />
+                        Back to Leads
                     </button>
-                    <button 
-                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-medium rounded transition-colors flex items-center gap-2"
-                        onClick={() => setIsEditModalOpen(true)}
-                    >
-                        <FiEdit size={14} /> Edit Lead
-                    </button>
-                    {isAdmin && (
-                        <button 
-                            className="px-4 py-2 bg-red-600/10 border border-red-500/20 text-red-500 hover:bg-red-600/20 text-xs font-medium rounded transition-colors flex items-center gap-2"
-                            onClick={handleDelete}
-                            disabled={deleteLeadMutation.isPending}
+
+                    <div className="flex flex-wrap gap-2">
+                        <ActionButton
+                            icon={FiPlus}
+                            onClick={() => setIsFollowUpModalOpen(true)}
+                            className="border-yellow-500/20 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/15"
                         >
-                            <FiTrash2 size={14} /> {deleteLeadMutation.isPending ? "Deleting..." : "Delete Lead"}
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Main Content Card */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden shadow-2xl flex flex-col">
-                
-                {/* Profile Header Block */}
-                <div className="px-6 py-6 border-b border-zinc-800 bg-zinc-900/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-full bg-yellow-600/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500 overflow-hidden">
-                            {lead.followed_by?.profile_pic ? (
-                                <img src={lead.followed_by.profile_pic} alt="Agent" className="w-full h-full object-cover" />
-                            ) : (
-                                <FiUser size={28} />
-                            )}
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-2xl font-semibold text-white tracking-tight">{lead.name}</h2>
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-                                    {lead.lead_type || "Buyer"}
-                                </span>
-                            </div>
-                            <p className="text-xs text-zinc-500 font-mono mt-1">UUID: {lead._id}</p>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 items-center">
-                        <div className="flex flex-col items-end min-w-[120px]">
-                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Status</p>
-                            <select
-                                value={lead.status || "new"}
-                                onChange={(e) => handleStatusChange(e.target.value)}
-                                className={`w-full bg-zinc-950 border rounded p-1.5 text-xs capitalize cursor-pointer focus:outline-none font-bold tracking-wide ${
-                                    lead.status === 'new' ? 'text-yellow-400 border-yellow-500/30' :
-                                    lead.status === 'contacted' ? 'text-zinc-300 border-zinc-700/30' :
-                                    lead.status === 'qualified' ? 'text-violet-400 border-violet-500/30' :
-                                    lead.status === 'follow_up' ? 'text-blue-400 border-blue-500/30' :
-                                    lead.status === 'site_visit' ? 'text-orange-400 border-orange-500/30' :
-                                    lead.status === 'negotiation' ? 'text-purple-400 border-purple-500/30' :
-                                    lead.status === 'booked' ? 'text-emerald-300 border-emerald-400/30' :
-                                    lead.status === 'converted' ? 'text-teal-400 border-teal-500/30' :
-                                    lead.status === 'closed' ? 'text-emerald-400 border-emerald-500/30' :
-                                    lead.status === 'lost' ? 'text-red-400 border-red-500/30' :
-                                    'text-zinc-500 border-zinc-800'
-                                }`}
+                            Follow-up
+                        </ActionButton>
+                        <ActionButton
+                            icon={FiEdit}
+                            onClick={() => setIsEditModalOpen(true)}
+                            className="border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800"
+                        >
+                            Edit
+                        </ActionButton>
+                        {isAdmin && (
+                            <ActionButton
+                                icon={FiTrash2}
+                                onClick={handleDelete}
+                                disabled={deleteLeadMutation.isPending}
+                                className="border-red-500/20 bg-red-500/10 text-red-300 hover:bg-red-500/15"
                             >
-                                {statusOptions.map(s => (
-                                    <option key={s} value={s.toLowerCase()} className="bg-zinc-950 text-zinc-300">{s.replace("_", "-")}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Priority</p>
-                            <PriorityBadge priority={lead.priority} />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="p-8 space-y-10 bg-zinc-950/20">
-                    
-                    {/* Top Stats Row */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-zinc-900/30 border border-zinc-800 rounded-lg">
-                        <div className="space-y-1">
-                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Client Type</p>
-                            <p className="text-sm font-medium text-white capitalize">{lead.client_type || "Buying"}</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Property Type</p>
-                            <p className="text-sm font-medium text-white capitalize">{lead.property_type || "N/A"}</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Source</p>
-                            <p className="text-sm font-medium text-zinc-300 capitalize flex items-center gap-1.5">
-                                <FiShare2 size={12} className="text-zinc-500"/> {lead.source || "Website"}
-                            </p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Location</p>
-                            <p className="text-sm font-medium text-zinc-300 flex items-center gap-1.5">
-                                <FiMapPin size={12} className="text-zinc-500"/> {lead.location || lead.address || "Not set"}
-                            </p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Created On</p>
-                            <p className="text-sm font-medium text-zinc-400">{new Date(lead.createdAt).toLocaleDateString()}</p>
-                        </div>
-                    </div>
-
-                    {/* Detailed Info Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                        
-                        {/* Left Column: Contact & Basic Requirements */}
-                        <div className="lg:col-span-2 space-y-10">
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Contact Details */}
-                                <div className="space-y-4">
-                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                                        <FiSmartphone size={14} /> Contact Information
-                                    </h3>
-                                    <div className="space-y-3">
-                                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg group hover:border-zinc-700 transition-colors">
-                                            <p className="text-[10px] text-zinc-500 mb-1">Phone Number</p>
-                                            <p className="text-lg text-white font-medium tracking-wide">{lead.phone}</p>
-                                        </div>
-                                        {(lead.alternate_phone || lead.whatsapp_number) && (
-                                            <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg group hover:border-zinc-700 transition-colors">
-                                                <p className="text-[10px] text-zinc-500 mb-1">Other Numbers</p>
-                                                {lead.alternate_phone && <p className="text-sm text-zinc-300">Alt: {lead.alternate_phone}</p>}
-                                                {lead.whatsapp_number && <p className="text-sm text-zinc-300 mt-1">WA: {lead.whatsapp_number}</p>}
-                                            </div>
-                                        )}
-                                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg group hover:border-zinc-700 transition-colors">
-                                            <p className="text-[10px] text-zinc-500 mb-1">Email Address</p>
-                                            <p className="text-sm text-zinc-300 font-medium truncate">{lead.email || "Not Provided"}</p>
-                                        </div>
-                                        {(lead.location || lead.address) && (
-                                            <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg group hover:border-zinc-700 transition-colors">
-                                                <p className="text-[10px] text-zinc-500 mb-1">Location / Address</p>
-                                                {lead.location && <p className="text-sm text-white font-medium">{lead.location}</p>}
-                                                {lead.address && <p className="text-xs text-zinc-400 mt-1">{lead.address}</p>}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Property Details */}
-                                <div className="space-y-4">
-                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                                        <FiHome size={14} /> Property Requirements
-                                    </h3>
-                                    <div className="space-y-3">
-                                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg flex flex-wrap gap-4">
-                                            <div>
-                                                <p className="text-[10px] text-zinc-500 mb-1">Bedrooms</p>
-                                                <p className="text-sm text-white font-medium">{lead.bedrooms || "Any"}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] text-zinc-500 mb-1">Bathrooms</p>
-                                                <p className="text-sm text-white font-medium">{lead.bathrooms || "Any"}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] text-zinc-500 mb-1">Maid Room</p>
-                                                <p className="text-sm text-white font-medium">{lead.maid_room ? "Yes" : "No"}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] text-zinc-500 mb-1">Furnishing</p>
-                                                <p className="text-sm text-white font-medium capitalize">{lead.furnished_status?.replace('_', ' ') || "Any"}</p>
-                                            </div>
-                                        </div>
-                                        {(lead.built_up_area?.value || lead.plot_size?.value) && (
-                                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg grid grid-cols-2 gap-4">
-                                            {lead.built_up_area?.value && (
-                                            <div>
-                                                <p className="text-[10px] text-zinc-500 mb-1">Built-Up Area</p>
-                                                <p className="text-sm text-zinc-300 font-medium">{lead.built_up_area.value} {lead.built_up_area.unit}</p>
-                                            </div>
-                                            )}
-                                            {lead.plot_size?.value && (
-                                            <div>
-                                                <p className="text-[10px] text-zinc-500 mb-1">Plot Size</p>
-                                                <p className="text-sm text-zinc-300 font-medium">{lead.plot_size.value} {lead.plot_size.unit}</p>
-                                            </div>
-                                            )}
-                                        </div>
-                                        )}
-                                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg min-h-[60px]">
-                                            <p className="text-[10px] text-zinc-500 mb-1">Requirements / Remarks</p>
-                                            <p className="text-sm text-zinc-300 leading-relaxed font-medium">{lead.requirement || "General Inquiry"}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Row 2: Pricing & Ownership */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-                                {/* Pricing */}
-                                <div className="space-y-4">
-                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                                        <FiTarget size={14} /> Pricing & Budget
-                                    </h3>
-                                    <div className="space-y-3">
-                                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-                                            <p className="text-[10px] text-zinc-500 mb-1">Expected Budget</p>
-                                            <p className="text-lg text-emerald-400 font-bold flex items-center gap-1">
-                                                <span className="text-emerald-500/50">{lead.currency || "AED"}</span> {lead.budget || "Not Specified"}
-                                            </p>
-                                        </div>
-                                        {lead.asking_price && (
-                                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg flex justify-between items-center">
-                                            <div>
-                                                <p className="text-[10px] text-zinc-500 mb-1">{lead.lead_type === 'buyer' || lead.lead_type === 'tenant' ? "Target Price" : "Asking Price"}</p>
-                                                <p className="text-md text-emerald-400 font-bold">{lead.currency || "AED"} {lead.asking_price.toLocaleString()}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className={`text-[10px] px-2 py-0.5 rounded border ${lead.price_negotiable ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-zinc-800 text-zinc-400 border-zinc-700"}`}>
-                                                    {lead.price_negotiable ? "Negotiable" : "Fixed Price"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Ownership / Broker */}
-                                {(lead.owner_name || lead.broker_name) && (
-                                <div className="space-y-4">
-                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                                        <FiShare2 size={14} /> Stakeholder Information
-                                    </h3>
-                                    <div className="space-y-3">
-                                        {lead.owner_name && (
-                                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-                                            <p className="text-[10px] text-zinc-500 mb-1">Owner Name</p>
-                                            <p className="text-sm text-zinc-300 font-medium">{lead.owner_name}</p>
-                                        </div>
-                                        )}
-                                        {lead.broker_name && (
-                                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-                                            <p className="text-[10px] text-zinc-500 mb-1">Broker Details</p>
-                                            <p className="text-sm text-white font-medium">{lead.broker_name}</p>
-                                            {lead.broker_phone && <p className="text-xs text-zinc-400 mt-0.5">{lead.broker_phone}</p>}
-                                        </div>
-                                        )}
-                                        {lead.shared_details && (
-                                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-                                            <p className="text-[10px] text-zinc-500 mb-1">Shared Comments / Commission Info</p>
-                                            <p className="text-xs text-zinc-400 leading-relaxed italic">{lead.shared_details}</p>
-                                        </div>
-                                        )}
-                                    </div>
-                                </div>
-                                )}
-                            </div>
-
-                            {/* Lost Reason Display */}
-                            {lead.status === 'lost' && (
-                                <div className="space-y-4 border-t border-zinc-800 pt-8">
-                                    <h3 className="text-xs font-bold text-red-500 uppercase tracking-widest flex items-center gap-2">
-                                        <FiAlertCircle size={14} /> Closure Information
-                                    </h3>
-                                    <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-xl">
-                                        <p className="text-[10px] text-red-500/70 uppercase tracking-widest font-bold mb-2">Lost Reason</p>
-                                        <p className="text-sm text-zinc-300 leading-relaxed font-medium">
-                                            {lead.lost_reason || "No reason recorded for closure."}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Interested Properties */}
-                            <div className="space-y-4 border-t border-zinc-800 pt-8">
-                                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                                    <FiHome size={14} /> Interested Properties
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {Array.isArray(lead.properties) && lead.properties.length > 0 ? (
-                                        lead.properties.map((p, i) => (
-                                            <div 
-                                                key={i} 
-                                                className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-yellow-500/30 transition-all cursor-pointer group"
-                                                onClick={() => navigate(`/properties/${p._id}`)}
-                                            >
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <p className="text-sm font-semibold text-white group-hover:text-yellow-400 transition-colors truncate flex-1">{p.property_title}</p>
-                                                    <span className="text-[10px] px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-500 capitalize">{p.property_status}</span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <p className="text-[10px] text-zinc-500 flex items-center gap-1">
-                                                        {p.property_location?.city || "Unknown City"} • {p.property_type || "Type N/A"}
-                                                    </p>
-                                                    <p className="text-[10px] font-bold text-emerald-500">{p.currency} {p.asking_price?.toLocaleString()}</p>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="col-span-2 p-8 border border-dashed border-zinc-800 rounded-xl text-center">
-                                            <p className="text-sm text-zinc-600">No specific properties linked yet.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right Column: Schedule & Assignment */}
-                        <div className="space-y-8 lg:border-l lg:border-zinc-800 lg:pl-10">
-                            
-                            {/* Follow-up Section */}
-                            <div className="space-y-4">
-                                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                                    <FiCalendar size={14} /> Schedule & Timeline
-                                </h3>
-                                <div className="p-5 bg-zinc-900/30 border border-zinc-800 rounded-xl space-y-5">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <FiClock className="text-zinc-500" size={14} />
-                                            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Next Follow-up</span>
-                                        </div>
-                                        <p className="text-lg font-medium text-yellow-400 bg-yellow-400/5 p-3 rounded-lg border border-yellow-400/10">
-                                            {formatDate(lead.next_follow_up_date)}
-                                        </p>
-                                    </div>
-                                    
-                                    <div className="pt-4 border-t border-zinc-800/50 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs text-zinc-500">Assigned Agent</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium text-zinc-200">{lead.followed_by?.user_name || "Unassigned"}</span>
-                                                {lead.followed_by?.profile_pic && <img src={lead.followed_by.profile_pic} className="w-5 h-5 rounded-full object-cover" alt="" />}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs text-zinc-500">Last Contacted</span>
-                                            <span className="text-xs font-medium text-zinc-400">
-                                                {lead.last_contacted_at ? new Date(lead.last_contacted_at).toLocaleDateString() : "Never"}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Assigned To Section */}
-                            <div className="space-y-4 pt-4">
-                                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                                    <FiUser size={14} /> Access Team
-                                </h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {Array.isArray(lead.assigned_to) && lead.assigned_to.map((person, idx) => (
-                                        <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-full">
-                                            {person.profile_pic ? (
-                                                <img src={person.profile_pic} className="w-4 h-4 rounded-full object-cover" alt="" />
-                                            ) : (
-                                                <div className="w-4 h-4 rounded-full bg-zinc-800 flex items-center justify-center text-[8px] text-zinc-500 uppercase">
-                                                    {person.user_name?.charAt(0)}
-                                                </div>
-                                            )}
-                                            <span className="text-[10px] text-zinc-300 font-medium">{person.user_name}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Remarks Section */}
-                            <div className="space-y-4 pt-4">
-                                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                                    <FiMessageSquare size={14} /> Latest Remarks
-                                </h3>
-                                <div className="p-5 bg-yellow-600/5 border border-yellow-500/10 rounded-xl">
-                                    <p className="text-xs text-zinc-300 italic leading-relaxed font-medium">
-                                        {lead.remarks ? `"${lead.remarks}"` : "No remarks recorded for this lead."}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                </div>
-
-                {/* Footer Meta */}
-                <div className="px-8 py-4 border-t border-zinc-800 flex items-center justify-between bg-zinc-900/50">
-                    <p className="text-[10px] text-zinc-600 font-medium">Record last updated: {new Date(lead.updatedAt).toLocaleString()}</p>
-                    <div className="flex items-center gap-4">
-                        {lead.tags?.length > 0 && (
-                            <div className="flex gap-1.5">
-                                {lead.tags.map(t => (
-                                    <span key={t} className="px-2 py-0.5 rounded bg-zinc-800 text-[10px] text-zinc-500 font-bold uppercase tracking-tighter">#{t}</span>
-                                ))}
-                            </div>
+                                {deleteLeadMutation.isPending ? "Deleting..." : "Delete"}
+                            </ActionButton>
                         )}
                     </div>
                 </div>
+
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-5">
+                    <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="flex min-w-0 gap-4">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-yellow-500/10 text-yellow-400 ring-1 ring-yellow-500/20">
+                                {lead.followed_by?.profile_pic ? (
+                                    <img src={lead.followed_by.profile_pic} alt="" className="h-full w-full rounded object-cover" />
+                                ) : (
+                                    <FiUser size={22} />
+                                )}
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h1 className="truncate text-2xl font-semibold text-white">{lead.name}</h1>
+                                    <Pill className={statusStyles[status] || statusStyles.new}>{labelize(status)}</Pill>
+                                    <Pill className={priorityStyles[priority] || priorityStyles.medium}>{priority}</Pill>
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <FiMapPin size={12} /> {location}
+                                    </span>
+                                    <span>ID: {lead._id}</span>
+                                    <span>Updated: {formatShortDate(lead.updatedAt)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="w-full max-w-xs">
+                            <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Pipeline Status</label>
+                            <select
+                                value={status}
+                                onChange={(e) => handleStatusChange(e.target.value)}
+                                disabled={updateLeadMutation.isPending}
+                                className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm capitalize text-zinc-100 outline-none transition-colors focus:border-yellow-500/50 disabled:opacity-60"
+                            >
+                                {statusOptions.map((option) => (
+                                    <option key={option} value={option} className="bg-zinc-950 text-zinc-200">
+                                        {labelize(option)}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800 md:grid-cols-3 xl:grid-cols-6">
+                    {quickFacts.map((fact) => (
+                        <div key={fact.label} className="min-w-0 bg-zinc-950 px-4 py-3">
+                            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-zinc-600">{fact.label}</p>
+                            <p className="truncate text-sm font-medium capitalize text-zinc-200">{fact.value}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                            <Section title="Contact" icon={FiPhone}>
+                                <div className="grid grid-cols-1 gap-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4 sm:grid-cols-2">
+                                    <Field label="Phone">
+                                        <div className="text-sm font-medium text-zinc-100">
+                                            {lead.phone ? <CopyButton text={lead.phone} /> : "Not provided"}
+                                        </div>
+                                    </Field>
+                                    <Field label="WhatsApp">
+                                        <div className="text-sm font-medium text-zinc-100">
+                                            {lead.whatsapp_number ? <CopyButton text={lead.whatsapp_number} /> : "Not provided"}
+                                        </div>
+                                    </Field>
+                                    <Field label="Alternate" value={lead.alternate_phone} />
+                                    <Field label="Email">
+                                        {lead.email ? (
+                                            <a href={`mailto:${lead.email}`} className="truncate text-sm font-medium text-zinc-200 hover:text-yellow-300">
+                                                <FiMail className="mr-1.5 inline" size={13} />
+                                                {lead.email}
+                                            </a>
+                                        ) : (
+                                            <p className="text-sm font-medium text-zinc-500">Not provided</p>
+                                        )}
+                                    </Field>
+                                    <Field label="Location">
+                                        <p className="text-sm font-medium text-zinc-200">{lead.location || "Not set"}</p>
+                                        {lead.address && <p className="mt-1 text-xs text-zinc-500">{lead.address}</p>}
+                                    </Field>
+                                </div>
+                            </Section>
+
+                            <Section title="Requirement" icon={FiHome}>
+                                <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Field label="Bedrooms" value={lead.bedrooms || "Any"} />
+                                        <Field label="Bathrooms" value={lead.bathrooms || "Any"} />
+                                        <Field label="Maid Room" value={lead.maid_room ? "Yes" : "No"} />
+                                        <Field label="Furnishing" value={labelize(lead.furnished_status || "Any")} />
+                                        <Field label="Built-up Area" value={lead.built_up_area?.value ? `${lead.built_up_area.value} ${lead.built_up_area.unit || ""}` : "Not set"} />
+                                        <Field label="Plot Size" value={lead.plot_size?.value ? `${lead.plot_size.value} ${lead.plot_size.unit || ""}` : "Not set"} />
+                                    </div>
+                                    <div className="mt-4 border-t border-zinc-800 pt-4">
+                                        <Field label="Requirement / Inquiry">
+                                            <p className="text-sm leading-6 text-zinc-300">{lead.requirement || lead.inquiry_for || "General inquiry"}</p>
+                                        </Field>
+                                    </div>
+                                </div>
+                            </Section>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                            <Section title="Pricing" icon={FiTarget}>
+                                <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <Field label="Budget">
+                                            <p className="text-lg font-semibold text-emerald-300">{formatMoney(lead.budget, lead.currency)}</p>
+                                        </Field>
+                                        <Field label="Asking / Target">
+                                            <p className="text-lg font-semibold text-emerald-300">{formatMoney(lead.asking_price, lead.currency)}</p>
+                                        </Field>
+                                        <Field label="Negotiable" value={lead.price_negotiable ? "Yes" : "No"} />
+                                        <Field label="Currency" value={lead.currency || "AED"} />
+                                    </div>
+                                </div>
+                            </Section>
+
+                            <Section title="Stakeholders" icon={FiShare2}>
+                                <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <Field label="Owner" value={lead.owner_name} />
+                                        <Field label="Broker" value={lead.broker_name} />
+                                        <Field label="Broker Phone" value={lead.broker_phone} />
+                                        <Field label="Followed By" value={lead.followed_by?.user_name || "Unassigned"} />
+                                    </div>
+                                    {lead.shared_details && (
+                                        <div className="mt-4 border-t border-zinc-800 pt-4">
+                                            <Field label="Shared Details">
+                                                <p className="text-sm leading-6 text-zinc-300">{lead.shared_details}</p>
+                                            </Field>
+                                        </div>
+                                    )}
+                                </div>
+                            </Section>
+                        </div>
+
+                        {lead.status === "lost" && (
+                            <Section title="Closure" icon={FiAlertCircle}>
+                                <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
+                                    <Field label="Lost Reason">
+                                        <p className="text-sm leading-6 text-zinc-300">{lead.lost_reason || "No reason recorded."}</p>
+                                    </Field>
+                                </div>
+                            </Section>
+                        )}
+
+                        <Section title="Interested Properties" icon={FiHome}>
+                            {Array.isArray(lead.properties) && lead.properties.length > 0 ? (
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                    {lead.properties.map((property) => (
+                                        <button
+                                            key={property._id}
+                                            type="button"
+                                            onClick={() => navigate(`/properties/${property._id}`)}
+                                            className="rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-left transition-colors hover:border-yellow-500/30 hover:bg-zinc-900"
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <p className="truncate text-sm font-semibold text-white">{property.property_title || "Untitled property"}</p>
+                                                <span className="shrink-0 rounded bg-zinc-900 px-2 py-0.5 text-[10px] capitalize text-zinc-500">
+                                                    {property.property_status || "N/A"}
+                                                </span>
+                                            </div>
+                                            <div className="mt-3 flex items-center justify-between gap-3 text-xs text-zinc-500">
+                                                <span className="truncate">{property.property_location?.city || "Unknown city"} | {property.property_type || "Type N/A"}</span>
+                                                <span className="shrink-0 font-semibold text-emerald-300">{formatMoney(property.asking_price, property.currency)}</span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="rounded-lg border border-dashed border-zinc-800 bg-zinc-950 p-8 text-center text-sm text-zinc-600">
+                                    No properties linked yet.
+                                </div>
+                            )}
+                        </Section>
+                    </div>
+
+                    <aside className="space-y-6">
+                        <Section title="Timeline" icon={FiCalendar}>
+                            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                                <div className="space-y-4">
+                                    <Field label="Next Follow-up">
+                                        <p className="rounded border border-yellow-500/10 bg-yellow-500/5 px-3 py-2 text-sm font-semibold text-yellow-300">
+                                            <FiClock className="mr-2 inline" size={14} />
+                                            {formatDate(lead.next_follow_up_date, "Not scheduled")}
+                                        </p>
+                                    </Field>
+                                    <Field label="Last Contacted" value={formatShortDate(lead.last_contacted_at, "Never")} />
+                                    <Field label="Created" value={formatDate(lead.createdAt)} />
+                                    <Field label="Updated" value={formatDate(lead.updatedAt)} />
+                                </div>
+                            </div>
+                        </Section>
+
+                        <Section title="Team" icon={FiUser}>
+                            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                                {assignedTeam.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {assignedTeam.map((person) => (
+                                            <div key={person._id || person.user_name} className="flex items-center gap-3 rounded border border-zinc-800 bg-zinc-900/50 px-3 py-2">
+                                                {person.profile_pic ? (
+                                                    <img src={person.profile_pic} className="h-7 w-7 rounded-full object-cover" alt="" />
+                                                ) : (
+                                                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold uppercase text-zinc-500">
+                                                        {person.user_name?.charAt(0) || "U"}
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-medium text-zinc-200">{person.user_name || "Unnamed user"}</p>
+                                                    {person.email && <p className="truncate text-xs text-zinc-600">{person.email}</p>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-zinc-600">No team members assigned.</p>
+                                )}
+                            </div>
+                        </Section>
+
+                        <Section title="Remarks" icon={FiMessageSquare}>
+                            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                                <p className="text-sm leading-6 text-zinc-300">{lead.remarks || "No remarks recorded."}</p>
+                            </div>
+                        </Section>
+
+                        {Array.isArray(lead.tags) && lead.tags.length > 0 && (
+                            <Section title="Tags" icon={FiShare2}>
+                                <div className="flex flex-wrap gap-2">
+                                    {lead.tags.map((tag) => (
+                                        <span key={tag} className="rounded border border-zinc-800 bg-zinc-950 px-2.5 py-1 text-xs text-zinc-400">
+                                            #{tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </Section>
+                        )}
+                    </aside>
+                </div>
             </div>
 
-            {/* Modals */}
             {isEditModalOpen && (
                 <EditLeadModal
                     isOpen={isEditModalOpen}
