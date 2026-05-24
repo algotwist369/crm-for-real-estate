@@ -23,6 +23,7 @@ import { useAuth } from "../context/AuthContext";
 import EditLeadModal from "../component/modal/EditLeadModal";
 import FollowUpModal from "../component/modal/FollowUpModal";
 import MarkLostModal from "../component/modal/MarkLostModal";
+import SendWhatsAppModal from "../component/modal/SendWhatsAppModal";
 import { CopyButton } from "../component/common/CopyButton";
 
 const statusOptions = [
@@ -130,6 +131,7 @@ const LeadDetailsPage = () => {
     const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
     const [isFollowUpModalOpen, setIsFollowUpModalOpen] = React.useState(false);
     const [isMarkLostModalOpen, setIsMarkLostModalOpen] = React.useState(false);
+    const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = React.useState(false);
 
     const { user: authUser } = useAuth();
     const isAdmin = ["admin", "super_admin"].includes(authUser?.role);
@@ -207,6 +209,13 @@ const LeadDetailsPage = () => {
                     </button>
 
                     <div className="flex flex-wrap gap-2">
+                        <ActionButton
+                            icon={FiMessageSquare}
+                            onClick={() => setIsWhatsAppModalOpen(true)}
+                            className="border-emerald-500/20 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15"
+                        >
+                            WhatsApp
+                        </ActionButton>
                         <ActionButton
                             icon={FiPlus}
                             onClick={() => setIsFollowUpModalOpen(true)}
@@ -512,6 +521,14 @@ const LeadDetailsPage = () => {
                         setIsMarkLostModalOpen(false);
                         refetch();
                     }}
+                />
+            )}
+
+            {isWhatsAppModalOpen && (
+                <SendWhatsAppModal
+                    isOpen={isWhatsAppModalOpen}
+                    onClose={() => setIsWhatsAppModalOpen(false)}
+                    lead={lead}
                 />
             )}
         </AppLayout>
