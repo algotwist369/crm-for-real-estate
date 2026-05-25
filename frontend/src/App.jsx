@@ -24,6 +24,9 @@ const CreateCampaignPage = lazy(() => import("./pages/CreateCampaignPage"));
 const CampaignSettingsPage = lazy(() => import("./pages/CampaignSettingsPage"));
 const CampaignDetailsPage = lazy(() => import("./pages/CampaignDetailsPage"));
 const DocumentationPage = lazy(() => import("./pages/DocumentationPage"));
+const TermsOfServicePage = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicy"));
+const CookiesPolicyPage = lazy(() => import("./pages/CookiesPolicy"));
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -44,6 +47,9 @@ const App = () => {
                   {/* Auth Routes */}
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/terms" element={<TermsOfServicePage />} />
+                  <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                  <Route path="/cookies" element={<CookiesPolicyPage />} />
 
                   {/* Private Routes */}
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />

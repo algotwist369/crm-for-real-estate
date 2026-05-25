@@ -182,6 +182,24 @@ const Login = () => {
                             )}
                         </div>
                     </form>
+                    <div className="mt-6 text-center text-xs text-zinc-500 space-y-2">
+                        <p className="px-8">
+                            AlgoTwist CRM helps you manage leads, Properties, campaigns, agents, and future social media posting from one platform.
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-3 py-4">
+                            <Link to="/terms" className="text-zinc-400 hover:text-yellow-500 transition-colors">
+                                Terms
+                            </Link>
+                            <span className="text-zinc-700">•</span>
+                            <Link to="/privacy" className="text-zinc-400 hover:text-yellow-500 transition-colors">
+                                Privacy
+                            </Link>
+                            <span className="text-zinc-700">•</span>
+                            <Link to="/cookies" className="text-zinc-400 hover:text-yellow-500 transition-colors">
+                                Cookies
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
