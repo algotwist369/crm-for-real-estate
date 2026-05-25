@@ -97,10 +97,10 @@ const Pill = ({ children, className = "" }) => (
     </span>
 );
 
-const Section = ({ title, icon: Icon, children }) => (
+const Section = ({ title, icon, children }) => (
     <section className="space-y-4">
         <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
-            <Icon size={14} className="text-zinc-500" />
+            {React.createElement(icon, { size: 14, className: "text-zinc-500" })}
             <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{title}</h3>
         </div>
         {children}

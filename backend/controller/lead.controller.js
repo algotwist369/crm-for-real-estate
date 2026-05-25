@@ -6,9 +6,13 @@ const Agent = require('../model/agent.model');
 const FollowUpReminder = require('../model/followUpReminder.model');
 const CampaignMessage = require('../model/campaignMessage.model');
 const Campaign = require('../model/campaign.model');
+const WhatsAppAuth = require('../model/whatsappAuth.model');
+const WhatsAppSession = require('../model/whatsappSession.model');
 const { parseBudget } = require('../utils/budgetParser');
 const { convertCurrency } = require('../utils/currencyConverter');
 const { sendMail } = require('../utils/sendMail');
+const { uploadImage } = require('../utils/uploadImage');
+const whatsappService = require('../services/whatsapp.service');
 const { notifyPropertyAgentsOnNewLead, getFollowUpRecipientsForLead, notifyFollowUpCreated, notifyLeadStatusChanged } = require('../services/notification.service');
 const { wrapAsync } = require('../middleware/errorHandler');
 const {
@@ -668,6 +672,112 @@ const add_lead_note = wrapAsync(async (req, res) => {
     await lead.save();
 
     res.status(200).json({ success: true, message: 'Note added successfully', data: lead });
+});
+
+const getLeadWhatsAppMediaType = (mimeType = '') => {
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/')) return 'video';
+    return 'document';
+};
+
+const send_lead_whatsapp_message = wrapAsync(async (req, res) => {
+    const { user, payload } = req.auth;
+    const id = req.params?.id;
+    if (!id) throw httpError(400, 'Lead id is required');
+
+    const message = String(req.body?.message ?? '').trim();
+    const file = req.file || req.files?.media?.[0];
+    if (!message && !file) {
+        throw httpError(400, 'Message or media attachment is required');
+    }
+
+    if (message.length > 4096) {
+        throw httpError(400, 'WhatsApp message cannot exceed 4096 characters');
+    }
+
+    const leadMatch = getLeadMatch(req);
+    const lead = await Lead.findOne(leadMatch);
+    await ensureLeadAccess({ lead, payload, user });
+
+    const recipient = String(lead.whatsapp_number || lead.phone || '').trim();
+    const cleanRecipient = recipient.replace(/\D/g, '');
+    if (cleanRecipient.length < 10 || cleanRecipient.length > 15) {
+        throw httpError(400, 'Lead does not have a valid WhatsApp or phone number');
+    }
+
+    const [whatsappSession, whatsappAuth] = await Promise.all([
+        WhatsAppSession.findOne({ userId: user._id }).select('status').lean(),
+        WhatsAppAuth.findOne({ userId: user._id }).select('_id').lean()
+    ]);
+
+    if (!whatsappSession || whatsappSession.status !== 'connected' || !whatsappAuth) {
+        throw httpError(409, 'WhatsApp is not connected. Please connect your WhatsApp account first.');
+    }
+
+    let media = null;
+    if (file) {
+        const allowedMimePrefixes = ['image/', 'video/'];
+        const allowedMimeTypes = new Set([
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain'
+        ]);
+        const isAllowed = allowedMimePrefixes.some(prefix => file.mimetype.startsWith(prefix)) || allowedMimeTypes.has(file.mimetype);
+        if (!isAllowed) {
+            throw httpError(400, 'Unsupported media type. Upload an image, video, PDF, document, spreadsheet, or text file');
+        }
+
+        const uploaded = await uploadImage({
+            buffer: file.buffer,
+            mimeType: file.mimetype
+        }, {
+            folder: 'lead_whatsapp_media',
+            resourceType: 'auto',
+            tags: ['lead-whatsapp', String(lead._id), String(user._id)]
+        });
+
+        media = {
+            url: uploaded.secureUrl || uploaded.url,
+            type: getLeadWhatsAppMediaType(file.mimetype),
+            mimeType: file.mimetype,
+            fileName: file.originalname || 'attachment'
+        };
+    }
+
+    try {
+        await whatsappService.sendMessage(cleanRecipient, message, user._id, media);
+    } catch (error) {
+        const lowerMessage = String(error.message || '').toLowerCase();
+        if (lowerMessage.includes('reconnecting')) {
+            throw httpError(409, 'WhatsApp is reconnecting. Please try again in a moment.');
+        }
+        if (lowerMessage.includes('session not found') || lowerMessage.includes('connect')) {
+            throw httpError(409, 'WhatsApp is not connected. Please connect your WhatsApp account first.');
+        }
+        throw error;
+    }
+
+    const now = new Date();
+    const stamp = now.toISOString();
+    const mediaLabel = media ? ` with ${media.type} attachment` : '';
+    const noteLine = `[${stamp}] WhatsApp message sent${mediaLabel} by ${user.user_name || user.email || 'user'}.`;
+    lead.last_contacted_at = now;
+    lead.updated_by = user._id;
+    lead.notes = `${lead.notes ? `${lead.notes}\n` : ''}${noteLine}`.trim();
+    await lead.save();
+
+    res.status(200).json({
+        success: true,
+        message: 'WhatsApp message sent successfully',
+        data: {
+            leadId: lead._id,
+            recipient: cleanRecipient,
+            media
+        }
+    });
 });
 
 const set_follow_up = wrapAsync(async (req, res) => {
@@ -1397,5 +1507,6 @@ module.exports = {
     agent_activity_timeline,
     delete_lead,
     bulk_delete_leads,
-    export_leads
+    export_leads,
+    send_lead_whatsapp_message
 };

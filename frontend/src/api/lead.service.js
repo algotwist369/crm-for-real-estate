@@ -29,6 +29,13 @@ export const leadService = {
         return response.data;
     },
 
+    sendWhatsAppMessage: async (id, formData) => {
+        const response = await axiosInstance.post(`/leads/${id}/whatsapp-message`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+    },
+
     setFollowUp: async (id, followUpData) => {
         const response = await axiosInstance.post(`/leads/${id}/followup`, followUpData);
         return response.data;

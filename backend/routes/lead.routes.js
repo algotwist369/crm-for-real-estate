@@ -3,6 +3,7 @@ const leadController = require('../controller/lead.controller');
 const { requireRoles } = require('../middleware/auth');
 const validateRequest = require('../middleware/validateRequest');
 const { leadSchemas } = require('../utils/validation');
+const { upload } = require('./upload');
 
 const router = express.Router();
 
@@ -14,6 +15,7 @@ router.post('/leads', requireRoles(['admin', 'super_admin', 'agent']), validateR
 router.delete('/leads/bulk', requireRoles(['admin', 'super_admin']), validateRequest(leadSchemas.bulkDelete), leadController.bulk_delete_leads);
 router.patch('/leads/:id', requireRoles(['admin', 'super_admin', 'agent']), validateRequest(leadSchemas.update), leadController.update_lead);
 router.post('/leads/:id/notes', requireRoles(['admin', 'super_admin', 'agent']), leadController.add_lead_note);
+router.post('/leads/:id/whatsapp-message', requireRoles(['admin', 'super_admin', 'agent']), upload.single('media'), leadController.send_lead_whatsapp_message);
 router.post('/leads/:id/followup', requireRoles(['admin', 'super_admin', 'agent']), leadController.set_follow_up);
 router.post('/leads/:id/followup/complete', requireRoles(['admin', 'super_admin', 'agent']), leadController.complete_followup);
 router.post('/leads/:id/followup/reschedule', requireRoles(['admin', 'super_admin', 'agent']), leadController.reschedule_followup);

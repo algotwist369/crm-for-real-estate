@@ -12,6 +12,7 @@ import {
     FiX
 } from "react-icons/fi";
 import { useWhatsAppStatus } from "../../hooks/useCampaignHooks";
+import { useSendLeadWhatsAppMessage } from "../../hooks/useLeadHooks";
 
 const buildDefaultMessage = (lead) => {
     const name = lead?.name ? ` ${lead.name}` : "";
@@ -26,17 +27,11 @@ const buildDefaultMessage = (lead) => {
     return `Hi${name}, thank you for your interest. I am following up ${details}. Please let me know a convenient time to discuss.`;
 };
 
-const SendWhatsAppModal = ({ isOpen, onClose, lead }) => {
+const SendWhatsAppModalContent = ({ onClose, lead }) => {
     const { data: whatsappData, isLoading, refetch, isFetching } = useWhatsAppStatus();
-    const [message, setMessage] = useState("");
+    const sendWhatsAppMutation = useSendLeadWhatsAppMessage();
+    const [message, setMessage] = useState(() => buildDefaultMessage(lead));
     const [media, setMedia] = useState(null);
-
-    useEffect(() => {
-        if (isOpen && lead) {
-            setMessage(buildDefaultMessage(lead));
-            setMedia(null);
-        }
-    }, [isOpen, lead]);
 
     useEffect(() => {
         return () => {
@@ -48,10 +43,8 @@ const SendWhatsAppModal = ({ isOpen, onClose, lead }) => {
         return lead?.whatsapp_number || lead?.phone || "";
     }, [lead]);
 
-    if (!isOpen || !lead) return null;
-
     const isConnected = whatsappData?.status === "connected";
-    const canSendLater = isConnected && recipient && (message.trim().length > 0 || media);
+    const canSend = isConnected && recipient && (message.trim().length > 0 || media);
 
     const handleMediaChange = (event) => {
         const file = event.target.files?.[0];
@@ -86,6 +79,27 @@ const SendWhatsAppModal = ({ isOpen, onClose, lead }) => {
         if (!bytes) return "0 KB";
         if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    const handleSend = async () => {
+        if (!canSend || sendWhatsAppMutation.isPending) return;
+
+        const formData = new FormData();
+        formData.append("message", message.trim());
+        if (media?.file) formData.append("media", media.file);
+
+        try {
+            const response = await sendWhatsAppMutation.mutateAsync({
+                id: lead._id,
+                data: formData
+            });
+
+            if (response?.success) {
+                onClose();
+            }
+        } catch {
+            // The mutation already shows the API error toast.
+        }
     };
 
     return (
@@ -183,7 +197,7 @@ const SendWhatsAppModal = ({ isOpen, onClose, lead }) => {
                                 />
                                 <FiUploadCloud size={22} className="mb-2 text-zinc-500" />
                                 <p className="text-xs font-semibold text-zinc-300">Add image, video, or document</p>
-                                <p className="mt-1 text-[11px] text-zinc-600">Preview only for now. Upload/send will be wired with backend.</p>
+                                <p className="mt-1 text-[11px] text-zinc-600">Up to 20 MB. Images, videos, PDFs, documents, spreadsheets, and text files are supported.</p>
                             </label>
                         ) : (
                             <div className="overflow-hidden rounded border border-zinc-800 bg-zinc-950">
@@ -231,15 +245,28 @@ const SendWhatsAppModal = ({ isOpen, onClose, lead }) => {
                     </button>
                     <button
                         type="button"
-                        disabled
-                        title={canSendLater ? "Backend send route will be connected next" : "Complete the requirements first"}
-                        className="rounded bg-emerald-600 px-5 py-2 text-xs font-semibold text-white opacity-50"
+                        onClick={handleSend}
+                        disabled={!canSend || sendWhatsAppMutation.isPending}
+                        title={canSend ? "Send WhatsApp message" : "Complete the requirements first"}
+                        className="rounded bg-emerald-600 px-5 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        Send Message
+                        {sendWhatsAppMutation.isPending ? "Sending..." : "Send Message"}
                     </button>
                 </div>
             </div>
         </div>
+    );
+};
+
+const SendWhatsAppModal = ({ isOpen, onClose, lead }) => {
+    if (!isOpen || !lead) return null;
+
+    return (
+        <SendWhatsAppModalContent
+            key={lead._id || lead.id || "lead-whatsapp"}
+            onClose={onClose}
+            lead={lead}
+        />
     );
 };
 

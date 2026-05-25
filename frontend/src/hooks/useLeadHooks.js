@@ -76,6 +76,21 @@ export const useAddLeadNote = () => {
     });
 };
 
+export const useSendLeadWhatsAppMessage = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, data }) => leadService.sendWhatsAppMessage(id, data),
+        onSuccess: (response, variables) => {
+            queryClient.invalidateQueries(["lead", variables.id]);
+            queryClient.invalidateQueries(["leads"]);
+            toast.success(response.message || "WhatsApp message sent");
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || "Failed to send WhatsApp message");
+        },
+    });
+};
+
 export const useSetFollowUp = () => {
     const queryClient = useQueryClient();
     return useMutation({

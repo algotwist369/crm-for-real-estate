@@ -669,7 +669,12 @@ const sendMessage = async (phone, message, userId, media = null) => {
             } else if (isVideo) {
                 await sock.sendMessage(jid, { video: { url: media.url }, caption: message });
             } else {
-                await sock.sendMessage(jid, { document: { url: media.url }, caption: message, fileName: 'document' });
+                await sock.sendMessage(jid, {
+                    document: { url: media.url },
+                    caption: message,
+                    fileName: media.fileName || 'document',
+                    mimetype: media.mimeType
+                });
             }
         } else {
             await sock.sendMessage(jid, { text: message });
