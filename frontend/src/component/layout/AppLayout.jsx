@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { FiMenu, FiLogOut, FiBell } from "react-icons/fi";
 import { GoSidebarCollapse, GoSidebarExpand } from "react-icons/go";
 import { NotificationSidebar } from "../common/NotificationSidebar";
+import ChatWidget from "../chat/ChatWidget";
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
 
@@ -23,6 +24,7 @@ const AppLayout = ({ children }) => {
             case "/properties": return "Property Inventory";
             case "/leads": return "Lead Pipeline";
             case "/reports": return "Analytics Reports";
+            case "/tasks": return "Task Management";
             case "/settings": return "System Settings";
             case "/notifications": return "Activity Center";
             case "/documentation": return "Help & Documentation";
@@ -153,6 +155,8 @@ const AppLayout = ({ children }) => {
                 />
 
             </div>
+
+            <ChatWidget />
 
         </div>
     );

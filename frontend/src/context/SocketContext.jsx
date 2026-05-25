@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
@@ -7,6 +8,7 @@ const SocketContext = createContext();
 export const SocketProvider = ({ children }) => {
     const { user, token } = useAuth();
     const socketRef = useRef(null);
+    const [socketInstance, setSocketInstance] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
 
     const API_URL = import.meta.env.VITE_API_URL || '';
@@ -41,6 +43,7 @@ export const SocketProvider = ({ children }) => {
                     timeout: 20000,
                     autoConnect: true
                 });
+                setSocketInstance(socketRef.current);
             }
 
             const socket = socketRef.current;
@@ -65,13 +68,15 @@ export const SocketProvider = ({ children }) => {
                     socketRef.current.disconnect();
                     socketRef.current = null;
                 }
+                setSocketInstance(null);
+                setIsConnected(false);
             };
         }
-    }, [user, token, API_URL]);
+    }, [user, token, SOCKET_URL]);
 
     return (
         <SocketContext.Provider value={{
-            socket: socketRef.current,
+            socket: socketInstance,
             isConnected
         }}>
             {children}

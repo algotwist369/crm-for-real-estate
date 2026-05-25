@@ -74,7 +74,11 @@ function createApp() {
     });
 
     app.use('/api/', apiLimiter);
-    app.use('/api/auth/', authLimiter);
+    app.use('/api/auth/admin/register', authLimiter);
+    app.use('/api/auth/admin/login', authLimiter);
+    app.use('/api/auth/agent/login', authLimiter);
+    app.use('/api/auth/change-password', authLimiter);
+    app.use('/api/auth/admin/change-password', authLimiter);
     app.use('/api/campaigns/whatsapp/init', whatsappLimiter);
     app.use('/api/campaigns/whatsapp/regenerate', whatsappLimiter);
 

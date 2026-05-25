@@ -25,11 +25,11 @@ function ensureConfigured() {
 }
 
 function normalizeUploadOptions(options = {}) {
-    const resourceType = options.resourceType || 'image';
+    const resourceType = options.resourceType || 'auto';
     return {
         folder: options.folder || process.env.CLOUDINARY_FOLDER || undefined,
         public_id: options.publicId || undefined,
-        resource_type: 'auto', // Force 'auto' to handle images and videos correctly
+        resource_type: resourceType,
         overwrite: options.overwrite ?? true,
         unique_filename: options.uniqueFilename ?? true,
         use_filename: options.useFilename ?? false,

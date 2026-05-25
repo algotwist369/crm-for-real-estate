@@ -10,6 +10,10 @@ const Lead = require('../model/lead.model');
 const { normalizePhone } = require('../utils/common');
 const { uploadImage } = require('../utils/uploadImage');
 
+const queueJobId = (...parts) => parts
+    .map(part => String(part).replace(/[^a-zA-Z0-9_-]/g, '-'))
+    .join('-');
+
 const createCampaign = async (req, res, next) => {
     try {
         const userId = req.auth.user._id;
@@ -57,7 +61,7 @@ const initWhatsApp = async (req, res, next) => {
             type: 'INIT',
             userId,
             tenantId
-        }, { jobId: `whatsapp-init:${userId}:${Date.now()}` });
+        }, { jobId: queueJobId('whatsapp-init', userId, Date.now()) });
 
         res.status(200).json({
             success: true,
@@ -83,7 +87,7 @@ const regenerateWhatsAppQR = async (req, res, next) => {
             type: 'REGENERATE',
             userId,
             tenantId
-        }, { jobId: `whatsapp-regenerate:${userId}:${Date.now()}` });
+        }, { jobId: queueJobId('whatsapp-regenerate', userId, Date.now()) });
 
         res.status(200).json({
             success: true,

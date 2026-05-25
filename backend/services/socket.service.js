@@ -5,6 +5,7 @@ const { createAdapter } = require('@socket.io/redis-adapter');
 const { redisConfig, getRedisConnection } = require('./queue.service');
 const Redis = require('ioredis');
 const logger = require('../utils/logger');
+const User = require('../model/user.model');
 
 class SocketService {
     constructor() {
@@ -95,7 +96,7 @@ class SocketService {
             }
         });
 
-        this.io.on('connection', (socket) => {
+        this.io.on('connection', async (socket) => {
             // Our JWT payload uses 'sub' for userId, not 'id' or '_id'
             const userId = String(socket.user.sub);
             
@@ -106,12 +107,26 @@ class SocketService {
 
             // Join a private room for this user
             socket.join(`user:${userId}`);
+
+            const dbUser = await User.findOne({ _id: userId, is_active: true, is_deleted: false })
+                .select('_id role tenant_id')
+                .lean()
+                .catch(() => null);
+            if (!dbUser) return socket.disconnect();
+
+            const tenantId = String(dbUser.tenant_id || (['admin', 'super_admin'].includes(dbUser.role) ? dbUser._id : ''));
+            socket.authUser = { ...dbUser, tenantId };
+            if (tenantId) socket.join(`tenant:${tenantId}`);
             
             // Track socket for this user
             if (!this.userSockets.has(userId)) {
                 this.userSockets.set(userId, new Set());
             }
             this.userSockets.get(userId).add(socket.id);
+
+            socket.to(`tenant:${tenantId}`).emit('presence:update', { userId, online: true });
+
+            this.registerCollaborationHandlers(socket);
 
             // console.log(`User ${userId} connected via socket ${socket.id}`);
 
@@ -121,6 +136,7 @@ class SocketService {
                     userSocks.delete(socket.id);
                     if (userSocks.size === 0) {
                         this.userSockets.delete(userId);
+                        socket.to(`tenant:${tenantId}`).emit('presence:update', { userId, online: false });
                     }
                 }
                 // console.log(`User ${userId} disconnected from socket ${socket.id}`);
@@ -142,6 +158,74 @@ class SocketService {
             this.io.to(`user:${String(id)}`).emit(event, data);
         });
         return true;
+    }
+
+    emitToRoom(room, event, data) {
+        if (!this.io || !room) return false;
+        this.io.to(room).emit(event, data);
+        return true;
+    }
+
+    getOnlineUserIds() {
+        return Array.from(this.userSockets.keys());
+    }
+
+    registerCollaborationHandlers(socket) {
+        socket.on('chat:join', async ({ conversationId } = {}) => {
+            try {
+                if (!conversationId) return;
+                const ChatConversation = require('../model/chatConversation.model');
+                const conversation = await ChatConversation.findOne({
+                    _id: conversationId,
+                    tenantId: socket.authUser.tenantId,
+                    'members.userId': socket.user.sub,
+                    isArchived: false
+                }).select('_id').lean();
+                if (conversation) socket.join(`chat:${conversationId}`);
+            } catch (err) {
+                logger.debug(`chat:join ignored: ${err.message}`);
+            }
+        });
+
+        socket.on('chat:typing', async ({ conversationId, typing } = {}) => {
+            try {
+                if (!conversationId) return;
+                const ChatConversation = require('../model/chatConversation.model');
+                const conversation = await ChatConversation.findOne({
+                    _id: conversationId,
+                    tenantId: socket.authUser.tenantId,
+                    'members.userId': socket.user.sub,
+                    isArchived: false
+                }).select('_id').lean();
+                if (!conversation) return;
+                socket.to(`chat:${conversationId}`).emit('chat:typing', {
+                    conversationId,
+                    userId: socket.user.sub,
+                    typing: Boolean(typing)
+                });
+            } catch (err) {
+                logger.debug(`chat:typing ignored: ${err.message}`);
+            }
+        });
+
+        socket.on('task:join-workspace', async ({ workspaceId } = {}) => {
+            try {
+                if (!workspaceId) return;
+                const TaskWorkspace = require('../model/taskWorkspace.model');
+                const workspace = await TaskWorkspace.findOne({
+                    _id: workspaceId,
+                    tenantId: socket.authUser.tenantId,
+                    isArchived: false,
+                    $or: [
+                        { members: socket.user.sub },
+                        { createdBy: socket.user.sub }
+                    ]
+                }).select('_id').lean();
+                if (workspace) socket.join(`task-workspace:${workspaceId}`);
+            } catch (err) {
+                logger.debug(`task:join-workspace ignored: ${err.message}`);
+            }
+        });
     }
 
     // For later implementation with Redis if needed

@@ -14,6 +14,7 @@ const AgentPage = lazy(() => import("./pages/AgentPage"));
 const LeadsPage = lazy(() => import("./pages/LeadsPage"));
 const PropertiesPage = lazy(() => import("./pages/PropertiesPage"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage"));
+const TasksPage = lazy(() => import("./pages/TasksPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const PropertyDetailsPage = lazy(() => import("./pages/PropertyDetailsPage"));
@@ -91,6 +92,14 @@ const App = () => {
                     element={
                       <ProtectedRoute>
                         <LeadDetailsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/tasks"
+                    element={
+                      <ProtectedRoute>
+                        <TasksPage />
                       </ProtectedRoute>
                     }
                   />

@@ -9,6 +9,7 @@ import {
     FiBell,
     FiSend,
     FiBook,
+    FiCheckSquare,
 } from "react-icons/fi";
 import { MdOutlineRealEstateAgent } from "react-icons/md";
 import { useAuth } from "../../context/AuthContext";
@@ -18,6 +19,7 @@ const menuItems = [
     { name: "Properties", icon: <MdOutlineRealEstateAgent />, path: "/properties" },
     { name: "Leads", icon: <FiPhone />, path: "/leads" },
     { name: "Outreach", icon: <FiSend />, path: "/campaigns" },
+    { name: "Tasks", icon: <FiCheckSquare />, path: "/tasks" },
     { name: "Agents", icon: <FiUsers />, path: "/agents" },
     { name: "Reports", icon: <FiBarChart2 />, path: "/reports" },
     { name: "Notifications", icon: <FiBell />, path: "/notifications" },

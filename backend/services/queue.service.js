@@ -27,6 +27,7 @@ let connection = null;
 let campaignQueue = null;
 let campaignEvents = null;
 let whatsappQueue = null;
+let taskEmailQueue = null;
 
 const getRedisConnection = () => {
     if (!connection) {
@@ -137,11 +138,33 @@ const getWhatsAppQueue = () => {
     return whatsappQueue;
 };
 
+const getTaskEmailQueue = () => {
+    if (!taskEmailQueue) {
+        taskEmailQueue = new Queue('task-email-notifications', {
+            connection: redisConfig,
+            defaultJobOptions: {
+                attempts: 3,
+                backoff: { type: 'exponential', delay: 60_000 },
+                removeOnComplete: true,
+                removeOnFail: false
+            }
+        });
+
+        taskEmailQueue.on('error', (err) => {
+            if (!err.message.includes('max number of clients reached')) {
+                logger.error(`BullMQ Task Email Queue Error: ${err.message}`);
+            }
+        });
+    }
+    return taskEmailQueue;
+};
+
 const closeAllConnections = async () => {
     const promises = [];
     if (campaignQueue) promises.push(campaignQueue.close());
     if (campaignEvents) promises.push(campaignEvents.close());
     if (whatsappQueue) promises.push(whatsappQueue.close());
+    if (taskEmailQueue) promises.push(taskEmailQueue.close());
     if (connection) promises.push(connection.quit());
     
     await Promise.allSettled(promises);
@@ -150,6 +173,7 @@ const closeAllConnections = async () => {
     campaignQueue = null;
     campaignEvents = null;
     whatsappQueue = null;
+    taskEmailQueue = null;
 };
 
 module.exports = {
@@ -158,6 +182,7 @@ module.exports = {
     getCampaignQueue,
     getCampaignEvents,
     getWhatsAppQueue,
+    getTaskEmailQueue,
     closeAllConnections,
     redisConfig
 };

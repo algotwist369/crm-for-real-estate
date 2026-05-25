@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext } from 'react';
 import { useAuthUser, useLogin, useLogout, useRegister, useAgentLogin } from '../hooks/useAuthHooks';
 
 const AuthContext = createContext(null);
@@ -12,15 +13,6 @@ export const AuthProvider = ({ children }) => {
   const agentLoginMutation = useAgentLogin();
   const registerMutation = useRegister();
   const logoutMutation = useLogout();
-
-  useEffect(() => {
-    console.log('Auth State Change:', { 
-        isAuthenticated: !!user, 
-        user: user?.user_name,
-        isLoading,
-        isError
-    });
-  }, [user, isLoading, isError]);
 
   const value = {
     user,
