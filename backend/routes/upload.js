@@ -49,10 +49,21 @@ const uploadCampaignMedia = upload.fields([
     { name: 'media', maxCount: 1 }
 ]);
 
+const uploadSocialMedia = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: Number(process.env.SOCIAL_UPLOAD_MAX_MB || 100) * 1024 * 1024,
+        files: 5
+    }
+}).fields([
+    { name: 'media', maxCount: 5 }
+]);
+
 module.exports = {
     upload,
     uploadChatAttachment,
     uploadProfilePic,
     uploadPropertyPhotos,
-    uploadCampaignMedia
+    uploadCampaignMedia,
+    uploadSocialMedia
 };

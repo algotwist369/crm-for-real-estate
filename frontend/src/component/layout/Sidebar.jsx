@@ -8,6 +8,7 @@ import {
     FiSettings,
     FiBell,
     FiSend,
+    FiShare2,
     FiBook,
     FiCheckSquare,
 } from "react-icons/fi";
@@ -19,6 +20,7 @@ const menuItems = [
     { name: "Properties", icon: <MdOutlineRealEstateAgent />, path: "/properties" },
     { name: "Leads", icon: <FiPhone />, path: "/leads" },
     { name: "Outreach", icon: <FiSend />, path: "/campaigns" },
+    { name: "Social", icon: <FiShare2 />, path: "/social-media" },
     { name: "Tasks", icon: <FiCheckSquare />, path: "/tasks" },
     { name: "Agents", icon: <FiUsers />, path: "/agents" },
     { name: "Reports", icon: <FiBarChart2 />, path: "/reports" },

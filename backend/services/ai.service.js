@@ -45,6 +45,52 @@ const generateVariation = async (template) => {
     }
 };
 
+const generateSocialCaption = async ({
+    prompt,
+    tone = 'professional',
+    style = 'real estate social post',
+    includeHashtags = true,
+    includeCta = true
+}) => {
+    if (!process.env.OPENAI_API_KEY) {
+        logger.warn('OpenAI API key not set, skipping social caption generation');
+        throw new Error('OpenAI API key is not configured');
+    }
+
+    try {
+        const response = await openai.chat.completions.create({
+            model: process.env.OPENAI_SOCIAL_CAPTION_MODEL || 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Write concise, high-converting social captions for real estate CRM users.
+Keep captions compliant, truthful, and suitable for Facebook and Instagram.
+Return only the caption text.`
+                },
+                {
+                    role: 'user',
+                    content: JSON.stringify({
+                        prompt,
+                        tone,
+                        style,
+                        includeHashtags,
+                        includeCta,
+                        maxLength: 1800
+                    })
+                }
+            ],
+            temperature: 0.75,
+            max_tokens: 500
+        });
+
+        return response.choices?.[0]?.message?.content?.trim() || '';
+    } catch (error) {
+        logger.error(`Social caption generation failed: ${error.message}`);
+        throw error;
+    }
+};
+
 module.exports = {
-    generateVariation
+    generateVariation,
+    generateSocialCaption
 };

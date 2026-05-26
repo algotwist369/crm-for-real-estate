@@ -34,6 +34,10 @@ function getTaskConnection() {
     return getModuleConnection('task', ['MONDO_DB_URL_TASK', 'MONGO_DB_URL_TASK', 'MONGO_URI_TASK']);
 }
 
+function getSocialMediaConnection() {
+    return getModuleConnection('social_media', ['MONGO_DB_URL_SOCIAL_MEDIA', 'MONGO_URI_SOCIAL_MEDIA']);
+}
+
 async function closeModuleConnections() {
     await Promise.allSettled(Object.values(connections).map(connection => connection.close()));
     Object.keys(connections).forEach(key => delete connections[key]);
@@ -42,5 +46,6 @@ async function closeModuleConnections() {
 module.exports = {
     getChatConnection,
     getTaskConnection,
+    getSocialMediaConnection,
     closeModuleConnections
 };

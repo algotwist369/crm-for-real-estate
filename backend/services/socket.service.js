@@ -36,7 +36,11 @@ class SocketService {
             pingInterval: 25000
         });
 
-        // Try to establish Redis adapter for scaling, fallback gracefully if limit reached.
+        // Socket Redis adapter is only needed for multi-process/socket fanout.
+        // Keep it opt-in to avoid exhausting small Redis plans during local/single-worker runs.
+        if (process.env.SOCKET_REDIS_ADAPTER !== 'true') {
+            logger.info('Socket.io Redis adapter disabled; using in-memory sockets.');
+        } else {
         try {
             const pubClient = getRedisConnection();
             this.subClient = pubClient.duplicate(); // Sub requires a dedicated connection because it blocks
@@ -72,6 +76,7 @@ class SocketService {
             this.io.adapter(createAdapter(pubClient, this.subClient));
         } catch (setupErr) {
             logger.error(`Critical error configuring Redis Sockets: ${setupErr.message}. Defaulting to Memory Sockets.`);
+        }
         }
 
         // Authentication Middleware

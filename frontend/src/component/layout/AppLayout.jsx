@@ -24,6 +24,7 @@ const AppLayout = ({ children }) => {
             case "/properties": return "Property Inventory";
             case "/leads": return "Lead Pipeline";
             case "/reports": return "Analytics Reports";
+            case "/social-media": return "Social Publishing";
             case "/tasks": return "Task Management";
             case "/settings": return "System Settings";
             case "/notifications": return "Activity Center";

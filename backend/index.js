@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const { connectToDatabase } = require('./config/db');
 const { startFollowUpReminderWorker } = require('./jobs/followUpReminderWorker');
 const { startTaskReminderScheduler } = require('./jobs/taskReminderScheduler');
+const { startSocialMediaScheduler } = require('./jobs/socialMediaScheduler');
 const { createApp } = require('./app');
 const socketService = require('./services/socket.service');
 const { getRedisConnection, closeAllConnections } = require('./services/queue.service');
@@ -89,6 +90,7 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
         // ─── Outreach Workers ───────────────────────────────────────────────────
         let reminderWorker = null;
         let taskReminderScheduler = null;
+        let socialMediaScheduler = null;
         if (process.env.OUTREACH_WORKER === 'true') {
             const whatsappService = require('./services/whatsapp.service');
             require('./jobs/campaignWorker'); // Initialize BullMQ Worker for campaigns
@@ -96,6 +98,7 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
             // 🚀 Senior Dev Strategy: Distributed Command Worker
             require('./jobs/whatsappWorker');
             require('./jobs/taskEmailWorker');
+            require('./jobs/socialMediaWorker');
 
             // Staggered boot reconnect is capped inside the service to avoid load spikes.
             setTimeout(() => {
@@ -109,10 +112,12 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
                 maxPerTick: Number(process.env.FOLLOWUP_WORKER_MAX_PER_TICK || 25)
             });
             taskReminderScheduler = startTaskReminderScheduler();
+            socialMediaScheduler = startSocialMediaScheduler();
 
             if (String(process.env.NODE_ENV || '').toLowerCase() !== 'test') {
                 reminderWorker.start();
                 taskReminderScheduler.start();
+                socialMediaScheduler.start();
             }
         }
 
@@ -142,6 +147,7 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
 
             if (reminderWorker) reminderWorker.stop();
             if (taskReminderScheduler) taskReminderScheduler.stop();
+            if (socialMediaScheduler) socialMediaScheduler.stop();
 
             // Close Redis and BullMQ connections
             try {
@@ -159,9 +165,11 @@ if (cluster.isPrimary && process.env.DISABLE_CLUSTER !== 'true') {
                     const campaignWorker = require('./jobs/campaignWorker');
                     const whatsappWorker = require('./jobs/whatsappWorker');
                     const taskEmailWorker = require('./jobs/taskEmailWorker');
+                    const socialMediaWorker = require('./jobs/socialMediaWorker');
                     await campaignWorker.close();
                     await whatsappWorker.close();
                     await taskEmailWorker.close();
+                    await socialMediaWorker.close();
                     process.stdout.write(`Worker ${process.pid} - Outreach workers closed\n`);
                 } catch (err) {
                     process.stderr.write(`Worker ${process.pid} - Error closing workers: ${err.message}\n`);

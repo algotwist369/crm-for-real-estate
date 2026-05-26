@@ -1,359 +1,753 @@
-I want to add two major production-grade modules into my Real Estate CRM:
+1. Feature Scope
+
+User can:
+
+Connect Facebook Page.
+Connect Instagram Business/Creator account.
+Create post manually.
+Generate caption using OpenAI.
+Upload image/video.
+Publish immediately.
+Schedule post.
+Track every status.
+Retry failed jobs.
+Delete media from storage after successful publish.
+
+Required Meta permissions may include:
+
+pages_show_list, pages_manage_posts, pages_read_engagement, instagram_basic, instagram_content_publish.
+
+Meta permission review is required for production use. Meta’s permissions reference specifically includes instagram_content_publish for creating and publishing organic Instagram content.
+
+2. Recommended Architecture
+CRM Existing DB
+   |
+   | user_id / org_id reference
+   v
+Social Media DB: MONGO_DB_URL_SOCIAL_MEDIA
+   |
+   |-- social_accounts
+   |-- social_posts
+   |-- social_media_assets
+   |-- social_post_jobs
+   |-- social_ai_captions
+   |-- social_webhook_events
+   |-- social_audit_logs
+
+Backend API
+   |
+   |-- Auth Middleware
+   |-- Social Account Service
+   |-- Meta OAuth Service
+   |-- Post Service
+   |-- AI Caption Service
+   |-- Media Upload Service
+   |-- Queue Producer
 
-1. Real-Time Communication System
-2. Advanced Task Management System (Trello-style)
+Redis + BullMQ
+   |
+   |-- publish_now_queue
+   |-- scheduled_post_queue
+   |-- retry_failed_post_queue
+   |-- media_cleanup_queue
+   |-- token_refresh_queue
 
-The architecture, scalability, security, UI/UX, and performance must be designed like a modern SaaS platform used by large teams.
+Workers
+   |
+   |-- Facebook Publish Worker
+   |-- Instagram Publish Worker
+   |-- Media Cleanup Worker
+   |-- Retry Worker
+   |-- Token Health Worker
 
-====================================================
+Meta Graph API
+OpenAI API
+Storage: S3 / Cloudinary / GCP Storage
+3. Status Flow
 
-1. REAL-TIME CHAT & COMMUNICATION SYSTEM
-   ====================================================
+Use strict status tracking:
 
-Build a fully real-time chat system for Admins and Agents.
+draft
+caption_generating
+caption_generated
+media_uploaded
+scheduled
+queued
+processing
+publishing_to_meta
+published
+failed_retryable
+failed_permanent
+cancelled
+expired_token
+rate_limited
+media_cleanup_pending
+media_deleted
 
----
+Never depend only on BullMQ status. Store your own status in MongoDB.
 
-## Core Requirements
+4. Main Failure Conditions and Solutions
+A. User Connection Failures
+1. User denies Meta permission
 
-* Use WebSockets (Socket.IO preferred) for instant communication.
-* Real-time messaging must be:
+Failure: User clicks connect but does not approve required scopes.
 
-  * Smooth
-  * Low latency
-  * Highly scalable
-  * Production-ready
-* Handle large concurrent users without lag or delays.
+Solution:
 
----
+Show missing permission list.
 
-## User Communication Rules
+Facebook connection failed because required permissions were not approved:
+pages_manage_posts, instagram_content_publish
 
-Admin can chat with:
+Save status:
 
-* Any agent under their organization/company
+connection_status: "permission_denied"
+2. User connects personal Instagram account
 
-Agents can chat with:
+Failure: Instagram publishing works only for supported professional accounts depending on API path.
 
-* Admin
-* Other agents under the same organization/company
+Solution:
 
-No unauthorized cross-company communication should ever be possible.
+Validate account type after connection.
 
----
+if account_type not in ["BUSINESS", "CREATOR"]:
+    block publishing
 
-## Chat UI Requirements
+Show:
 
-Add a floating chat icon at the bottom-right corner of the CRM.
+Please convert your Instagram account to Business or Creator account.
+3. Facebook Page not linked with Instagram
 
-On click:
+Failure: Instagram publishing needs a valid connected Instagram account in many Graph API flows.
 
-* Expand a professional chat panel/modal.
+Solution:
 
-Left Sidebar:
+During connection, fetch pages and linked Instagram accounts.
 
-* Show all available users/groups
-* Display:
+Store:
 
-  * Profile picture
-  * Full name
-  * Role
-  * Online/offline status
-  * Last message preview
-  * Unread message count (WhatsApp-style)
+{
+  facebook_page_id,
+  instagram_business_account_id,
+  is_instagram_connected: true
+}
 
-Right Chat Window:
+If missing, show setup instructions.
 
-* Open selected chat
-* Header should display:
+4. Token expires
 
-  * Name/group name
-  * Profile picture
-  * Online status
-  * Typing indicator
+Failure: Post fails at scheduled time because token expired.
 
-Chat Features:
+Solution:
 
-* Real-time messaging
-* Message delivery status
-* Seen/read status
-* Typing indicators
-* Reply to message
-* Mentions/tags
-* Edit message
-* File upload
-* Media upload
-* Document sharing
-* Emoji support
-* Group replies
-* Individual chat replies
-* Infinite scroll/pagination
-* Search messages
-* Pin important messages
-* Timestamp display
+Run daily token health check.
 
----
+Before scheduling/posting:
 
-## Group Features
+Check token validity.
+If invalid, mark post as expired_token.
+Notify user.
+Do not retry blindly.
+5. User removes app access from Meta
 
-Admin can:
+Failure: Token was valid earlier but revoked later.
 
-* Create groups
-* Add/remove members
-* Assign group roles if needed
-* Mention/tag users inside groups
+Solution:
 
----
+Detect Meta auth error.
 
-## Security & Isolation
+Mark account:
 
-* Strict authorization required.
-* Only authorized users can access their own chats/groups.
-* No unauthorized message visibility.
-* Validate all socket events.
-* Protect against:
+connection_status: "revoked"
 
-  * Unauthorized socket connections
-  * Spam events
-  * Data leakage
+Notify user to reconnect.
 
----
+B. AI Caption Failures
+6. OpenAI API timeout
 
-## Notifications
+Failure: Caption generation takes too long.
 
-* Show unread message count beside each user/group.
-* Show overall unread count on floating chat icon.
-* Real-time notification updates.
-* Optional browser notification support.
+Solution:
 
----
+Use timeout and fallback.
 
-## Performance Requirements
+Retry 2 times.
+If failed, allow manual caption.
 
-* UI must be:
+Status:
 
-  * Modern
-  * Smooth
-  * Responsive
-  * Production-ready
-* Optimize for:
+caption_failed
+7. AI generates unsafe/wrong caption
 
-  * High traffic
-  * Concurrent messaging
-  * Minimal re-renders
-  * Efficient socket rooms
-  * Fast database queries
+Failure: Bad or irrelevant caption.
 
----
+Solution:
 
-## Message Retention Policy
+Never auto-post AI caption without user review unless user explicitly enables auto mode.
 
-* All individual and group messages must automatically delete after 7 days.
-* Use scheduled cleanup jobs/TTL strategy.
+Store:
 
-====================================================
-2. TASK MANAGEMENT SYSTEM (Trello-style)
-========================================
+caption_source: "ai" | "manual"
+caption_approved: true | false
+8. OpenAI rate limit
 
-Build a modern task/project management system similar to Trello/Jira.
+Failure: Too many caption requests.
 
----
+Solution:
 
-## Core Features
+Use separate BullMQ queue:
 
-Admin can:
+ai_caption_queue
 
-* Create workspaces/projects/rooms
-* Create tasks
-* Assign tasks to agents
-* Track task progress
-* Monitor productivity
+Apply:
 
----
+per_user_limit
+per_org_limit
+global_limit
+C. Media Upload Failures
+9. Unsupported image/video format
 
-## Kanban Board
+Failure: Meta rejects file.
 
-Create a drag-and-drop Kanban board with columns such as:
+Solution:
 
-* Todo
-* In Progress
-* Review
-* Completed
+Validate before upload.
 
-Requirements:
+Allowed examples:
 
-* Smooth drag-and-drop interactions
-* Real-time updates
-* Optimized rendering
+image/jpeg
+image/png
+video/mp4
 
----
+Also validate size, duration, aspect ratio, resolution.
 
-## Task Features
+10. Upload succeeds but DB save fails
 
-Each task should support:
+Failure: Media exists in storage but no DB record.
 
-* Title
-* Description
-* Priority level:
+Solution:
 
-  * Low
-  * Medium
-  * High
-  * Urgent
-* Status
-* Deadline
-* Extend deadline
-* Assigned members
-* Comments/discussions
-* File attachments
-* Activity logs/history
-* Labels/tags
-* Subtasks/checklists
-* Real-time updates
+Use compensating cleanup job.
 
----
+Flow:
 
-## Task Analytics & Productivity
+1. Upload media
+2. Save DB record
+3. If DB save fails, delete uploaded media
+11. DB save succeeds but upload fails
 
-Add features for:
+Failure: Post has broken media reference.
 
-* Task completion tracking
-* Productivity analytics
-* Deadline monitoring
-* Overdue task indicators
-* Task filtering/search
-* Agent workload visibility
+Solution:
 
----
+Create media record only after successful upload, or mark:
 
-## Email Notification System
+media_status: "upload_failed"
+12. Media deleted before scheduled post
 
-Implement automated email notifications.
+Failure: Cleanup runs too early.
 
-Agent Deadline Reminder:
+Solution:
 
-* Assigned agents must receive an automatic email reminder exactly 1 day before the deadline.
+Only delete media after:
 
-Reminder email should include:
+post_status === "published"
 
-* Task title
-* Priority
-* Deadline
-* Workspace/project name
-* Current status
-* Admin/manager name
-* Direct task link
+Never delete media for:
 
-Admin Completion Notification:
+scheduled
+queued
+processing
+failed_retryable
+D. Scheduling Failures
+13. User schedules post in past
 
-* When an agent marks a task as completed:
+Solution:
 
-  * Automatically notify the admin by email.
+Validate:
 
-Completion email should include:
+scheduled_at > current_time + minimum_buffer
 
-* Task title
-* Agent name
-* Completion timestamp
-* Project/workspace name
-* Task summary
-* Final status
+Use server time, not browser time.
 
----
+14. Timezone mismatch
 
-## Notification Architecture
+Failure: User schedules 10 AM but post goes at wrong time.
 
-* Use background queue/job processing.
-* Async email handling only.
-* Retry failed emails automatically.
-* Prevent duplicate notifications.
-* Maintain notification logs/history.
+Solution:
 
-Future-ready support for:
+Store both:
 
-* Push notifications
-* SMS
-* Slack/Discord integration
-* In-app notifications
+scheduled_at_utc
+user_timezone
+display_time
 
-====================================================
-3. DATABASE ARCHITECTURE
-========================
+Always process in UTC.
 
-Use separate databases for scalability and modularity.
+15. Redis/BullMQ delayed job lost
 
-Chat Database:
+Failure: Redis restart or queue issue.
 
-* Environment Variable:
-  MONDO_DB_URL_CHAT
+Solution:
 
-Task Database:
+Do not depend only on delayed BullMQ jobs.
 
-* Environment Variable:
-  MONDO_DB_URL_TASK
+Add DB scheduler scanner:
 
-Existing Main Database:
+Every 1 minute:
+Find posts where status=scheduled and scheduled_at_utc <= now
+Push to queue if not already queued
 
-* Continue using current database for:
+This prevents missed posts.
 
-  * Authentication
-  * Users
-  * Organizations
-  * Relationship mapping
-  * Roles & permissions
+16. Duplicate scheduled job
 
-The chat/task modules should communicate with the main database through proper relationship mapping and authorization layers.
+Failure: Same post publishes twice.
 
-====================================================
-4. SYSTEM DESIGN & ENGINEERING EXPECTATIONS
-===========================================
+Solution:
 
-Build this like a scalable SaaS product.
+Use idempotency key.
 
-Requirements:
+job_id = `publish:${post_id}`
 
-* Clean modular architecture
-* Scalable backend structure
-* Proper folder organization
-* Role-based access control (RBAC)
-* Secure socket authentication
-* Optimized database queries
-* Caching where required
-* Proper validation
-* Error handling
-* Logging & monitoring
-* Rate limiting
-* Secure file upload handling
-* Real-time synchronization
-* Mobile responsive UI
-* Future scalability support
+BullMQ:
 
-====================================================
-5. TECH STACK EXPECTATIONS
-==========================
+queue.add("publish_post", data, {
+  jobId: `publish:${post_id}`
+})
 
-Backend:
+MongoDB:
 
-* Node.js
-* Express.js
-* MongoDB
-* Socket.IO
-* Redis (recommended for scaling sockets/queues)
-* BullMQ or similar queue system
+publish_lock: true
+published_at: null
 
-Frontend:
+Before publishing:
 
-* React.js
-* Modern responsive UI
-* Smooth animations/interactions
-* Optimized rendering
+If already published, skip.
+E. Publishing Failures
+17. Meta API rate limit
 
-Architecture Goals:
+Failure: Meta rejects due to rate limits.
 
-* Production-ready
-* High performance
-* Scalable
-* Maintainable
-* Secure
-* Clean UI/UX
-* Enterprise-grade experience
+Solution:
+
+Use exponential backoff.
+
+Retry after delay.
+Respect Retry-After header if available.
+Mark status: rate_limited.
+
+Meta confirms Graph API requests can fail after rate limits are reached.
+
+18. Temporary Meta API failure
+
+Failure: 500/502/503 from Meta.
+
+Solution:
+
+Retry safely:
+
+Attempt 1: after 1 min
+Attempt 2: after 5 min
+Attempt 3: after 15 min
+Attempt 4: after 1 hour
+
+After max retries:
+
+failed_retryable or failed_permanent
+19. Permanent Meta validation error
+
+Failure: Bad media, bad caption, missing permission.
+
+Solution:
+
+Do not retry.
+
+Mark:
+
+failed_permanent
+
+Save exact error:
+
+meta_error_code
+meta_error_message
+meta_error_subcode
+20. Instagram two-step publishing fails
+
+Instagram publishing usually has two steps:
+
+1. Create media container
+2. Publish media container
+
+Failure: Container created but publish fails.
+
+Solution:
+
+Store:
+
+meta_container_id
+
+Retry publish step only, not full upload, if valid.
+
+21. Facebook published but Instagram failed
+
+Failure: Multi-platform post partially succeeds.
+
+Solution:
+
+Track per platform status.
+
+platform_results: [
+  {
+    platform: "facebook",
+    status: "published",
+    meta_post_id: "..."
+  },
+  {
+    platform: "instagram",
+    status: "failed_retryable",
+    error: "..."
+  }
+]
+
+Do not mark whole post simply as failed. Use:
+
+partially_published
+22. User deletes connected page before scheduled post
+
+Solution:
+
+Before publishing, verify account/page still accessible.
+
+If not:
+
+failed_permanent
+reason: page_not_accessible
+23. Duplicate publish due to worker crash
+
+Failure: Worker publishes to Meta but crashes before DB update.
+
+Solution:
+
+This is serious.
+
+Use:
+
+idempotency lock
+platform_publish_attempt record
+external_meta_post_id storage
+
+After Meta response, update DB immediately.
+
+Also use reconciliation job:
+
+Check posts stuck in publishing_to_meta for more than 10 minutes.
+Verify with Meta if possible.
+F. Queue/Worker Failures
+24. Redis down
+
+Failure: Queue unavailable.
+
+Solution:
+
+API should not crash.
+
+Save post as scheduled/pending_queue.
+Return message: Post saved, publishing queue temporarily delayed.
+
+Recovery scanner pushes pending posts when Redis returns.
+
+25. Worker down
+
+Failure: Jobs remain waiting.
+
+Solution:
+
+Run multiple workers:
+
+social-worker-1
+social-worker-2
+social-worker-3
+
+Use process manager:
+
+PM2 / Docker / ECS / Kubernetes later
+
+Add health checks.
+
+26. Job stuck in active
+
+Solution:
+
+Use BullMQ stalled job handling.
+
+Also maintain DB timeout:
+
+If processing for > 15 minutes, mark as stuck and requeue.
+27. Too many jobs at once
+
+Failure: 100k users schedule posts at same time.
+
+Solution:
+
+Use queue partitioning:
+
+facebook_publish_queue
+instagram_publish_queue
+media_cleanup_queue
+caption_queue
+
+Use concurrency limits:
+
+concurrency: 20
+
+Use per-user and per-platform rate limiter.
+
+G. Database Failures
+28. Social DB unavailable
+
+Failure: MONGO_DB_URL_SOCIAL_MEDIA connection fails.
+
+Solution:
+
+Use separate DB connection with retry.
+
+Do not crash main CRM.
+Disable social module temporarily.
+29. Existing CRM DB and social DB relation breaks
+
+Failure: User deleted from main CRM but social records remain.
+
+Solution:
+
+Use soft references:
+
+crm_user_id
+crm_org_id
+crm_role
+
+Add sync/cleanup job:
+
+If CRM user inactive, disable social posting.
+30. No transaction across two databases
+
+Failure: Existing DB update succeeds but social DB update fails.
+
+Solution:
+
+Avoid cross-database transactions where possible.
+
+Use event-style sync:
+
+CRM emits user_created/user_deleted/org_updated
+Social DB stores mirrored minimal user/org info
+H. Security Failures
+31. Access token leak
+
+Solution:
+
+Encrypt tokens before saving.
+
+AES-256-GCM
+
+Never log tokens.
+
+Store:
+
+access_token_encrypted
+token_last_4
+expires_at
+32. Agent posts from another user’s account
+
+Solution:
+
+Every query must include:
+
+org_id
+user_id
+role
+
+Never fetch by only _id.
+
+33. Broken authorization
+
+Solution:
+
+Create permission matrix:
+
+admin: connect accounts, post, schedule, delete
+manager: post, schedule
+agent: create draft only
+34. Webhook spoofing
+
+Solution:
+
+Verify Meta webhook signature.
+
+Reject invalid signatures.
+
+I. Storage Cleanup Failures
+35. Media deletion fails after publish
+
+Solution:
+
+Do not block publish success.
+
+Create cleanup job:
+
+media_cleanup_pending
+
+Retry deletion separately.
+
+36. Accidentally deleting media before retry
+
+Solution:
+
+Cleanup condition:
+
+Delete only if all selected platforms are published OR failed_permanent and user confirms cleanup.
+J. Frontend Failures
+37. User refreshes during upload
+
+Solution:
+
+Use resumable upload or save draft before upload.
+
+38. User clicks publish multiple times
+
+Solution:
+
+Disable button after first click.
+
+Backend idempotency:
+
+client_request_id
+39. Status not updating live
+
+Solution:
+
+Use polling or WebSocket.
+
+Simple production-safe option:
+
+Frontend polls /posts/:id/status every 5 seconds while processing.
+5. Suggested MongoDB Schemas
+social_accounts
+{
+  crm_user_id,
+  crm_org_id,
+  platform: "facebook" | "instagram",
+  facebook_page_id,
+  instagram_business_account_id,
+  account_name,
+  username,
+  access_token_encrypted,
+  token_expires_at,
+  permissions: [],
+  connection_status: "connected",
+  last_token_check_at,
+  created_at,
+  updated_at
+}
+social_posts
+{
+  crm_user_id,
+  crm_org_id,
+  caption,
+  caption_source: "manual" | "ai",
+  media_ids: [],
+  platforms: ["facebook", "instagram"],
+  schedule_type: "now" | "scheduled",
+  scheduled_at_utc,
+  user_timezone,
+  status,
+  platform_results: [],
+  retry_count,
+  max_retries,
+  last_error,
+  publish_lock,
+  published_at,
+  created_at,
+  updated_at
+}
+social_media_assets
+{
+  crm_user_id,
+  crm_org_id,
+  post_id,
+  storage_provider: "s3",
+  file_url,
+  file_key,
+  mime_type,
+  file_size,
+  media_type: "image" | "video",
+  status: "uploaded" | "deleted" | "delete_failed",
+  created_at,
+  deleted_at
+}
+social_post_jobs
+{
+  post_id,
+  job_id,
+  queue_name,
+  status,
+  attempts,
+  next_retry_at,
+  last_error,
+  created_at,
+  updated_at
+}
+6. Retry Strategy
+
+Use retry only for temporary errors.
+
+Retryable:
+
+Meta 500/502/503
+Network timeout
+Rate limit
+Redis temporary failure
+Storage temporary failure
+
+Not retryable:
+
+Invalid token
+Missing permission
+Unsupported media
+Invalid caption
+Page not found
+Instagram account not connected
+User cancelled post
+
+Recommended BullMQ config:
+
+{
+  attempts: 5,
+  backoff: {
+    type: "exponential",
+    delay: 60000
+  },
+  removeOnComplete: false,
+  removeOnFail: false
+}
+7. Production API Routes
+POST   /api/social/connect/facebook
+GET    /api/social/connect/facebook/callback
+GET    /api/social/accounts
+DELETE /api/social/accounts/:account_id
+
+POST   /api/social/captions/generate
+POST   /api/social/media/upload
+DELETE /api/social/media/:media_id
+
+POST   /api/social/posts
+GET    /api/social/posts
+GET    /api/social/posts/:post_id
+GET    /api/social/posts/:post_id/status
+PATCH  /api/social/posts/:post_id
+DELETE /api/social/posts/:post_id
+
+POST   /api/social/posts/:post_id/publish-now
+POST   /api/social/posts/:post_id/schedule
+POST   /api/social/posts/:post_id/cancel
+POST   /api/social/posts/:post_id/retry

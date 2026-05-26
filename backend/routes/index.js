@@ -10,6 +10,7 @@ const notificationRoutes = require('./notification.routes');
 const campaignRoutes = require('./campaign.routes');
 const chatRoutes = require('./chat.routes');
 const taskRoutes = require('./task.routes');
+const socialMediaRoutes = require('./socialMedia.routes');
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.use('/notifications', notificationRoutes);
 router.use('/campaigns', campaignRoutes);
 router.use('/chat', chatRoutes);
 router.use('/tasks', taskRoutes);
+router.use('/social-media', socialMediaRoutes);
 router.use(propertyRoutes);
 router.use(leadRoutes);
 

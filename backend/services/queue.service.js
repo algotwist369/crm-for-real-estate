@@ -28,6 +28,11 @@ let campaignQueue = null;
 let campaignEvents = null;
 let whatsappQueue = null;
 let taskEmailQueue = null;
+let socialPublishQueue = null;
+let socialScheduleQueue = null;
+let socialCaptionQueue = null;
+let socialCleanupQueue = null;
+let socialSharedQueue = null;
 
 const getRedisConnection = () => {
     if (!connection) {
@@ -159,12 +164,82 @@ const getTaskEmailQueue = () => {
     return taskEmailQueue;
 };
 
+function createSocialQueue(name) {
+    return new Queue(name, {
+        connection: redisConfig,
+        defaultJobOptions: {
+            attempts: Number(process.env.SOCIAL_QUEUE_ATTEMPTS || 5),
+            backoff: {
+                type: 'exponential',
+                delay: Number(process.env.SOCIAL_QUEUE_BACKOFF_MS || 60_000)
+            },
+            removeOnComplete: { age: 24 * 60 * 60, count: 1000 },
+            removeOnFail: false
+        }
+    });
+}
+
+function attachQueueError(queue, label) {
+    queue.on('error', (err) => {
+        if (!err.message.includes('max number of clients reached')) {
+            logger.error(`BullMQ ${label} Queue Error: ${err.message}`);
+        }
+    });
+}
+
+const getSocialPublishQueue = () => {
+    if (process.env.SOCIAL_COMPACT_REDIS !== 'false') {
+        if (!socialSharedQueue) {
+            socialSharedQueue = createSocialQueue('social-media');
+            attachQueueError(socialSharedQueue, 'Social Media');
+        }
+        return socialSharedQueue;
+    }
+    if (!socialPublishQueue) {
+        socialPublishQueue = createSocialQueue('social-publish');
+        attachQueueError(socialPublishQueue, 'Social Publish');
+    }
+    return socialPublishQueue;
+};
+
+const getSocialScheduleQueue = () => {
+    if (process.env.SOCIAL_COMPACT_REDIS !== 'false') return getSocialPublishQueue();
+    if (!socialScheduleQueue) {
+        socialScheduleQueue = createSocialQueue('social-schedule');
+        attachQueueError(socialScheduleQueue, 'Social Schedule');
+    }
+    return socialScheduleQueue;
+};
+
+const getSocialCaptionQueue = () => {
+    if (process.env.SOCIAL_COMPACT_REDIS !== 'false') return getSocialPublishQueue();
+    if (!socialCaptionQueue) {
+        socialCaptionQueue = createSocialQueue('social-caption');
+        attachQueueError(socialCaptionQueue, 'Social Caption');
+    }
+    return socialCaptionQueue;
+};
+
+const getSocialCleanupQueue = () => {
+    if (process.env.SOCIAL_COMPACT_REDIS !== 'false') return getSocialPublishQueue();
+    if (!socialCleanupQueue) {
+        socialCleanupQueue = createSocialQueue('social-cleanup');
+        attachQueueError(socialCleanupQueue, 'Social Cleanup');
+    }
+    return socialCleanupQueue;
+};
+
 const closeAllConnections = async () => {
     const promises = [];
     if (campaignQueue) promises.push(campaignQueue.close());
     if (campaignEvents) promises.push(campaignEvents.close());
     if (whatsappQueue) promises.push(whatsappQueue.close());
     if (taskEmailQueue) promises.push(taskEmailQueue.close());
+    if (socialPublishQueue) promises.push(socialPublishQueue.close());
+    if (socialScheduleQueue) promises.push(socialScheduleQueue.close());
+    if (socialCaptionQueue) promises.push(socialCaptionQueue.close());
+    if (socialCleanupQueue) promises.push(socialCleanupQueue.close());
+    if (socialSharedQueue) promises.push(socialSharedQueue.close());
     if (connection) promises.push(connection.quit());
     
     await Promise.allSettled(promises);
@@ -174,6 +249,11 @@ const closeAllConnections = async () => {
     campaignEvents = null;
     whatsappQueue = null;
     taskEmailQueue = null;
+    socialPublishQueue = null;
+    socialScheduleQueue = null;
+    socialCaptionQueue = null;
+    socialCleanupQueue = null;
+    socialSharedQueue = null;
 };
 
 module.exports = {
@@ -183,6 +263,10 @@ module.exports = {
     getCampaignEvents,
     getWhatsAppQueue,
     getTaskEmailQueue,
+    getSocialPublishQueue,
+    getSocialScheduleQueue,
+    getSocialCaptionQueue,
+    getSocialCleanupQueue,
     closeAllConnections,
     redisConfig
 };

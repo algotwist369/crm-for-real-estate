@@ -23,6 +23,7 @@ const CampaignsPage = lazy(() => import("./pages/CampaignsPage"));
 const CreateCampaignPage = lazy(() => import("./pages/CreateCampaignPage"));
 const CampaignSettingsPage = lazy(() => import("./pages/CampaignSettingsPage"));
 const CampaignDetailsPage = lazy(() => import("./pages/CampaignDetailsPage"));
+const SocialMediaPage = lazy(() => import("./pages/SocialMediaPage"));
 const DocumentationPage = lazy(() => import("./pages/DocumentationPage"));
 const TermsOfServicePage = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicy"));
@@ -162,6 +163,14 @@ const App = () => {
                     element={
                       <ProtectedRoute>
                         <CampaignDetailsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/social-media"
+                    element={
+                      <ProtectedRoute>
+                        <SocialMediaPage />
                       </ProtectedRoute>
                     }
                   />
