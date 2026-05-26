@@ -56,7 +56,8 @@ function normalizeMetaError(error) {
     err.metaSubcode = subcode;
     err.isRateLimited = status === 429 || ['4', '17', '32', '613'].includes(code);
     err.isTokenExpired = ['190', '102', '10', '200'].includes(code);
-    err.isPermissionDenied = ['10', '200', '2500'].includes(code);
+    err.isPermissionDenied = ['10', '2500'].includes(code)
+        || (code === '200' && /(permission|permissions|access|not allowed|requires)/i.test(message));
     return err;
 }
 
@@ -131,7 +132,8 @@ async function publishFacebook(account, token, post) {
 
 async function listFacebookPagePosts(account, token, options = {}) {
     const limit = Math.min(Number(options.limit || 25), 50);
-    const data = await graphRequest('get', `/${account.provider_account_id}/posts`, {
+    const data = await graphRequest('get', `/${account.provider_account_id}/feed`, {
+        app_id: process.env.META_APP_ID,
         limit,
         fields: [
             'id',
