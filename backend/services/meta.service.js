@@ -1,24 +1,45 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
 
-const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v20.0';
+const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v24.0';
 const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_VERSION}`;
 
+function getLoginScopes() {
+    if (process.env.META_LOGIN_SCOPES) {
+        return process.env.META_LOGIN_SCOPES
+            .split(',')
+            .map(scope => scope.trim())
+            .filter(Boolean);
+    }
+
+    return [
+        'public_profile',
+        'pages_show_list',
+        'pages_read_engagement',
+        'pages_manage_posts',
+        'instagram_business_basic',
+        'instagram_business_content_publish',
+        'business_management'
+    ];
+}
+
 function getOAuthUrl(state) {
+    const loginConfigId = String(process.env.META_LOGIN_CONFIG_ID || '').trim();
     const params = new URLSearchParams({
         client_id: process.env.META_APP_ID || '',
         redirect_uri: process.env.META_REDIRECT_URI || '',
         state,
-        response_type: 'code',
-        scope: [
-            'pages_show_list',
-            'pages_read_engagement',
-            'pages_manage_posts',
-            'instagram_business_basic',
-            'instagram_business_content_publish',
-            'business_management'
-        ].join(',')
+        response_type: 'code'
     });
+
+    if (loginConfigId) {
+        params.set('config_id', loginConfigId);
+        params.set('override_default_response_type', 'true');
+        params.set('auth_type', 'rerequest');
+    } else {
+        params.set('scope', getLoginScopes().join(','));
+    }
+
     return `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth?${params.toString()}`;
 }
 
@@ -125,5 +146,6 @@ module.exports = {
     listPages,
     publishFacebook,
     publishInstagram,
-    normalizeMetaError
+    normalizeMetaError,
+    getLoginScopes
 };
