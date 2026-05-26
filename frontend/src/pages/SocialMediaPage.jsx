@@ -61,8 +61,14 @@ const SocialMediaPage = () => {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const connect = params.get('social_connect');
+        const reason = params.get('reason');
         if (connect === 'success') toast.success('Meta accounts connected');
-        if (connect === 'failed') toast.error('Meta connection failed');
+        if (connect === 'failed') {
+            const message = reason === 'no_pages_or_instagram_accounts_found'
+                ? 'Meta connected, but no Facebook Pages or Instagram Business accounts were found for this user.'
+                : 'Meta connection failed';
+            toast.error(message, { duration: 7000 });
+        }
         if (connect) {
             window.history.replaceState({}, document.title, window.location.pathname);
             refetchAccounts();
@@ -128,7 +134,9 @@ const SocialMediaPage = () => {
                 <div>
                     <h1 className="text-xl font-medium text-white mb-1">Social Publishing</h1>
                     <p className="text-sm text-zinc-400">Create, schedule, and monitor Facebook and Instagram posts.</p>
-                </div>
+                </div> 
+
+                <h1 className='text-red-500 underline'>Social Publishing Feature is under development. Will notify once completed.</h1>
                 <div className="flex items-center gap-3">
                     <div className={`px-3 py-2 rounded border text-xs ${workerHealthy ? 'border-green-500/20 text-green-400 bg-green-500/10' : 'border-red-500/20 text-red-400 bg-red-500/10'}`}>
                         Worker {workerHealthy ? 'healthy' : 'offline'}

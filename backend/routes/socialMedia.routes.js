@@ -27,6 +27,12 @@ const postQuerySchema = Joi.object({
 router.get('/oauth/callback', socialMediaController.handle_oauth_callback);
 
 router.use(authenticate);
+router.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+});
 
 router.get('/oauth/url', socialMediaController.get_oauth_url);
 router.get('/health', socialMediaController.worker_health);

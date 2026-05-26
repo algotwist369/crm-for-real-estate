@@ -136,9 +136,13 @@ async function connectAccount(auth, code) {
     const tokenExpiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
     const pages = await metaService.listPages(userToken);
     const saved = [];
+    logger.info(`Meta OAuth returned ${pages.length} page(s) for org ${auth.tenant_id}`);
 
     for (const page of pages) {
-        if (!page.access_token) continue;
+        if (!page.access_token) {
+            logger.warn(`Meta page ${page.id} did not include a page access token. Check pages_show_list/pages_manage_posts permissions and Page access.`);
+            continue;
+        }
         const pageToken = encryptToken(page.access_token);
         const fb = await SocialAccount.findOneAndUpdate(
             { crm_org_id: auth.tenant_id, provider_account_id: page.id, platform: 'facebook' },

@@ -48,10 +48,14 @@ const handle_oauth_callback = async (req, res) => {
             return res.redirect(frontendRedirect('failed', 'invalid_oauth_state'));
         }
 
-        await socialMediaService.connectAccount({
+        const connected = await socialMediaService.connectAccount({
             user: { _id: parsed.user_id },
             tenant_id: parsed.tenant_id
         }, code);
+
+        if (!Array.isArray(connected) || connected.length === 0) {
+            return res.redirect(frontendRedirect('failed', 'no_pages_or_instagram_accounts_found'));
+        }
 
         return res.redirect(frontendRedirect('success'));
     } catch (error) {
