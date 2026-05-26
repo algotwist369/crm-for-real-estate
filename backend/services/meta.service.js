@@ -97,7 +97,7 @@ async function exchangeLongLivedToken(shortToken) {
 
 async function listPages(userToken) {
     const data = await graphRequest('get', '/me/accounts', {
-        fields: 'id,name,access_token,perms,picture{url},instagram_business_account{id,username,name,profile_picture_url}'
+        fields: 'id,name,access_token,tasks,picture{url},instagram_business_account{id,username,name,profile_picture_url}'
     }, userToken);
     return data.data || [];
 }

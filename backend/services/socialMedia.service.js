@@ -156,7 +156,7 @@ async function connectAccount(auth, code) {
                 picture_url: page.picture?.data?.url || '',
                 access_token: pageToken,
                 token_expires_at: tokenExpiresAt,
-                permissions: page.perms || [],
+                permissions: page.tasks || page.perms || [],
                 status: 'active',
                 last_error: null,
                 disconnected_at: null
@@ -181,7 +181,7 @@ async function connectAccount(auth, code) {
                     picture_url: ig.profile_picture_url || '',
                     access_token: pageToken,
                     token_expires_at: tokenExpiresAt,
-                    permissions: page.perms || [],
+                    permissions: page.tasks || page.perms || [],
                     status: 'active',
                     last_error: null,
                     disconnected_at: null
