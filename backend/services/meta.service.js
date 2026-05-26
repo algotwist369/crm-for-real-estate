@@ -14,8 +14,8 @@ function getOAuthUrl(state) {
             'pages_show_list',
             'pages_read_engagement',
             'pages_manage_posts',
-            'instagram_basic',
-            'instagram_content_publish',
+            'instagram_business_basic',
+            'instagram_business_content_publish',
             'business_management'
         ].join(',')
     });
