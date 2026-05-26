@@ -217,12 +217,15 @@ async function getConnectedAccounts(auth) {
 async function getFacebookAccountPosts(auth, id, query = {}) {
     const account = await SocialAccount.findOne({
         _id: cleanId(id),
-        crm_org_id: auth.tenant_id,
-        platform: 'facebook',
-        status: 'active'
+        $or: [
+            { crm_org_id: auth.tenant_id },
+            { tenant_id: auth.tenant_id }
+        ]
     }).select('+access_token.encrypted +access_token.iv +access_token.tag');
 
-    if (!account) throw httpError(404, 'Facebook Page account not found');
+    if (!account) throw httpError(404, 'Social account not found. Refresh connected accounts and open the Facebook Page again.');
+    if (account.platform !== 'facebook') throw httpError(400, 'Previous post history is available only for Facebook Page accounts.');
+    if (account.status !== 'active') throw httpError(409, `Facebook Page account is ${account.status}. Reconnect it before viewing posts.`);
     if (account.token_expires_at && account.token_expires_at < new Date()) {
         account.status = 'expired';
         account.last_error = { message: 'Token expired', code: 'TOKEN_EXPIRED', at: new Date() };
