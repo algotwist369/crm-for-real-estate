@@ -18,7 +18,9 @@ const socialAccountSchema = new mongoose.Schema({
         index: true
     },
     provider_account_id: { type: String, required: true, trim: true },
+    platform_account_id: { type: String, trim: true, index: true },
     provider_parent_id: { type: String, trim: true },
+    tenant_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
     name: { type: String, required: true, trim: true },
     username: { type: String, trim: true },
     picture_url: { type: String, trim: true },
