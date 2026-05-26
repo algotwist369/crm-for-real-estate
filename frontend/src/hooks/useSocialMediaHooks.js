@@ -19,6 +19,16 @@ export const useSocialPosts = () => {
     });
 };
 
+export const useFacebookAccountPosts = (accountId) => {
+    return useQuery({
+        queryKey: ['social-facebook-posts', accountId],
+        queryFn: () => socialMediaService.getFacebookPosts(accountId, { limit: 25 }),
+        enabled: !!accountId,
+        refetchOnWindowFocus: false,
+        staleTime: 30000
+    });
+};
+
 export const useConnectSocial = () => {
     return useMutation({
         mutationFn: socialMediaService.getOAuthUrl,

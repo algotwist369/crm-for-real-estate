@@ -82,6 +82,15 @@ const disconnect_account = async (req, res, next) => {
     }
 };
 
+const get_facebook_posts = async (req, res, next) => {
+    try {
+        const data = await socialMediaService.getFacebookAccountPosts(req.auth, req.params.id, req.query);
+        res.status(200).json({ success: true, data });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const create_post = async (req, res, next) => {
     try {
         const payload = parsePayload(req);
@@ -170,6 +179,7 @@ module.exports = {
     handle_oauth_callback,
     get_connected_accounts,
     disconnect_account,
+    get_facebook_posts,
     create_post,
     list_posts,
     get_post,

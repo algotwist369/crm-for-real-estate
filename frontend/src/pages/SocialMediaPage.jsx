@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppLayout from '../component/layout/AppLayout';
 import {
     useConnectSocial,
@@ -11,7 +12,7 @@ import {
     useSocialPosts,
     useSocialWorkerHealth
 } from '../hooks/useSocialMediaHooks';
-import { FiAlertTriangle, FiClock, FiFacebook, FiImage, FiInstagram, FiRefreshCw, FiSend, FiTrash2, FiVideo, FiZap } from 'react-icons/fi';
+import { FiAlertTriangle, FiClock, FiExternalLink, FiFacebook, FiImage, FiInstagram, FiRefreshCw, FiSend, FiTrash2, FiVideo, FiZap } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const statusClass = {
@@ -37,6 +38,7 @@ function PlatformIcon({ platform }) {
 }
 
 const SocialMediaPage = () => {
+    const navigate = useNavigate();
     const fileInputRef = useRef(null);
     const connectMutation = useConnectSocial();
     const disconnectMutation = useDisconnectSocial();
@@ -182,6 +184,19 @@ const SocialMediaPage = () => {
                                         <p className="text-sm text-zinc-200 truncate">{account.name}</p>
                                         <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{account.account_type.replace('_', ' ')}</p>
                                     </div>
+                                    {account.platform === 'facebook' && (
+                                        <button
+                                            type="button"
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                navigate(`/social-media/facebook/${account._id}`);
+                                            }}
+                                            className="p-1.5 text-zinc-500 hover:text-blue-400"
+                                            title="View Previous Facebook Posts"
+                                        >
+                                            <FiExternalLink size={14} />
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={(event) => {

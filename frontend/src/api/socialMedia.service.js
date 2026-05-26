@@ -9,6 +9,10 @@ const socialMediaService = {
         const response = await axiosInstance.get('/social-media/accounts');
         return response.data;
     },
+    getFacebookPosts: async (id, params = {}) => {
+        const response = await axiosInstance.get(`/social-media/accounts/${id}/facebook-posts`, { params });
+        return response.data;
+    },
     disconnectAccount: async (id) => {
         const response = await axiosInstance.delete(`/social-media/accounts/${id}`);
         return response.data;

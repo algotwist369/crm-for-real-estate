@@ -214,6 +214,54 @@ async function getConnectedAccounts(auth) {
     return accounts.map(safeAccount);
 }
 
+async function getFacebookAccountPosts(auth, id, query = {}) {
+    const account = await SocialAccount.findOne({
+        _id: cleanId(id),
+        crm_org_id: auth.tenant_id,
+        platform: 'facebook',
+        status: 'active'
+    }).select('+access_token.encrypted +access_token.iv +access_token.tag');
+
+    if (!account) throw httpError(404, 'Facebook Page account not found');
+    if (account.token_expires_at && account.token_expires_at < new Date()) {
+        account.status = 'expired';
+        account.last_error = { message: 'Token expired', code: 'TOKEN_EXPIRED', at: new Date() };
+        await account.save();
+        throw httpError(401, 'Facebook Page token expired. Reconnect the account.');
+    }
+
+    try {
+        const token = decryptToken(account.access_token);
+        const result = await metaService.listFacebookPagePosts(account, token, {
+            limit: query.limit
+        });
+
+        return {
+            account: safeAccount(account),
+            posts: result.data.map(post => ({
+                id: post.id,
+                message: post.message || '',
+                created_time: post.created_time,
+                permalink_url: post.permalink_url,
+                full_picture: post.full_picture,
+                status_type: post.status_type,
+                shares_count: post.shares?.count || 0,
+                likes_count: post.likes?.summary?.total_count || 0,
+                comments_count: post.comments?.summary?.total_count || 0,
+                attachment: Array.isArray(post.attachments?.data) ? post.attachments.data[0] : null
+            })),
+            paging: result.paging
+        };
+    } catch (error) {
+        if (error.isTokenExpired || error.isPermissionDenied) {
+            account.status = error.isPermissionDenied ? 'permission_denied' : 'expired';
+            account.last_error = { message: error.message, code: error.metaCode, at: new Date() };
+            await account.save();
+        }
+        throw error;
+    }
+}
+
 async function disconnectAccount(auth, id) {
     const account = await SocialAccount.findOneAndUpdate(
         { _id: cleanId(id), crm_org_id: auth.tenant_id, status: { $ne: 'deleted' } },
@@ -529,6 +577,7 @@ async function queueCaptionGeneration(auth, payload) {
 module.exports = {
     connectAccount,
     getConnectedAccounts,
+    getFacebookAccountPosts,
     disconnectAccount,
     createPost,
     listPosts,

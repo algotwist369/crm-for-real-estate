@@ -37,6 +37,7 @@ router.use((req, res, next) => {
 router.get('/oauth/url', socialMediaController.get_oauth_url);
 router.get('/health', socialMediaController.worker_health);
 router.get('/accounts', socialMediaController.get_connected_accounts);
+router.get('/accounts/:id/facebook-posts', socialMediaController.get_facebook_posts);
 router.delete('/accounts/:id', socialMediaController.disconnect_account);
 
 router.get('/posts', validateRequest(postQuerySchema), socialMediaController.list_posts);

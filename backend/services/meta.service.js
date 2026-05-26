@@ -121,6 +121,30 @@ async function publishFacebook(account, token, post) {
     }, token);
 }
 
+async function listFacebookPagePosts(account, token, options = {}) {
+    const limit = Math.min(Number(options.limit || 25), 50);
+    const data = await graphRequest('get', `/${account.provider_account_id}/posts`, {
+        limit,
+        fields: [
+            'id',
+            'message',
+            'created_time',
+            'permalink_url',
+            'full_picture',
+            'status_type',
+            'attachments{media,type,url,title,description}',
+            'shares',
+            'likes.summary(true).limit(0)',
+            'comments.summary(true).limit(0)'
+        ].join(',')
+    }, token);
+
+    return {
+        data: data.data || [],
+        paging: data.paging || null
+    };
+}
+
 async function publishInstagram(account, token, post) {
     const firstMedia = post.media?.[0];
     if (!firstMedia) {
@@ -144,6 +168,7 @@ module.exports = {
     exchangeCodeForToken,
     exchangeLongLivedToken,
     listPages,
+    listFacebookPagePosts,
     publishFacebook,
     publishInstagram,
     normalizeMetaError,
