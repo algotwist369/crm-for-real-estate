@@ -83,6 +83,24 @@ const update_workspace = wrapAsync(async (req, res) => {
     res.status(200).json({ success: true, message: 'Workspace updated', data: workspace });
 });
 
+const delete_workspace = wrapAsync(async (req, res) => {
+    if (!canManageTenant(req.auth)) throw httpError(403, 'Only admins can delete workspaces');
+    const workspace = await assertWorkspaceAccess(req.auth, req.params.id);
+
+    workspace.isArchived = true;
+    await workspace.save();
+    await TaskItem.updateMany(
+        { tenantId: getTenantId(req.auth), workspaceId: workspace._id, isArchived: false },
+        {
+            $set: { isArchived: true },
+            $push: { activity: { userId: req.auth.user._id, action: 'deleted_workspace', createdAt: new Date() } }
+        }
+    );
+
+    emitWorkspaceUpdate(workspace._id, 'task:workspace:delete', { _id: workspace._id });
+    res.status(200).json({ success: true, message: 'Workspace deleted successfully' });
+});
+
 const get_board = wrapAsync(async (req, res) => {
     const workspace = await assertWorkspaceAccess(req.auth, req.params.workspaceId);
     const search = String(req.query?.search || '').trim();
@@ -212,6 +230,18 @@ const upload_attachment = wrapAsync(async (req, res) => {
     res.status(200).json({ success: true, message: 'Attachment uploaded', data: updated });
 });
 
+const delete_task = wrapAsync(async (req, res) => {
+    const task = await assertTaskAccess(req.auth, req.params.id);
+    if (!canManageTenant(req.auth)) throw httpError(403, 'Only admins can delete tasks');
+
+    task.isArchived = true;
+    task.activity.push({ userId: req.auth.user._id, action: 'deleted_task', createdAt: new Date() });
+    await task.save();
+
+    emitWorkspaceUpdate(task.workspaceId, 'task:delete', { _id: task._id, workspaceId: task.workspaceId });
+    res.status(200).json({ success: true, message: 'Task deleted successfully' });
+});
+
 const get_analytics = wrapAsync(async (req, res) => {
     const tenantId = getTenantId(req.auth);
     const match = { tenantId, isArchived: false };
@@ -248,11 +278,13 @@ module.exports = {
     get_workspaces,
     create_workspace,
     update_workspace,
+    delete_workspace,
     get_board,
     create_task,
     update_task,
     move_task,
     add_comment,
     upload_attachment,
+    delete_task,
     get_analytics
 };

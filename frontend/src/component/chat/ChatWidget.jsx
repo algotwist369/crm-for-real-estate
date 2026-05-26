@@ -5,10 +5,12 @@ import {
     FiEdit2,
     FiMessageCircle,
     FiPaperclip,
+    FiSave,
     FiSearch,
     FiSend,
     FiSmile,
     FiStar,
+    FiTrash2,
     FiUsers,
     FiX
 } from "react-icons/fi";
@@ -22,8 +24,10 @@ import {
     useChatMessages,
     useChatUsers,
     useCreateChatGroup,
+    useDeleteChatGroup,
     useSendChatMessage,
-    useStartDirectConversation
+    useStartDirectConversation,
+    useUpdateChatGroupMembers
 } from "../../hooks/useChatHooks";
 
 const emojis = ["🙂", "👍", "🙏", "🔥", "✅", "📌", "🎉", "💬"];
@@ -154,6 +158,8 @@ const ChatWidget = () => {
     const [typingUsers, setTypingUsers] = useState({});
     const [groupName, setGroupName] = useState("");
     const [groupMemberIds, setGroupMemberIds] = useState([]);
+    const [managingGroup, setManagingGroup] = useState(false);
+    const [groupEditMemberIds, setGroupEditMemberIds] = useState([]);
     const [previewAttachment, setPreviewAttachment] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -162,6 +168,8 @@ const ChatWidget = () => {
     const messagesQuery = useChatMessages(selectedConversation?._id, { search: messageSearch || undefined });
     const startDirectMutation = useStartDirectConversation();
     const createGroupMutation = useCreateChatGroup();
+    const updateGroupMembersMutation = useUpdateChatGroupMembers();
+    const deleteGroupMutation = useDeleteChatGroup();
     const sendMessageMutation = useSendChatMessage();
 
     const conversations = useMemo(() => conversationsQuery.data?.data || [], [conversationsQuery.data]);
@@ -175,6 +183,7 @@ const ChatWidget = () => {
     const filePreviewUrl = useMemo(() => file ? URL.createObjectURL(file) : "", [file]);
 
     const selectedTyping = typingUsers[selectedConversation?._id] || [];
+    const canManageGroups = user?.role === "admin" || user?.role === "super_admin";
 
     useEffect(() => {
         if (!filePreviewUrl) return undefined;
@@ -224,6 +233,23 @@ const ChatWidget = () => {
         if (!open || !selectedConversation?._id || !latestMessageId) return;
         scrollToLatestMessage("smooth");
     }, [open, selectedConversation?._id, latestMessageId]);
+
+    useEffect(() => {
+        if (!selectedConversation?._id) return;
+        const latestConversation = conversations.find(item => String(item._id) === String(selectedConversation._id));
+        if (latestConversation && latestConversation !== selectedConversation) {
+            setSelectedConversation(latestConversation);
+        }
+    }, [conversations, selectedConversation]);
+
+    useEffect(() => {
+        if (selectedConversation?.type !== "group") {
+            setManagingGroup(false);
+            setGroupEditMemberIds([]);
+            return;
+        }
+        setGroupEditMemberIds((selectedConversation.members || []).map(getMemberId).filter(Boolean));
+    }, [selectedConversation]);
 
     useEffect(() => {
         if (!socket) return undefined;
@@ -286,6 +312,17 @@ const ChatWidget = () => {
 
         const refreshUsers = () => queryClient.invalidateQueries(["chat-users"]);
         const refreshConversations = () => queryClient.invalidateQueries(["chat-conversations"]);
+        const onConversationDelete = ({ _id }) => {
+            queryClient.setQueryData(["chat-conversations"], old => ({
+                ...(old || { success: true, data: [] }),
+                data: (old?.data || []).filter(item => String(item._id) !== String(_id))
+            }));
+            queryClient.removeQueries({ queryKey: ["chat-messages", String(_id)] });
+            if (String(selectedConversation?._id) === String(_id)) {
+                setSelectedConversation(null);
+                setManagingGroup(false);
+            }
+        };
 
         socket.on("chat:message:new", onNewMessage);
         socket.on("chat:message:update", onMessageUpdate);
@@ -293,6 +330,7 @@ const ChatWidget = () => {
         socket.on("chat:typing", onTyping);
         socket.on("chat:conversation:new", refreshConversations);
         socket.on("chat:conversation:update", refreshConversations);
+        socket.on("chat:conversation:delete", onConversationDelete);
         socket.on("presence:update", refreshUsers);
 
         return () => {
@@ -302,6 +340,7 @@ const ChatWidget = () => {
             socket.off("chat:typing", onTyping);
             socket.off("chat:conversation:new", refreshConversations);
             socket.off("chat:conversation:update", refreshConversations);
+            socket.off("chat:conversation:delete", onConversationDelete);
             socket.off("presence:update", refreshUsers);
         };
     }, [socket, queryClient, user?._id, selectedConversation?._id, playNotificationSound]);
@@ -337,6 +376,12 @@ const ChatWidget = () => {
             : [...current, userId]);
     };
 
+    const toggleGroupEditMember = (userId) => {
+        setGroupEditMemberIds(current => current.includes(userId)
+            ? current.filter(id => id !== userId)
+            : [...current, userId]);
+    };
+
     const createGroup = async () => {
         if (!groupName.trim() || createGroupMutation.isPending) return;
         try {
@@ -346,6 +391,37 @@ const ChatWidget = () => {
             if (response?.data) setSelectedConversation(response.data);
         } catch (error) {
             console.debug("Group creation failed", error);
+        }
+    };
+
+    const saveGroupMembers = async () => {
+        if (!selectedConversation?._id || updateGroupMembersMutation.isPending) return;
+        try {
+            const response = await updateGroupMembersMutation.mutateAsync({
+                conversationId: selectedConversation._id,
+                memberIds: groupEditMemberIds
+            });
+            if (response?.data) setSelectedConversation(response.data);
+            setManagingGroup(false);
+        } catch (error) {
+            console.debug("Group member update failed", error);
+        }
+    };
+
+    const deleteGroup = async () => {
+        if (!selectedConversation?._id || deleteGroupMutation.isPending) return;
+        const confirmed = window.confirm(`Delete "${selectedMeta.name}" group? Members will lose access to this group chat.`);
+        if (!confirmed) return;
+        try {
+            await deleteGroupMutation.mutateAsync(selectedConversation._id);
+            queryClient.setQueryData(["chat-conversations"], old => ({
+                ...(old || { success: true, data: [] }),
+                data: (old?.data || []).filter(item => String(item._id) !== String(selectedConversation._id))
+            }));
+            setSelectedConversation(null);
+            setManagingGroup(false);
+        } catch (error) {
+            console.debug("Group deletion failed", error);
         }
     };
 
@@ -481,7 +557,7 @@ const ChatWidget = () => {
                                 <input value={peopleSearch} onChange={e => setPeopleSearch(e.target.value)} placeholder="Search people" className="w-full bg-transparent text-xs text-zinc-200 outline-none" />
                             </div>
                         </div>
-                        {user?.role !== "agent" && (
+                        {canManageGroups && (
                             <div className="border-b border-zinc-900 px-3 pb-3">
                                 <div className="rounded border border-zinc-800 bg-zinc-950 p-3">
                                     <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
@@ -568,12 +644,65 @@ const ChatWidget = () => {
                                 </div>
                             </div>
                             {selectedConversation && (
-                                <div className="flex shrink-0 items-center gap-2 rounded border border-zinc-800 bg-black px-3 py-2">
-                                    <FiSearch className="text-zinc-600" />
-                                    <input value={messageSearch} onChange={e => setMessageSearch(e.target.value)} placeholder="Search messages" className="w-40 bg-transparent text-xs text-zinc-200 outline-none" />
+                                <div className="flex shrink-0 items-center gap-2">
+                                    {canManageGroups && selectedConversation.type === "group" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setManagingGroup(value => !value)}
+                                            title="Manage group"
+                                            className={`rounded border p-2 text-sm transition ${managingGroup ? "border-yellow-500 bg-yellow-500 text-black" : "border-zinc-800 bg-black text-zinc-400 hover:text-white"}`}
+                                        >
+                                            <FiUsers />
+                                        </button>
+                                    )}
+                                    <div className="flex items-center gap-2 rounded border border-zinc-800 bg-black px-3 py-2">
+                                        <FiSearch className="text-zinc-600" />
+                                        <input value={messageSearch} onChange={e => setMessageSearch(e.target.value)} placeholder="Search messages" className="w-40 bg-transparent text-xs text-zinc-200 outline-none" />
+                                    </div>
                                 </div>
                             )}
                         </div>
+                        {canManageGroups && selectedConversation?.type === "group" && managingGroup && (
+                            <div className="border-b border-zinc-800 bg-black/40 px-5 py-4">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Group Members</p>
+                                        <p className="text-[11px] text-zinc-600">Owner stays included automatically.</p>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={saveGroupMembers}
+                                            disabled={updateGroupMembersMutation.isPending}
+                                            className="inline-flex items-center gap-2 rounded bg-yellow-500 px-3 py-2 text-xs font-semibold text-black hover:bg-yellow-400 disabled:opacity-50"
+                                        >
+                                            <FiSave /> Save
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={deleteGroup}
+                                            disabled={deleteGroupMutation.isPending}
+                                            className="inline-flex items-center gap-2 rounded border border-red-500/40 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                                        >
+                                            <FiTrash2 /> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto pr-1">
+                                    {users.map(item => (
+                                        <label key={item._id} className="flex cursor-pointer items-center gap-2 rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300 hover:border-zinc-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={groupEditMemberIds.includes(String(item._id))}
+                                                onChange={() => toggleGroupEditMember(String(item._id))}
+                                            />
+                                            <span className="min-w-0 flex-1 truncate">{item.user_name}</span>
+                                            <span className="text-[10px] uppercase text-zinc-600">{item.role}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <div className="flex-1 space-y-3 overflow-y-auto p-5">
                             {!selectedConversation && <div className="mt-24 text-center text-sm text-zinc-500">Choose a person or conversation to begin.</div>}
                             {selectedConversation && messages.length > 0 && (

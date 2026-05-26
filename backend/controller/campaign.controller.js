@@ -7,12 +7,124 @@ const WhatsAppSession = require('../model/whatsappSession.model');
 const logger = require('../utils/logger');
 const socketService = require('../services/socket.service');
 const Lead = require('../model/lead.model');
-const { normalizePhone } = require('../utils/common');
+const { normalizePhone, httpError } = require('../utils/common');
 const { uploadImage } = require('../utils/uploadImage');
+const { getRedisConnection } = require('../services/queue.service');
 
 const queueJobId = (...parts) => parts
     .map(part => String(part).replace(/[^a-zA-Z0-9_-]/g, '-'))
     .join('-');
+
+const LEAD_IMPORT_TEMPLATE_HEADERS = [
+    'Name',
+    'Phone',
+    'Type',
+    'Property Type',
+    'Location',
+    'Inquiry For',
+    'Client Type',
+    'Priority',
+    'Status',
+    'Remarks'
+];
+const LEAD_IMPORT_REQUIRED_COLUMNS = new Set(['Name', 'Phone', 'Type', 'Property Type', 'Location', 'Inquiry For', 'Client Type', 'Priority', 'Status']);
+const LEAD_IMPORT_ENUMS = {
+    Type: ['buyer', 'seller', 'owner', 'tenant', 'investor', 'listing', 'broker', 'other'],
+    'Property Type': ['villa', 'townhouse', 'apartment', 'penthouse', 'plot', 'commercial', 'office', 'shop', 'warehouse', 'other'],
+    'Client Type': ['buying', 'renting', 'investing', 'selling', 'other'],
+    Priority: ['low', 'medium', 'high'],
+    Status: ['new', 'contacted', 'qualified', 'follow_up', 'site_visit', 'negotiation', 'booked', 'converted', 'lost', 'wasted', 'closed', 'archived']
+};
+
+function normalizeHeader(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function getCellText(cell) {
+    const value = cell?.value;
+    if (value === null || value === undefined) return '';
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === 'object') {
+        if (value.text !== undefined) return String(value.text).trim();
+        if (value.result !== undefined) return String(value.result).trim();
+        if (Array.isArray(value.richText)) return value.richText.map(item => item.text || '').join('').trim();
+        if (value.hyperlink && value.text) return String(value.text).trim();
+    }
+    return String(value).trim();
+}
+
+function validateLeadImportHeaders(worksheet) {
+    const headerRow = worksheet.getRow(1);
+    const received = LEAD_IMPORT_TEMPLATE_HEADERS.map((_, index) => getCellText(headerRow.getCell(index + 1)));
+    const normalizedExpected = LEAD_IMPORT_TEMPLATE_HEADERS.map(normalizeHeader);
+    const normalizedReceived = received.map(normalizeHeader);
+    const isExactTemplate = normalizedExpected.every((header, index) => header === normalizedReceived[index])
+        && normalizedReceived.length === normalizedExpected.length;
+
+    if (isExactTemplate) return;
+
+    throw httpError(400, 'Excel template columns do not match. Download the latest template and keep the header row unchanged.', [
+        {
+            path: 'headers',
+            message: `Expected: ${LEAD_IMPORT_TEMPLATE_HEADERS.join(', ')}. Received: ${received.join(', ')}`
+        }
+    ]);
+}
+
+function validateLeadImportRow(values, rowNumber, seenPhones) {
+    const errors = [];
+    LEAD_IMPORT_TEMPLATE_HEADERS.forEach(header => {
+        if (LEAD_IMPORT_REQUIRED_COLUMNS.has(header) && !values[header]) {
+            errors.push(`${header} is required`);
+        }
+    });
+
+    const phone = normalizePhone(values.Phone);
+    if (values.Phone && (!phone || phone.length < 7 || phone.length > 15)) {
+        errors.push('Phone must contain 7 to 15 digits');
+    }
+
+    Object.entries(LEAD_IMPORT_ENUMS).forEach(([field, allowed]) => {
+        const value = String(values[field] || '').trim().toLowerCase();
+        if (value && !allowed.includes(value)) {
+            errors.push(`${field} must be one of: ${allowed.join(', ')}`);
+        }
+    });
+
+    if (phone && seenPhones.has(phone)) {
+        errors.push('Phone is duplicated inside this Excel file');
+    }
+    if (phone) seenPhones.add(phone);
+
+    return errors.length ? { row: rowNumber, errors } : null;
+}
+
+async function deleteRedisKeysByPattern(redis, pattern) {
+    let cursor = '0';
+    const keys = [];
+    do {
+        const [nextCursor, batch] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = nextCursor;
+        if (Array.isArray(batch) && batch.length) keys.push(...batch);
+    } while (cursor !== '0');
+    if (keys.length) await redis.del(...keys);
+}
+
+async function clearLeadImportCaches(tenantId) {
+    if (!tenantId) return;
+    try {
+        const redis = getRedisConnection();
+        await Promise.all([
+            deleteRedisKeysByPattern(redis, `status_groups_${tenantId}_*`),
+            deleteRedisKeysByPattern(redis, `report_stats_${tenantId}`),
+            deleteRedisKeysByPattern(redis, `report_overview_${tenantId}`),
+            deleteRedisKeysByPattern(redis, `report_agent_perf_${tenantId}_*`),
+            deleteRedisKeysByPattern(redis, `report_lead_insights_${tenantId}`)
+        ]);
+    } catch (error) {
+        logger.warn(`Lead import cache clear failed: ${error.message}`);
+    }
+}
 
 const createCampaign = async (req, res, next) => {
     try {
@@ -224,6 +336,7 @@ const downloadTemplate = async (req, res, next) => {
             { header: 'Name', key: 'name', width: 20 },
             { header: 'Phone', key: 'phone', width: 20 },
             { header: 'Type', key: 'type', width: 15 },
+            { header: 'Property Type', key: 'property_type', width: 18 },
             { header: 'Location', key: 'location', width: 25 },
             { header: 'Inquiry For', key: 'inquiry_for', width: 25 },
             { header: 'Client Type', key: 'client_type', width: 15 },
@@ -244,6 +357,7 @@ const downloadTemplate = async (req, res, next) => {
             name: 'John Doe',
             phone: '+971501234567',
             type: 'buyer',
+            property_type: 'apartment',
             location: 'Downtown Dubai',
             inquiry_for: 'Burj Khalifa',
             client_type: 'buying',
@@ -256,6 +370,7 @@ const downloadTemplate = async (req, res, next) => {
             name: 'Jane Smith',
             phone: '+971507654321',
             type: 'tenant',
+            property_type: 'penthouse',
             location: 'Business Bay',
             inquiry_for: 'Downtown Views',
             client_type: 'renting',
@@ -288,6 +403,22 @@ const importLeads = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'No Excel file uploaded' });
         }
 
+        const fileName = String(req.file.originalname || '').toLowerCase();
+        const mimeType = String(req.file.mimetype || '').toLowerCase();
+        const allowedXlsxMimeTypes = new Set([
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/octet-stream',
+            'application/zip',
+            ''
+        ]);
+        const isXlsx = fileName.endsWith('.xlsx') && allowedXlsxMimeTypes.has(mimeType);
+        if (!isXlsx) {
+            return res.status(400).json({
+                success: false,
+                message: 'Upload the .xlsx file generated from the latest lead import template'
+            });
+        }
+
         const tenantId = req.auth.tenant_id;
         const userId = req.auth.user._id;
 
@@ -300,76 +431,71 @@ const importLeads = async (req, res, next) => {
         }
 
         const importedLeads = [];
-        const skippedRows = [];
+        const validationErrors = [];
+        const seenPhones = new Set();
+
+        validateLeadImportHeaders(worksheet);
 
         // Identify cells and map
         worksheet.eachRow((row, rowNumber) => {
             if (rowNumber === 1) return; // Skip header
 
-            const name = String(row.getCell(1).value || '').trim();
-            let rawPhone = String(row.getCell(2).value || '').trim();
-            const type = String(row.getCell(3).value || 'buyer').trim().toLowerCase();
-            const location = String(row.getCell(4).value || '').trim();
-            const inquiry_for = String(row.getCell(5).value || '').trim();
-            const client_type = String(row.getCell(6).value || 'buying').trim().toLowerCase();
-            const priority = String(row.getCell(7).value || 'medium').trim().toLowerCase();
-            const status = String(row.getCell(8).value || 'new').trim().toLowerCase();
-            const remarks = String(row.getCell(9).value || '').trim();
+            const values = LEAD_IMPORT_TEMPLATE_HEADERS.reduce((acc, header, index) => {
+                acc[header] = getCellText(row.getCell(index + 1));
+                return acc;
+            }, {});
 
-            if (!name || !rawPhone) {
-                skippedRows.push({ row: rowNumber, reason: 'Name or Phone is missing' });
+            const hasAnyValue = Object.values(values).some(Boolean);
+            if (!hasAnyValue) return;
+
+            const rowError = validateLeadImportRow(values, rowNumber, seenPhones);
+            if (rowError) {
+                validationErrors.push(rowError);
                 return;
             }
 
-            // Normalize phone
-            const phone = normalizePhone(rawPhone);
-            if (!phone) {
-                skippedRows.push({ row: rowNumber, reason: 'Invalid Phone number format' });
-                return;
-            }
-
-            // Map and sanitize values
-            const leadTypeEnum = ['buyer', 'seller', 'owner', 'tenant', 'investor', 'listing', 'broker', 'other'].includes(type) ? type : 'buyer';
-            const clientTypeEnum = ['buying', 'renting', 'investing', 'selling', 'other'].includes(client_type) ? client_type : 'buying';
-            const priorityEnum = ['low', 'medium', 'high'].includes(priority) ? priority : 'medium';
-            const statusEnum = [
-                'new',
-                'contacted',
-                'qualified',
-                'follow_up',
-                'site_visit',
-                'negotiation',
-                'booked',
-                'converted',
-                'lost',
-                'wasted',
-                'closed',
-                'archived'
-            ].includes(status) ? status : 'new';
+            const phone = normalizePhone(values.Phone);
+            const type = values.Type.trim().toLowerCase();
+            const propertyType = values['Property Type'].trim().toLowerCase();
+            const clientType = values['Client Type'].trim().toLowerCase();
+            const priority = values.Priority.trim().toLowerCase();
+            const status = values.Status.trim().toLowerCase();
 
             importedLeads.push({
-                name,
+                name: values.Name,
                 phone,
-                lead_type: leadTypeEnum,
-                client_type: clientTypeEnum,
-                location,
-                inquiry_for,
-                requirement: inquiry_for,
-                priority: priorityEnum,
-                status: statusEnum,
-                remarks
+                lead_type: type,
+                property_type: propertyType,
+                client_type: clientType,
+                location: values.Location,
+                inquiry_for: values['Inquiry For'],
+                requirement: values['Inquiry For'],
+                priority,
+                status,
+                remarks: values.Remarks
             });
         });
+
+        if (validationErrors.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Excel import validation failed. Fix the listed rows and upload again.',
+                details: validationErrors.map(item => ({
+                    path: `row ${item.row}`,
+                    message: item.errors.join('; ')
+                }))
+            });
+        }
 
         if (importedLeads.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'No valid leads found in Excel file',
-                skippedRows
+                message: 'No lead rows found in Excel file'
             });
         }
 
         const savedLeads = [];
+        const importOrderAt = new Date();
 
         // Save / Upsert
         for (const leadData of importedLeads) {
@@ -379,6 +505,7 @@ const importLeads = async (req, res, next) => {
                 // Update
                 lead.name = leadData.name;
                 lead.lead_type = leadData.lead_type;
+                lead.property_type = leadData.property_type;
                 lead.client_type = leadData.client_type;
                 if (leadData.inquiry_for) {
                     lead.inquiry_for = leadData.inquiry_for;
@@ -389,6 +516,7 @@ const importLeads = async (req, res, next) => {
                 lead.status = leadData.status;
                 if (leadData.remarks) lead.remarks = leadData.remarks;
                 lead.is_active = true;
+                lead.list_order_at = importOrderAt;
                 lead.updated_by = userId;
                 await lead.save();
             } else {
@@ -397,6 +525,7 @@ const importLeads = async (req, res, next) => {
                     ...leadData,
                     tenant_id: tenantId,
                     created_by: userId,
+                    list_order_at: importOrderAt,
                     assigned_to: [userId]
                 });
                 await lead.save();
@@ -404,12 +533,13 @@ const importLeads = async (req, res, next) => {
             savedLeads.push(lead);
         }
 
+        await clearLeadImportCaches(tenantId);
+
         res.status(200).json({
             success: true,
-            message: `Successfully imported ${savedLeads.length} leads`,
+            message: `Successfully imported ${savedLeads.length} lead${savedLeads.length === 1 ? '' : 's'}`,
             count: savedLeads.length,
-            data: savedLeads,
-            skippedRows
+            data: savedLeads
         });
     } catch (error) {
         logger.error(`Lead Excel import failed: ${error.message}`);

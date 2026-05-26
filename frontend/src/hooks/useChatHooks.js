@@ -42,6 +42,30 @@ export const useCreateChatGroup = () => {
     });
 };
 
+export const useUpdateChatGroupMembers = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ conversationId, memberIds }) => chatService.updateGroupMembers(conversationId, memberIds),
+        onSuccess: response => {
+            queryClient.invalidateQueries(["chat-conversations"]);
+            toast.success(response.message || "Group members updated");
+        },
+        onError: error => toast.error(error.response?.data?.message || "Failed to update group")
+    });
+};
+
+export const useDeleteChatGroup = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: chatService.deleteGroup,
+        onSuccess: response => {
+            queryClient.invalidateQueries(["chat-conversations"]);
+            toast.success(response.message || "Group deleted");
+        },
+        onError: error => toast.error(error.response?.data?.message || "Failed to delete group")
+    });
+};
+
 export const useSendChatMessage = () => {
     const queryClient = useQueryClient();
     return useMutation({

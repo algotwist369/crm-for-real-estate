@@ -149,13 +149,27 @@ export const useImportLeads = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: campaignService.importLeads,
-        onSuccess: (response) => {
-            queryClient.invalidateQueries(['leads']);
-            queryClient.invalidateQueries(['leads-minimal']);
+        onSuccess: async (response) => {
+            await Promise.all([
+                queryClient.cancelQueries({ queryKey: ['leads'] }),
+                queryClient.cancelQueries({ queryKey: ['leads-minimal'] })
+            ]);
+            queryClient.removeQueries({ queryKey: ['leads'] });
+            queryClient.removeQueries({ queryKey: ['leads-minimal'] });
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['leads'], refetchType: 'active' }),
+                queryClient.invalidateQueries({ queryKey: ['leads-minimal'], refetchType: 'active' }),
+                queryClient.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'active' }),
+                queryClient.invalidateQueries({ queryKey: ['reports'], refetchType: 'active' })
+            ]);
             toast.success(response.message || 'Leads imported successfully');
         },
         onError: (error) => {
-            toast.error(error.response?.data?.message || 'Failed to import Excel leads');
+            const details = error.response?.data?.details || [];
+            const detailText = Array.isArray(details) && details.length
+                ? ` ${details.slice(0, 3).map(item => item.message).join(' | ')}`
+                : '';
+            toast.error(`${error.response?.data?.message || 'Failed to import Excel leads'}${detailText}`, { duration: 7000 });
         }
     });
 };

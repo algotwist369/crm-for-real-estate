@@ -13,6 +13,10 @@ export const taskService = {
         const response = await axiosInstance.patch(`/tasks/workspaces/${id}`, data);
         return response.data;
     },
+    deleteWorkspace: async (id) => {
+        const response = await axiosInstance.delete(`/tasks/workspaces/${id}`);
+        return response.data;
+    },
     getBoard: async (workspaceId, params = {}) => {
         const response = await axiosInstance.get(`/tasks/workspaces/${workspaceId}/board`, { params });
         return response.data;
@@ -27,6 +31,10 @@ export const taskService = {
     },
     moveTask: async (id, data) => {
         const response = await axiosInstance.patch(`/tasks/tasks/${id}/move`, data);
+        return response.data;
+    },
+    deleteTask: async (id) => {
+        const response = await axiosInstance.delete(`/tasks/tasks/${id}`);
         return response.data;
     },
     addComment: async (id, text) => {

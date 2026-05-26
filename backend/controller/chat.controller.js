@@ -81,6 +81,7 @@ const update_group_members = wrapAsync(async (req, res) => {
     });
     if (!conversation) throw httpError(404, 'Group not found');
 
+    const previousMembers = memberIds(conversation);
     const requestedMembers = Array.isArray(req.body?.memberIds) ? req.body.memberIds.map(String) : [];
     const uniqueMembers = [...new Set([String(conversation.createdBy), ...requestedMembers])];
     await assertUsersInTenant(req.auth, uniqueMembers);
@@ -90,8 +91,34 @@ const update_group_members = wrapAsync(async (req, res) => {
     }));
     await conversation.save();
 
-    memberIds(conversation).forEach(userId => socketService.emitToUser(userId, 'chat:conversation:update', conversation));
+    const nextMembers = memberIds(conversation);
+    const previousMemberSet = new Set(previousMembers);
+    const nextMemberSet = new Set(nextMembers);
+    nextMembers.forEach(userId => {
+        socketService.emitToUser(userId, previousMemberSet.has(userId) ? 'chat:conversation:update' : 'chat:conversation:new', conversation);
+    });
+    previousMembers
+        .filter(userId => !nextMemberSet.has(userId))
+        .forEach(userId => socketService.emitToUser(userId, 'chat:conversation:delete', { _id: conversation._id }));
     res.status(200).json({ success: true, message: 'Group members updated', data: conversation });
+});
+
+const delete_group = wrapAsync(async (req, res) => {
+    if (!canManageTenant(req.auth)) throw httpError(403, 'Only admins can delete chat groups');
+    const conversation = await ChatConversation.findOne({
+        _id: asObjectId(req.params.id, 'conversationId'),
+        tenantId: getTenantId(req.auth),
+        type: 'group',
+        isArchived: false
+    });
+    if (!conversation) throw httpError(404, 'Group not found');
+
+    const previousMembers = memberIds(conversation);
+    conversation.isArchived = true;
+    await conversation.save();
+
+    previousMembers.forEach(userId => socketService.emitToUser(userId, 'chat:conversation:delete', { _id: conversation._id }));
+    res.status(200).json({ success: true, message: 'Group deleted successfully' });
 });
 
 const get_messages = wrapAsync(async (req, res) => {
@@ -198,6 +225,7 @@ module.exports = {
     start_direct_conversation,
     create_group,
     update_group_members,
+    delete_group,
     get_messages,
     send_message,
     mark_seen,

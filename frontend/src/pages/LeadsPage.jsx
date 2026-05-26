@@ -9,7 +9,8 @@ import {
     FiTrendingUp,
     FiDownload,
     FiMapPin,
-    FiUploadCloud
+    FiUploadCloud,
+    FiX
 } from "react-icons/fi";
 import { MdOutlineFactCheck } from "react-icons/md";
 import { CopyButton } from "../component/common/CopyButton";
@@ -51,6 +52,7 @@ const LeadsPage = () => {
     const [isMarkLostModalOpen, setIsMarkLostModalOpen] = useState(false);
     const [leadToMarkLost, setLeadToMarkLost] = useState(null);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [isImportNoteModalOpen, setIsImportNoteModalOpen] = useState(false);
     const [selectedLeadIds, setSelectedLeadIds] = useState([]);
     const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
     const [bulkDeleteRange, setBulkDeleteRange] = useState({ startDate: "", endDate: "" });
@@ -82,7 +84,7 @@ const LeadsPage = () => {
     const bulkDeleteMutation = useBulkDeleteLeads();
     const importLeadsMutation = useImportLeads();
 
-    const leads = leadsData?.data || [];
+    const leads = useMemo(() => leadsData?.data || [], [leadsData?.data]);
     const totalPages = leadsData?.pagination?.pages || 1;
     const leadsStats = leadsData?.stats || { 
         total: 0, new: 0, contacted: 0, qualified: 0, 
@@ -206,7 +208,7 @@ const LeadsPage = () => {
             link.remove();
             window.URL.revokeObjectURL(url);
             toast.success("Template downloaded successfully", { id: "download-template" });
-        } catch (error) {
+        } catch {
             toast.error("Failed to download template", { id: "download-template" });
         }
     };
@@ -216,8 +218,8 @@ const LeadsPage = () => {
         if (!file) return;
 
         const fileExtension = file.name.split(".").pop()?.toLowerCase();
-        if (!["xlsx", "xls"].includes(fileExtension)) {
-            toast.error("Please upload an Excel file (.xlsx or .xls)");
+        if (fileExtension !== "xlsx") {
+            toast.error("Please upload the .xlsx template file");
             if (excelInputRef.current) excelInputRef.current.value = "";
             return;
         }
@@ -228,7 +230,9 @@ const LeadsPage = () => {
         try {
             await importLeadsMutation.mutateAsync(formDataExcel);
             setPage(1);
-            refetch();
+            await refetch();
+        } catch {
+            // Detailed validation toast is handled by the import hook.
         } finally {
             if (excelInputRef.current) excelInputRef.current.value = "";
         }
@@ -256,11 +260,11 @@ const LeadsPage = () => {
                         ref={excelInputRef}
                         type="file"
                         className="hidden"
-                        accept=".xlsx,.xls"
+                        accept=".xlsx"
                         onChange={handleExcelUpload}
                     />
                     <button
-                        onClick={() => excelInputRef.current?.click()}
+                        onClick={() => setIsImportNoteModalOpen(true)}
                         disabled={importLeadsMutation.isPending}
                         className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-sm font-medium rounded flex items-center gap-2 transition-colors h-10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -459,10 +463,10 @@ const LeadsPage = () => {
                                     <td className="p-3">
                                         <div className="flex flex-col gap-1.5 align-start">
                                             <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider w-fit inline-block bg-yellow-500/10 text-yellow-400 border-yellow-500/20`}>
-                                                {lead.lead_type || "Buyer"}
+                                                {lead.lead_type || "Not set"}
                                             </span>
                                             <span className="text-xs text-zinc-400 capitalize whitespace-nowrap">
-                                                {lead.property_type || "Villa"}
+                                                {lead.property_type || "Not set"}
                                             </span>
                                         </div>
                                     </td>
@@ -695,6 +699,66 @@ const LeadsPage = () => {
                     onClose={() => setIsExportModalOpen(false)}
                     activeFilters={filters}
                 />
+            )}
+
+            {isImportNoteModalOpen && (
+                <div className="fixed inset-0 bg-zinc-950/85 z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-lg w-full max-w-lg overflow-hidden shadow-2xl">
+                        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-zinc-800">
+                            <div>
+                                <h2 className="text-base font-semibold text-white">Import Leads From Excel</h2>
+                                <p className="text-[11px] text-zinc-500 mt-1">
+                                    Upload only the latest template file. The sheet must keep the same columns, order, and field values.
+                                </p>
+                            </div>
+                            <button onClick={() => setIsImportNoteModalOpen(false)} className="text-zinc-500 hover:text-white">
+                                <FiX size={18} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div className="rounded border border-yellow-500/20 bg-yellow-500/10 p-4">
+                                <p className="text-xs font-semibold text-yellow-300">Important Note</p>
+                                <p className="mt-2 text-sm leading-6 text-zinc-300">
+                                    Make sure your Excel sheet is exactly similar to the downloaded template. Do not rename, remove, reorder, or add extra columns. If any required field is missing or the value is not valid, the upload will stop and show the row error.
+                                </p>
+                            </div>
+
+                            <div className="rounded border border-zinc-800 bg-zinc-950/50 p-4">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Required Template Fields</p>
+                                <div className="grid grid-cols-2 gap-2 text-xs text-zinc-300">
+                                    {["Name", "Phone", "Type", "Property Type", "Location", "Inquiry For", "Client Type", "Priority", "Status", "Remarks"].map(field => (
+                                        <span key={field} className="rounded border border-zinc-800 bg-black px-2 py-1.5">{field}</span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <p className="text-xs leading-5 text-zinc-500">
+                                Use `.xlsx` only. Download the fresh template again if you are not sure your sheet is updated.
+                            </p>
+
+                            <div className="flex items-center gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsImportNoteModalOpen(false)}
+                                    className="flex-1 px-4 py-2 border border-zinc-800 text-zinc-400 text-xs font-medium rounded hover:bg-zinc-800 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsImportNoteModalOpen(false);
+                                        window.requestAnimationFrame(() => excelInputRef.current?.click());
+                                    }}
+                                    className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-semibold rounded transition-colors"
+                                >
+                                    Choose Excel File
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {isBulkDeleteModalOpen && isAdmin && (

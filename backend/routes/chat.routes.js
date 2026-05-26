@@ -12,6 +12,7 @@ router.get('/conversations', chatController.get_conversations);
 router.post('/conversations/direct', chatController.start_direct_conversation);
 router.post('/conversations/group', chatController.create_group);
 router.patch('/conversations/:id/members', chatController.update_group_members);
+router.delete('/conversations/:id', chatController.delete_group);
 router.get('/conversations/:id/messages', chatController.get_messages);
 router.post('/conversations/:id/messages', uploadChatAttachment.single('attachment'), chatController.send_message);
 router.post('/conversations/:id/seen', chatController.mark_seen);

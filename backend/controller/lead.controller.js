@@ -457,7 +457,7 @@ const get_my_leads = wrapAsync(async (req, res) => {
                 .populate('created_by', 'user_name email phone_number profile_pic role')
                 .populate('updated_by', 'user_name email phone_number profile_pic role')
                 .populate('properties', 'property_title property_type asking_price currency property_status property_address')
-                .sort({ createdAt: -1 })
+                .sort({ list_order_at: -1, createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
                 .lean(),
@@ -471,7 +471,7 @@ const get_my_leads = wrapAsync(async (req, res) => {
                 .populate('created_by', 'user_name email phone_number profile_pic role')
                 .populate('updated_by', 'user_name email phone_number profile_pic role')
                 .populate('properties', 'property_title property_type asking_price currency property_status property_address')
-                .sort({ createdAt: -1 })
+                .sort({ list_order_at: -1, createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
                 .lean(),

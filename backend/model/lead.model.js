@@ -337,6 +337,11 @@ const leadSchema = new mongoose.Schema({
         required: true,
         index: true
     },
+    list_order_at: {
+        type: Date,
+        default: Date.now,
+        index: true
+    },
 
 }, { timestamps: true });
 
@@ -356,6 +361,7 @@ leadSchema.index({ tenant_id: 1, phone: 1 });
 leadSchema.index({ tenant_id: 1, owner_name: 1 });
 leadSchema.index({ tenant_id: 1, broker_name: 1 });
 leadSchema.index({ tenant_id: 1, location: 1 });
+leadSchema.index({ tenant_id: 1, list_order_at: -1, createdAt: -1 });
 
 // Text Index for Fast Search
 leadSchema.index(

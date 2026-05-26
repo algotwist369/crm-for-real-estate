@@ -17,6 +17,14 @@ export const chatService = {
         const response = await axiosInstance.post("/chat/conversations/group", data);
         return response.data;
     },
+    updateGroupMembers: async (conversationId, memberIds) => {
+        const response = await axiosInstance.patch(`/chat/conversations/${conversationId}/members`, { memberIds });
+        return response.data;
+    },
+    deleteGroup: async (conversationId) => {
+        const response = await axiosInstance.delete(`/chat/conversations/${conversationId}`);
+        return response.data;
+    },
     getMessages: async (conversationId, params = {}) => {
         const response = await axiosInstance.get(`/chat/conversations/${conversationId}/messages`, { params });
         return response.data;

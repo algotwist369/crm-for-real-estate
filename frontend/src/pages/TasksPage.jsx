@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import AppLayout from "../component/layout/AppLayout";
-import { FiBarChart2, FiCalendar, FiCheckCircle, FiClock, FiFile, FiPaperclip, FiPlus, FiSearch, FiUsers, FiX } from "react-icons/fi";
+import { FiBarChart2, FiCalendar, FiCheckCircle, FiClock, FiEdit2, FiFile, FiPaperclip, FiPlus, FiSearch, FiTrash2, FiUsers, FiX } from "react-icons/fi";
 import { useQueryClient } from "@tanstack/react-query";
 import { closestCorners, DndContext, DragOverlay, PointerSensor, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -12,12 +12,15 @@ import {
     useCreateTask,
     useCreateWorkspace,
     useAddTaskComment,
+    useDeleteWorkspace,
+    useDeleteTask,
     useMoveTask,
     useTaskAnalytics,
     useTaskBoard,
     useTaskWorkspaces,
     useUpdateTask,
-    useUploadTaskAttachment
+    useUploadTaskAttachment,
+    useUpdateWorkspace
 } from "../hooks/useTaskHooks";
 
 const columns = [
@@ -204,7 +207,8 @@ const TaskDetailsModal = ({
     updateTaskMutation,
     moveTaskMutation,
     addCommentMutation,
-    uploadAttachmentMutation
+    uploadAttachmentMutation,
+    deleteTaskMutation
 }) => {
     const editable = canEditTask(task, user);
     const [form, setForm] = useState({
@@ -266,6 +270,12 @@ const TaskDetailsModal = ({
         setAttachment(null);
     };
 
+    const deleteTask = async () => {
+        if (!window.confirm("Delete this task from the board?")) return;
+        await deleteTaskMutation.mutateAsync(task._id);
+        onClose();
+    };
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
             <div className="flex max-h-[90vh] w-[min(980px,100%)] flex-col overflow-hidden rounded border border-zinc-800 bg-zinc-950 shadow-2xl">
@@ -274,7 +284,14 @@ const TaskDetailsModal = ({
                         <p className="text-sm font-semibold text-white">Task Details</p>
                         <p className="text-[10px] uppercase tracking-widest text-zinc-600">{editable ? "Editable" : "Read only"}</p>
                     </div>
-                    <button onClick={onClose} className="rounded border border-zinc-800 p-2 text-zinc-500 hover:text-white"><FiX /></button>
+                    <div className="flex items-center gap-2">
+                        {["admin", "super_admin"].includes(user?.role) && (
+                            <button onClick={deleteTask} disabled={deleteTaskMutation.isPending} className="rounded border border-red-500/20 p-2 text-red-400 hover:bg-red-500/10 disabled:opacity-50" title="Delete task">
+                                <FiTrash2 />
+                            </button>
+                        )}
+                        <button onClick={onClose} className="rounded border border-zinc-800 p-2 text-zinc-500 hover:text-white"><FiX /></button>
+                    </div>
                 </div>
 
                 <div className="grid min-h-0 flex-1 gap-0 overflow-y-auto lg:grid-cols-[1.2fr_0.8fr]">
@@ -421,6 +438,8 @@ const TasksPage = () => {
     const [activeWorkspaceId, setActiveWorkspaceId] = useState("");
     const [search, setSearch] = useState("");
     const [workspaceForm, setWorkspaceForm] = useState({ name: "", description: "" });
+    const [editingWorkspaceId, setEditingWorkspaceId] = useState("");
+    const [workspaceEditForm, setWorkspaceEditForm] = useState({ name: "", description: "" });
     const [taskForm, setTaskForm] = useState({ title: "", description: "", priority: "medium", color: "default", deadline: "", assignedTo: "", labels: "" });
     const [dragState, setDragState] = useState({ task: null, overStatus: "", overIndex: -1 });
     const [selectedTaskId, setSelectedTaskId] = useState("");
@@ -430,11 +449,14 @@ const TasksPage = () => {
     const analyticsQuery = useTaskAnalytics();
     const usersQuery = useChatUsers();
     const createWorkspaceMutation = useCreateWorkspace();
+    const updateWorkspaceMutation = useUpdateWorkspace();
+    const deleteWorkspaceMutation = useDeleteWorkspace();
     const createTaskMutation = useCreateTask();
     const moveTaskMutation = useMoveTask();
     const updateTaskMutation = useUpdateTask();
     const addCommentMutation = useAddTaskComment();
     const uploadAttachmentMutation = useUploadTaskAttachment();
+    const deleteTaskMutation = useDeleteTask();
 
     const workspaces = useMemo(() => workspacesQuery.data?.data || [], [workspacesQuery.data]);
     const users = useMemo(() => usersQuery.data?.data || [], [usersQuery.data]);
@@ -457,17 +479,45 @@ const TasksPage = () => {
             queryClient.setQueriesData({ queryKey: ["task-board", currentWorkspaceId] }, old => upsertTaskInBoard(old, task));
             queryClient.invalidateQueries(["task-analytics"]);
         };
+        const applyTaskDelete = (task) => {
+            if (!task || String(task.workspaceId) !== String(currentWorkspaceId)) return;
+            queryClient.setQueriesData({ queryKey: ["task-board", currentWorkspaceId] }, old => {
+                if (!old?.data) return old;
+                const nextColumns = Object.fromEntries(columns.map(column => [
+                    column.key,
+                    (old.data.columns?.[column.key] || []).filter(item => String(item._id) !== String(task._id))
+                ]));
+                return {
+                    ...old,
+                    data: {
+                        ...old.data,
+                        columns: nextColumns,
+                        tasks: (old.data.tasks || []).filter(item => String(item._id) !== String(task._id))
+                    }
+                };
+            });
+            queryClient.invalidateQueries(["task-analytics"]);
+        };
         const refreshWorkspace = () => {
             queryClient.invalidateQueries(["task-workspaces"]);
             queryClient.invalidateQueries(["task-board", currentWorkspaceId]);
         };
+        const handleWorkspaceDelete = ({ _id }) => {
+            queryClient.invalidateQueries(["task-workspaces"]);
+            queryClient.removeQueries({ queryKey: ["task-board", _id] });
+            if (String(currentWorkspaceId) === String(_id)) setActiveWorkspaceId("");
+        };
         socket.on("task:new", applyTaskUpdate);
         socket.on("task:update", applyTaskUpdate);
+        socket.on("task:delete", applyTaskDelete);
         socket.on("task:workspace:update", refreshWorkspace);
+        socket.on("task:workspace:delete", handleWorkspaceDelete);
         return () => {
             socket.off("task:new", applyTaskUpdate);
             socket.off("task:update", applyTaskUpdate);
+            socket.off("task:delete", applyTaskDelete);
             socket.off("task:workspace:update", refreshWorkspace);
+            socket.off("task:workspace:delete", handleWorkspaceDelete);
         };
     }, [socket, currentWorkspaceId, queryClient]);
 
@@ -483,6 +533,25 @@ const TasksPage = () => {
         const response = await createWorkspaceMutation.mutateAsync(workspaceForm);
         setWorkspaceForm({ name: "", description: "" });
         if (response?.data?._id) setActiveWorkspaceId(response.data._id);
+    };
+
+    const startEditWorkspace = (workspace) => {
+        setEditingWorkspaceId(workspace._id);
+        setWorkspaceEditForm({ name: workspace.name || "", description: workspace.description || "" });
+    };
+
+    const updateWorkspace = async (event) => {
+        event.preventDefault();
+        if (!editingWorkspaceId) return;
+        await updateWorkspaceMutation.mutateAsync({ id: editingWorkspaceId, data: workspaceEditForm });
+        setEditingWorkspaceId("");
+        setWorkspaceEditForm({ name: "", description: "" });
+    };
+
+    const deleteWorkspace = async (workspaceId) => {
+        if (!window.confirm("Delete this workspace and archive all its tasks?")) return;
+        await deleteWorkspaceMutation.mutateAsync(workspaceId);
+        if (String(activeWorkspaceId) === String(workspaceId)) setActiveWorkspaceId("");
     };
 
     const createTask = async (event) => {
@@ -603,17 +672,41 @@ const TasksPage = () => {
                             </div>
                             <div className="space-y-2">
                                 {workspaces.map(workspace => (
-                                    <button
-                                        key={workspace._id}
-                                        onClick={() => setActiveWorkspaceId(workspace._id)}
-                                        className={`w-full rounded border px-3 py-2 text-left text-sm ${currentWorkspaceId === workspace._id ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-200" : "border-zinc-800 bg-black text-zinc-400 hover:text-white"}`}
-                                    >
-                                        {workspace.name}
-                                    </button>
+                                    <div key={workspace._id} className={`rounded border ${currentWorkspaceId === workspace._id ? "border-yellow-500/30 bg-yellow-500/10" : "border-zinc-800 bg-black"}`}>
+                                        <button
+                                            onClick={() => setActiveWorkspaceId(workspace._id)}
+                                            className={`w-full px-3 py-2 text-left text-sm ${currentWorkspaceId === workspace._id ? "text-yellow-200" : "text-zinc-400 hover:text-white"}`}
+                                        >
+                                            <span className="block truncate">{workspace.name}</span>
+                                            {workspace.description && <span className="mt-0.5 block truncate text-[11px] text-zinc-600">{workspace.description}</span>}
+                                        </button>
+                                        {isAdmin && (
+                                            <div className="flex border-t border-zinc-900">
+                                                <button type="button" onClick={() => startEditWorkspace(workspace)} className="flex flex-1 items-center justify-center gap-1 px-2 py-1.5 text-[11px] text-zinc-500 hover:text-white">
+                                                    <FiEdit2 size={12} /> Edit
+                                                </button>
+                                                <button type="button" onClick={() => deleteWorkspace(workspace._id)} disabled={deleteWorkspaceMutation.isPending} className="flex flex-1 items-center justify-center gap-1 px-2 py-1.5 text-[11px] text-red-400 hover:bg-red-500/10 disabled:opacity-50">
+                                                    <FiTrash2 size={12} /> Delete
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 ))}
                                 {!workspaces.length && <p className="text-xs text-zinc-600">No workspace yet.</p>}
                             </div>
                         </div>
+
+                        {isAdmin && editingWorkspaceId && (
+                            <form onSubmit={updateWorkspace} className="rounded border border-zinc-800 bg-zinc-950 p-4">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h2 className="text-sm font-semibold text-white">Edit Workspace</h2>
+                                    <button type="button" onClick={() => setEditingWorkspaceId("")} className="text-zinc-500 hover:text-white"><FiX /></button>
+                                </div>
+                                <input value={workspaceEditForm.name} onChange={e => setWorkspaceEditForm({ ...workspaceEditForm, name: e.target.value })} placeholder="Project name" className="mb-2 w-full rounded border border-zinc-800 bg-black px-3 py-2 text-sm text-white outline-none" />
+                                <textarea value={workspaceEditForm.description} onChange={e => setWorkspaceEditForm({ ...workspaceEditForm, description: e.target.value })} placeholder="Description" rows={3} className="mb-3 w-full resize-none rounded border border-zinc-800 bg-black px-3 py-2 text-sm text-white outline-none" />
+                                <button disabled={!workspaceEditForm.name.trim() || updateWorkspaceMutation.isPending} className="inline-flex w-full items-center justify-center gap-2 rounded bg-zinc-800 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 disabled:opacity-50"><FiEdit2 />Save</button>
+                            </form>
+                        )}
 
                         {isAdmin && (
                             <form onSubmit={createWorkspace} className="rounded border border-zinc-800 bg-zinc-950 p-4">
@@ -719,6 +812,7 @@ const TasksPage = () => {
                     moveTaskMutation={moveTaskMutation}
                     addCommentMutation={addCommentMutation}
                     uploadAttachmentMutation={uploadAttachmentMutation}
+                    deleteTaskMutation={deleteTaskMutation}
                 />
             )}
         </AppLayout>

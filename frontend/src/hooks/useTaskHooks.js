@@ -33,6 +33,33 @@ export const useCreateWorkspace = () => {
     });
 };
 
+export const useUpdateWorkspace = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, data }) => taskService.updateWorkspace(id, data),
+        onSuccess: response => {
+            queryClient.invalidateQueries(["task-workspaces"]);
+            queryClient.invalidateQueries(["task-board"]);
+            toast.success(response.message || "Workspace updated");
+        },
+        onError: error => toast.error(error.response?.data?.message || "Failed to update workspace")
+    });
+};
+
+export const useDeleteWorkspace = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: taskService.deleteWorkspace,
+        onSuccess: response => {
+            queryClient.invalidateQueries(["task-workspaces"]);
+            queryClient.invalidateQueries(["task-board"]);
+            queryClient.invalidateQueries(["task-analytics"]);
+            toast.success(response.message || "Workspace deleted");
+        },
+        onError: error => toast.error(error.response?.data?.message || "Failed to delete workspace")
+    });
+};
+
 export const useCreateTask = () => {
     const queryClient = useQueryClient();
     return useMutation({
@@ -93,5 +120,18 @@ export const useUploadTaskAttachment = () => {
             toast.success(response.message || "Attachment uploaded");
         },
         onError: error => toast.error(error.response?.data?.message || "Failed to upload attachment")
+    });
+};
+
+export const useDeleteTask = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: taskService.deleteTask,
+        onSuccess: response => {
+            queryClient.invalidateQueries(["task-board"]);
+            queryClient.invalidateQueries(["task-analytics"]);
+            toast.success(response.message || "Task deleted");
+        },
+        onError: error => toast.error(error.response?.data?.message || "Failed to delete task")
     });
 };

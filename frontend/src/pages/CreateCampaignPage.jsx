@@ -33,7 +33,7 @@ const CreateCampaignPage = () => {
             link.click();
             link.parentNode.removeChild(link);
             toast.success('Template downloaded successfully', { id: 'download-template' });
-        } catch (error) {
+        } catch {
             toast.error('Failed to download template', { id: 'download-template' });
         }
     };
@@ -42,10 +42,10 @@ const CreateCampaignPage = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Verify it is an Excel file
         const fileExtension = file.name.split('.').pop().toLowerCase();
-        if (fileExtension !== 'xlsx' && fileExtension !== 'xls') {
-            toast.error('Please upload an Excel file (.xlsx or .xls)');
+        if (fileExtension !== 'xlsx') {
+            toast.error('Please upload the .xlsx template file');
+            if (excelInputRef.current) excelInputRef.current.value = '';
             return;
         }
 
@@ -54,7 +54,6 @@ const CreateCampaignPage = () => {
 
         try {
             const res = await importLeadsMutation.mutateAsync(formDataExcel);
-            console.log('Import response:', res);
             
             if (res.success && res.data && res.data.length > 0) {
                 // Collect imported lead IDs
@@ -73,7 +72,7 @@ const CreateCampaignPage = () => {
 
                 toast.success(`Successfully imported and pre-selected ${res.data.length} leads!`);
             }
-        } catch (err) {
+        } catch {
             // Error toast handled by hook
         } finally {
             // Reset input file value to allow uploading same file again
@@ -107,8 +106,7 @@ const CreateCampaignPage = () => {
     const [useExistingLeads, setUseExistingLeads] = useState(true);
     const [useExcelLeads, setUseExcelLeads] = useState(false);
 
-    const leads = leadsData?.data || [];
-    console.log("leads ", leads);
+    const leads = useMemo(() => leadsData?.data || [], [leadsData?.data]);
     
     const filteredLeads = useMemo(() => {
         if (!useExistingLeads) return [];
@@ -213,7 +211,7 @@ const CreateCampaignPage = () => {
             } else {
                 toast.error('Upload failed: No URL returned');
             }
-        } catch (err) {
+        } catch {
             // Error handled by hook
         }
     };
@@ -604,7 +602,7 @@ const CreateCampaignPage = () => {
                                             type="file"
                                             ref={excelInputRef}
                                             className="hidden"
-                                            accept=".xlsx, .xls"
+                                            accept=".xlsx"
                                             onChange={handleExcelUpload}
                                         />
                                         <button
