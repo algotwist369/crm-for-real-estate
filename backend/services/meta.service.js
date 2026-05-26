@@ -1,4 +1,5 @@
 const axios = require('axios');
+const crypto = require('crypto');
 const logger = require('../utils/logger');
 
 const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v24.0';
@@ -61,11 +62,18 @@ function normalizeMetaError(error) {
 
 async function graphRequest(method, path, params = {}, accessToken) {
     try {
+        const requestParams = { ...params, access_token: accessToken };
+        if (accessToken && process.env.META_APP_SECRET) {
+            requestParams.appsecret_proof = crypto
+                .createHmac('sha256', process.env.META_APP_SECRET)
+                .update(String(accessToken))
+                .digest('hex');
+        }
         const response = await axios({
             method,
             url: `${GRAPH_BASE}${path}`,
-            params: method.toLowerCase() === 'get' ? { ...params, access_token: accessToken } : undefined,
-            data: method.toLowerCase() !== 'get' ? { ...params, access_token: accessToken } : undefined,
+            params: method.toLowerCase() === 'get' ? requestParams : undefined,
+            data: method.toLowerCase() !== 'get' ? requestParams : undefined,
             timeout: Number(process.env.META_API_TIMEOUT_MS || 30000)
         });
         return response.data;
@@ -133,9 +141,7 @@ async function listFacebookPagePosts(account, token, options = {}) {
             'full_picture',
             'status_type',
             'attachments{media,type,url,title,description}',
-            'shares',
-            'likes.summary(true).limit(0)',
-            'comments.summary(true).limit(0)'
+            'shares'
         ].join(',')
     }, token);
 
