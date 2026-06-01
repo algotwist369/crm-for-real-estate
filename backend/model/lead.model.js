@@ -41,7 +41,7 @@ const leadSchema = new mongoose.Schema({
     lead_type: {
         type: String,
         enum: ['buyer', 'seller', 'owner', 'tenant', 'investor', 'listing', 'broker', 'other'],
-        default: 'buyer',
+        default: 'seller',
         index: true
     },
 
