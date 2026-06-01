@@ -57,7 +57,7 @@ const TABS = [
 
 const DEFAULT_STATE = {
     // Client
-    lead_type: "buyer",
+    lead_type: "seller",
     name: "",
     phone: "",
     alternate_phone: "",
