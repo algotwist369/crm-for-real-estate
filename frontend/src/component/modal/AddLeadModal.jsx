@@ -8,7 +8,7 @@ import { useCreateLead } from "../../hooks/useLeadHooks";
 import { useProperties } from "../../hooks/usePropertyHooks";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const LEAD_TYPES = ["buyer", "seller", "owner", "tenant", "investor", "listing", "broker", "other"];
+const LEAD_TYPES = ["seller", "buyer", "owner", "tenant", "investor", "listing", "broker", "other"];
 const CLIENT_TYPES = ["buying", "renting", "investing", "selling", "other"];
 const SOURCES = [
     { label: "Website", value: "website" }, { label: "Facebook", value: "facebook" },
